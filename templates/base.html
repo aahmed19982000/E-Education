@@ -1,0 +1,98 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ LANG }}" dir="{{ DIR }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ t.brand }}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="bar">
+      <a href="{% url 'core:home' %}" class="brand">
+        <img src="{% static 'images/logo.jpg' %}" alt="{{ t.brand }}">
+        <span>{{ t.brand }}</span>
+      </a>
+
+      <button type="button" class="nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="siteNav">
+        <span></span><span></span><span></span>
+      </button>
+
+      <div class="nav-wrap" id="siteNav">
+        <nav class="nav-links">
+          <a href="{% url 'core:home' %}" class="{% if request.resolver_match.view_name == 'core:home' %}active{% endif %}">{{ t.nav.home }}</a>
+          <a href="{% url 'core:about' %}" class="{% if request.resolver_match.view_name == 'core:about' %}active{% endif %}">{{ t.nav.about }}</a>
+          <a href="{% url 'levels:levels' %}" class="{% if request.resolver_match.view_name == 'levels:levels' %}active{% endif %}">{{ t.nav.levels }}</a>
+          <a href="{% url 'core:teachers' %}" class="{% if request.resolver_match.view_name == 'core:teachers' %}active{% endif %}">{{ t.nav.teachers }}</a>
+          <a href="{% url 'quiz:intro' %}" class="{% if 'quiz' in request.resolver_match.namespace %}active{% endif %}">{{ t.nav.test }}</a>
+          <a href="{% url 'articles:list' %}" class="{% if request.resolver_match.namespace == 'articles' %}active{% endif %}">{{ t.nav.articles }}</a>
+          <a href="{% url 'contact:contact' %}" class="{% if request.resolver_match.namespace == 'contact' %}active{% endif %}">{{ t.nav.contact }}</a>
+        </nav>
+        <div class="header-actions">
+          <a class="btn btn-lang" href="{% url 'core:set_language' lang_code=OTHER_LANG %}?next={{ request.path|urlencode }}">{{ t.langToggle }}</a>
+          {% if user.is_authenticated %}
+            <a class="btn btn-outline" href="{% url 'accounts:logout' %}">{{ t.nav.logout }}</a>
+          {% else %}
+            <a class="btn btn-outline" href="{% url 'accounts:login' %}">{{ t.nav.login }}</a>
+          {% endif %}
+          <a class="btn btn-accent" href="{% url 'quiz:intro' %}">{{ t.nav.cta }}</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  {% if messages %}
+    <div class="wrap" style="padding-top:20px;">
+      <ul class="messages">
+        {% for message in messages %}<li>{{ message }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-row">
+      <div class="footer-brand">
+        <div class="name">{{ t.brand }}</div>
+        <p>{{ t.footer.tagline }}</p>
+      </div>
+      <div class="footer-col">
+        <div class="footer-links-title">{{ t.footer.linksTitle }}</div>
+        <div class="footer-links">
+          <a href="{% url 'core:home' %}">{{ t.nav.home }}</a>
+          <a href="{% url 'core:about' %}">{{ t.nav.about }}</a>
+          <a href="{% url 'levels:levels' %}">{{ t.nav.levels }}</a>
+          <a href="{% url 'core:teachers' %}">{{ t.nav.teachers }}</a>
+          <a href="{% url 'quiz:intro' %}">{{ t.nav.test }}</a>
+          <a href="{% url 'articles:list' %}">{{ t.nav.articles }}</a>
+          <a href="{% url 'contact:contact' %}">{{ t.nav.contact }}</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <div class="footer-links-title">{{ t.contact.title }}</div>
+        <div class="footer-contact">
+          {% for item in t.contact.info %}
+            <div class="footer-contact-item">
+              <span class="label">{{ item.label }}</span>
+              <span class="value">{{ item.value }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">{{ t.footer.copyright }}</div>
+  </footer>
+
+  <script src="{% static 'js/site.js' %}" defer></script>
+
+</body>
+</html>

@@ -1,0 +1,94 @@
+/* Dashboard layout — extends the public site's tokens (site.css must load first) */
+
+body.dash-body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Tajawal', sans-serif; }
+
+.dash-shell { display: flex; min-height: 100vh; }
+
+.dash-sidebar {
+  width: 260px; flex-shrink: 0; background: var(--primary); color: #fff;
+  display: flex; flex-direction: column; padding: 22px 0;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  transition: transform .25s ease;
+}
+.dash-sidebar .brand { padding: 0 22px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.12); margin-bottom: 18px; }
+.dash-sidebar .brand img { width: 36px; height: 36px; border-radius: 6px; object-fit: contain; }
+.dash-sidebar .brand span { font-weight: 800; font-size: 15px; }
+
+.dash-role-badge { margin: 0 22px 20px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); border-radius: 10px; padding: 10px 14px; }
+.dash-role-badge .name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.dash-role-badge .role { font-size: 11px; color: var(--accent); font-weight: 700; }
+
+.dash-nav { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; flex: 1; }
+.dash-nav a { display: block; padding: 11px 14px; border-radius: 8px; color: #C9CEDD; font-size: 14px; font-weight: 600; transition: background-color .15s ease, color .15s ease; }
+.dash-nav a:hover { background: rgba(255,255,255,.07); color: #fff; }
+.dash-nav a.active { background: var(--accent); color: var(--primary); }
+
+.dash-sidebar-footer { padding: 16px 22px 4px; border-top: 1px solid rgba(255,255,255,.12); margin-top: 16px; }
+.dash-sidebar-footer a { color: #C9CEDD; font-size: 13px; display: block; margin-bottom: 10px; }
+.dash-sidebar-footer a:hover { color: #fff; }
+
+.dash-main { flex: 1; min-width: 0; }
+.dash-topbar {
+  background: #fff; border-bottom: 1px solid var(--border); padding: 16px 28px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  position: sticky; top: 0; z-index: 20;
+}
+.dash-topbar h1 { font-size: 19px; font-weight: 800; color: var(--primary); margin: 0; }
+.dash-sidebar-toggle { display: none; width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 8px; background: #fff; flex-shrink: 0; }
+.dash-content { padding: 26px 28px 60px; }
+
+.dash-stats-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 18px; margin-bottom: 28px; }
+.dash-stat { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+.dash-stat .value { font-size: 28px; font-weight: 800; color: var(--primary); }
+.dash-stat .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+.dash-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+
+.dash-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+.dash-toolbar h2 { font-size: 17px; font-weight: 800; color: var(--primary); margin: 0; }
+
+.dash-table-wrap { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; overflow-x: auto; }
+table.dash-table { width: 100%; border-collapse: collapse; }
+.dash-table th, .dash-table td { padding: 13px 16px; text-align: start; font-size: 13.5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.dash-table td.wrap { white-space: normal; }
+.dash-table th { background: var(--cream); color: var(--primary); font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: .3px; }
+.dash-table tr:last-child td { border-bottom: none; }
+.dash-table-actions { display: flex; gap: 14px; }
+.dash-table-actions a.danger { color: #b00020; }
+
+.dash-badge { display: inline-block; padding: 3px 11px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.dash-badge.super { background: #FBF0DC; color: #8a6a1c; }
+.dash-badge.content_staff { background: #E7EAF5; color: var(--primary); }
+.dash-badge.teacher { background: #E2F3EA; color: #1c7a4a; }
+.dash-badge.inactive { background: #F5E4E4; color: #a33333; }
+
+.dash-empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+
+.dash-form-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 16px; margin-bottom: 16px; }
+.dash-form-grid.full { grid-template-columns: 1fr; }
+.dash-field { display: flex; flex-direction: column; gap: 6px; }
+.dash-field label { font-size: 13px; font-weight: 700; color: var(--primary); }
+.dash-field .errorlist { color: #b00020; font-size: 12px; margin: 0; padding: 0; list-style: none; }
+.dash-form-actions { display: flex; gap: 10px; margin-top: 22px; }
+.dash-options-group { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.dash-options-group .dash-field-title { font-size: 13px; font-weight: 800; color: var(--primary); margin-bottom: 12px; }
+
+.dash-message-body { background: var(--cream); border: 1px solid var(--cream-border); border-radius: 12px; padding: 18px; font-size: 14px; line-height: 1.8; color: #3A4258; margin-top: 18px; }
+
+@media (max-width: 980px) {
+  .dash-sidebar-toggle { display: block; }
+  .dash-sidebar { position: fixed; z-index: 60; inset-inline-start: 0; transform: translateX(100%); }
+  [dir="ltr"] .dash-sidebar { transform: translateX(-100%); }
+  .dash-sidebar.open { transform: translateX(0); }
+  .dash-overlay { display: none; position: fixed; inset: 0; background: rgba(20,39,91,.35); z-index: 50; }
+  .dash-overlay.open { display: block; }
+}
+
+/* Admin login page */
+.dash-login-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--primary); padding: 24px; }
+.dash-login-card { background: #fff; border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 380px; text-align: center; }
+.dash-login-card img { width: 56px; height: 56px; object-fit: contain; border-radius: 10px; margin-bottom: 16px; }
+.dash-login-card h1 { font-size: 19px; font-weight: 800; color: var(--primary); margin: 0 0 24px; }
+.dash-login-card form { text-align: start; display: flex; flex-direction: column; gap: 14px; }
+.dash-login-card .btn { margin-top: 6px; width: 100%; text-align: center; }
+.dash-login-error { background: #FDEEEE; color: #b00020; border: 1px solid #F5C6C6; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 18px; }

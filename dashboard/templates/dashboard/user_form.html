@@ -1,0 +1,28 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="dash-card">
+  <form method="post">
+    {% csrf_token %}
+    <div class="dash-form-grid">
+      {% if form.full_name %}
+        <div class="dash-field"><label>{{ form.full_name.label }}</label>{{ form.full_name }}{{ form.full_name.errors }}</div>
+        <div class="dash-field"><label>{{ form.email.label }}</label>{{ form.email }}{{ form.email.errors }}</div>
+        <div class="dash-field"><label>{{ form.password.label }}</label>{{ form.password }}{{ form.password.errors }}</div>
+      {% endif %}
+      <div class="dash-field"><label>{{ form.role.label }}</label>{{ form.role }}{{ form.role.errors }}</div>
+    </div>
+    {% if form.is_active %}
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--primary); margin-bottom:4px;">
+        {{ form.is_active }} {{ form.is_active.label }}
+      </label>
+    {% endif %}
+    <div class="dash-form-actions">
+      <button type="submit" class="btn btn-primary">حفظ</button>
+      <a class="btn btn-outline" href="{% url 'dashboard:users_list' %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

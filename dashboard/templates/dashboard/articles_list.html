@@ -1,0 +1,45 @@
+{% extends "dashboard/base.html" %}
+{% block title %}المقالات{% endblock %}
+{% block page_title %}المقالات{% endblock %}
+
+{% block content %}
+<div class="dash-toolbar">
+  <h2>كل المقالات ({{ articles|length }})</h2>
+  {% if can_write_articles %}
+    <a class="btn btn-primary" href="{% url 'dashboard:article_create' %}">+ إضافة مقال</a>
+  {% endif %}
+</div>
+
+<div class="dash-table-wrap">
+  {% if articles %}
+  <table class="dash-table">
+    <thead>
+      <tr>
+        <th>العنوان</th><th>التصنيف</th><th>تاريخ النشر</th><th>الترتيب</th>
+        {% if can_write_articles %}<th></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for article in articles %}
+      <tr>
+        <td class="wrap">{{ article.title_ar }}</td>
+        <td>{{ article.category_ar }}</td>
+        <td>{{ article.created_at|date:"Y-m-d" }}</td>
+        <td>{{ article.order }}</td>
+        {% if can_write_articles %}
+        <td>
+          <div class="dash-table-actions">
+            <a href="{% url 'dashboard:article_edit' article.pk %}">تعديل</a>
+            <a class="danger" href="{% url 'dashboard:article_delete' article.pk %}">حذف</a>
+          </div>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="dash-empty">لا توجد مقالات مضافة بعد.</div>
+  {% endif %}
+</div>
+{% endblock %}

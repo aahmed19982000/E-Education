@@ -1,0 +1,16 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="dash-card">
+  <p style="color: var(--muted); font-size: 14px; margin-bottom: 20px;">هل أنت متأكد أنك تريد حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء.</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="dash-form-actions">
+      <button type="submit" class="btn" style="background:#b00020; color:#fff;">تأكيد الحذف</button>
+      <a class="btn btn-outline" href="{% url cancel_url %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

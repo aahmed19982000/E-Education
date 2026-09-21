@@ -1,0 +1,74 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}لوحة التحكم{% endblock %} · لوحة التحكم</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body class="dash-body">
+  <div class="dash-shell">
+    <div class="dash-overlay"></div>
+
+    <aside class="dash-sidebar">
+      <a href="{% url 'dashboard:index' %}" class="brand">
+        <img src="{% static 'images/logo.jpg' %}" alt="أكاديمية E-Education">
+        <span>لوحة التحكم</span>
+      </a>
+
+      <div class="dash-role-badge">
+        <div class="name">{{ request.user.get_full_name|default:request.user.email }}</div>
+        <div class="role">{{ role_display }}</div>
+      </div>
+
+      <nav class="dash-nav">
+        <a href="{% url 'dashboard:index' %}" class="{% if active == 'index' %}active{% endif %}">الرئيسية</a>
+        {% if can_view_levels %}
+          <a href="{% url 'dashboard:levels_list' %}" class="{% if active == 'levels' %}active{% endif %}">المستويات والأسعار</a>
+        {% endif %}
+        {% if can_view_articles %}
+          <a href="{% url 'dashboard:articles_list' %}" class="{% if active == 'articles' %}active{% endif %}">المقالات</a>
+        {% endif %}
+        {% if can_view_questions %}
+          <a href="{% url 'dashboard:questions_list' %}" class="{% if active == 'questions' %}active{% endif %}">أسئلة اختبار المستوى</a>
+        {% endif %}
+        {% if can_view_messages %}
+          <a href="{% url 'dashboard:messages_list' %}" class="{% if active == 'messages' %}active{% endif %}">رسائل تواصل معنا</a>
+        {% endif %}
+        {% if can_view_users %}
+          <a href="{% url 'dashboard:users_list' %}" class="{% if active == 'users' %}active{% endif %}">أعضاء الفريق</a>
+        {% endif %}
+      </nav>
+
+      <div class="dash-sidebar-footer">
+        <a href="{% url 'core:home' %}">‹ العودة للموقع</a>
+        <a href="{% url 'dashboard:logout' %}">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <div class="dash-main">
+      <header class="dash-topbar">
+        <button type="button" class="dash-sidebar-toggle" aria-label="القائمة">☰</button>
+        <h1>{% block page_title %}لوحة التحكم{% endblock %}</h1>
+        <div></div>
+      </header>
+
+      <div class="dash-content">
+        {% if messages %}
+          <ul class="messages">
+            {% for message in messages %}<li>{{ message }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/dashboard.js' %}" defer></script>
+</body>
+</html>

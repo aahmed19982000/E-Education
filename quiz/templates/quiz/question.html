@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t.test.introTitle }} · {{ t.brand }}{% endblock %}
+
+{% block content %}
+  <div class="page-narrow">
+    <div class="quiz-progress"><div class="quiz-progress-bar" style="width:{{ progress_pct }}%;"></div></div>
+    <div class="quiz-tag">{{ current_question.tag }}</div>
+
+    {% if current_question.passage %}
+      <p class="quiz-passage">{{ current_question.passage }}</p>
+    {% endif %}
+
+    {% if current_question.audio %}
+      <div class="quiz-audio">
+        <div class="dot"></div>
+        <span>{{ current_question.audio }}</span>
+      </div>
+    {% endif %}
+
+    <h2 class="quiz-question">{{ current_question.text }}</h2>
+
+    <div class="quiz-options">
+      {% for opt in current_question.options %}
+        <form method="post" action="{% url 'quiz:question' %}">
+          {% csrf_token %}
+          <input type="hidden" name="option" value="{{ forloop.counter0 }}">
+          <button class="quiz-option" type="submit">{{ opt }}</button>
+        </form>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}

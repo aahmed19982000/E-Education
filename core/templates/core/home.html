@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+  <section class="hero wrap">
+    <div>
+      <div class="hero-eyebrow">{{ t.home.eyebrow }}</div>
+      <h1>{{ t.home.title }}</h1>
+      <p class="lead">{{ t.home.subtitle }}</p>
+      <div class="hero-actions">
+        <a class="btn btn-lg btn-primary" href="{% url 'quiz:intro' %}">{{ t.home.cta1 }}</a>
+        <a class="btn btn-lg btn-outline-lg" href="{% url 'levels:levels' %}">{{ t.home.cta2 }}</a>
+      </div>
+      <div class="hero-stats">
+        {% for s in t.home.stats %}
+          <div>
+            <div class="stat-value">{{ s.value }}</div>
+            <div class="stat-label">{{ s.label }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="hero-art"><span>[ {{ t.imgHeroAlt }} ]</span></div>
+  </section>
+
+  <section class="panel-row wrap">
+    <div class="panel-dark">
+      <h3>{{ t.home.students.title }}</h3>
+      <p>{{ t.home.students.desc }}</p>
+      <a class="btn btn-accent" href="{% url 'levels:levels' %}">{{ t.home.students.cta }}</a>
+    </div>
+    <div class="panel-cream">
+      <h3>{{ t.home.teachers.title }}</h3>
+      <p>{{ t.home.teachers.desc }}</p>
+      <a class="btn btn-primary" href="{% url 'core:teachers' %}">{{ t.home.teachers.cta }}</a>
+    </div>
+  </section>
+
+  <section class="wrap" style="padding:24px 24px 64px;">
+    <h2 class="section-title">{{ t.home.howTitle }}</h2>
+    <div class="steps-grid">
+      {% for step in t.home.steps %}
+        <div class="step">
+          <div class="step-num">{{ step.n }}</div>
+          <h4>{{ step.title }}</h4>
+          <p>{{ step.desc }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="wrap" style="padding:24px 24px 72px;">
+    <div class="section-head-row">
+      <h2>{{ t.home.articlesTitle }}</h2>
+      <a href="{% url 'articles:list' %}">{{ t.home.articlesAll }}</a>
+    </div>
+    <div class="cards-grid">
+      {% for a in home_articles %}
+        <a class="article-card" href="{% url 'articles:detail' slug=a.slug %}">
+          <div class="thumb"></div>
+          <div class="body">
+            <div class="cat">{{ a.category }}</div>
+            <div class="title">{{ a.title }}</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="banner">
+    <h2>{{ t.home.bannerTitle }}</h2>
+    <p>{{ t.home.bannerSubtitle }}</p>
+    <a class="btn btn-accent btn-lg" href="{% url 'quiz:intro' %}">{{ t.home.cta1 }}</a>
+  </section>
+{% endblock %}

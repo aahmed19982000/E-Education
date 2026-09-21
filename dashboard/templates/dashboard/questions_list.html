@@ -1,0 +1,44 @@
+{% extends "dashboard/base.html" %}
+{% block title %}أسئلة اختبار المستوى{% endblock %}
+{% block page_title %}أسئلة اختبار المستوى{% endblock %}
+
+{% block content %}
+<div class="dash-toolbar">
+  <h2>كل الأسئلة ({{ questions|length }})</h2>
+  {% if can_write_questions %}
+    <a class="btn btn-primary" href="{% url 'dashboard:question_create' %}">+ إضافة سؤال</a>
+  {% endif %}
+</div>
+
+<div class="dash-table-wrap">
+  {% if questions %}
+  <table class="dash-table">
+    <thead>
+      <tr>
+        <th>الترتيب</th><th>الوسم</th><th>نص السؤال</th>
+        {% if can_write_questions %}<th></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for q in questions %}
+      <tr>
+        <td>{{ q.order }}</td>
+        <td>{{ q.tag_ar }}</td>
+        <td class="wrap">{{ q.text_ar }}</td>
+        {% if can_write_questions %}
+        <td>
+          <div class="dash-table-actions">
+            <a href="{% url 'dashboard:question_edit' q.pk %}">تعديل</a>
+            <a class="danger" href="{% url 'dashboard:question_delete' q.pk %}">حذف</a>
+          </div>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="dash-empty">لا توجد أسئلة مضافة بعد.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "dashboard/base.html" %}
+{% block title %}الرئيسية{% endblock %}
+{% block page_title %}نظرة عامة{% endblock %}
+
+{% block content %}
+<div class="dash-stats-grid">
+  {% if can_view_levels %}
+    <div class="dash-stat">
+      <div class="value">{{ levels_count }}</div>
+      <div class="label">المستويات والأسعار</div>
+    </div>
+  {% endif %}
+  {% if can_view_articles %}
+    <div class="dash-stat">
+      <div class="value">{{ articles_count }}</div>
+      <div class="label">المقالات</div>
+    </div>
+  {% endif %}
+  {% if can_view_questions %}
+    <div class="dash-stat">
+      <div class="value">{{ questions_count }}</div>
+      <div class="label">أسئلة اختبار المستوى</div>
+    </div>
+  {% endif %}
+  {% if can_view_messages %}
+    <div class="dash-stat">
+      <div class="value">{{ messages_count }}</div>
+      <div class="label">رسائل تواصل معنا</div>
+    </div>
+  {% endif %}
+  {% if can_view_users %}
+    <div class="dash-stat">
+      <div class="value">{{ users_count }}</div>
+      <div class="label">أعضاء الفريق</div>
+    </div>
+  {% endif %}
+</div>
+
+<div class="dash-card">
+  <p style="margin:0; color: var(--muted); font-size: 14px; line-height: 1.8;">
+    مرحبًا {{ request.user.get_full_name|default:request.user.email }}، صلاحيتك الحالية: <strong>{{ role_display }}</strong>.
+    استخدم القائمة الجانبية للتنقل بين الأقسام المتاحة لك.
+  </p>
+</div>
+{% endblock %}

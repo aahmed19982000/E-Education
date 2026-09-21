@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t.contact.title }} · {{ t.brand }}{% endblock %}
+
+{% block content %}
+  <div class="page-contact page-center">
+    <h1>{{ t.contact.title }}</h1>
+    <p class="lead" style="margin-inline:auto;">{{ t.contact.subtitle }}</p>
+
+    <div class="contact-grid" style="text-align:start;">
+      {% if submitted %}
+        <div class="contact-success">
+          <h3>{{ t.contact.successTitle }}</h3>
+          <p>{{ t.contact.successDesc }}</p>
+        </div>
+      {% else %}
+        <form method="post" class="form-grid">
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+
+          <div>
+            <input class="field" type="text" name="name" placeholder="{{ t.contact.name }}" value="{{ form.name.value|default:'' }}" required>
+            {% if form.name.errors %}<div class="form-errors">{{ form.name.errors }}</div>{% endif %}
+          </div>
+          <div>
+            <input class="field" type="email" name="email" placeholder="{{ t.contact.email }}" value="{{ form.email.value|default:'' }}" required>
+            {% if form.email.errors %}<div class="form-errors">{{ form.email.errors }}</div>{% endif %}
+          </div>
+          <div>
+            <input class="field" type="text" name="phone" placeholder="{{ t.contact.phone }}" value="{{ form.phone.value|default:'' }}">
+          </div>
+          <div>
+            <textarea class="field" name="message" rows="5" placeholder="{{ t.contact.message }}" required>{{ form.message.value|default:'' }}</textarea>
+            {% if form.message.errors %}<div class="form-errors">{{ form.message.errors }}</div>{% endif %}
+          </div>
+          <button class="btn btn-primary" style="padding:14px;" type="submit">{{ t.contact.submit }}</button>
+        </form>
+      {% endif %}
+
+      <div>
+        {% for c in t.contact.info %}
+          <div class="contact-info-item">
+            <div class="label">{{ c.label }}</div>
+            <div class="value">{{ c.value }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

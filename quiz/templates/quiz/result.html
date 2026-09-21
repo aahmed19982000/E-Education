@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t.test.resultEyebrow }} · {{ t.brand }}{% endblock %}
+
+{% block content %}
+  <div class="page-narrow page-center">
+    <div class="quiz-eyebrow">{{ t.test.resultEyebrow }}</div>
+    <h1 style="font-size:34px;font-weight:800;color:var(--primary);margin:0 0 14px;">{{ result_level_name }}</h1>
+    <p class="lead" style="margin-inline:auto;">{{ t.test.resultDesc }}</p>
+    <a class="btn btn-lg btn-primary" href="{% url 'levels:levels' %}">{{ t.test.resultCta }}</a>
+  </div>
+{% endblock %}

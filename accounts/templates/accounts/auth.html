@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t.auth.login }} · {{ t.brand }}{% endblock %}
+
+{% block content %}
+  <div class="page-auth">
+    <div class="auth-tabs">
+      <a class="{% if mode == 'login' %}active{% endif %}" href="?mode=login">{{ t.auth.login }}</a>
+      <a class="{% if mode == 'register' %}active{% endif %}" href="?mode=register">{{ t.auth.register }}</a>
+    </div>
+
+    {% if mode == 'register' %}
+      <form method="post" class="form-grid">
+        {% csrf_token %}
+        <input type="hidden" name="mode" value="register">
+        {% if register_form.non_field_errors %}<div class="form-errors">{{ register_form.non_field_errors }}</div>{% endif %}
+
+        <input class="field" type="text" name="full_name" placeholder="{{ t.auth.name }}" value="{{ register_form.full_name.value|default:'' }}" required>
+        {% if register_form.full_name.errors %}<div class="form-errors">{{ register_form.full_name.errors }}</div>{% endif %}
+
+        <input class="field" type="email" name="email" placeholder="{{ t.auth.email }}" value="{{ register_form.email.value|default:'' }}" required>
+        {% if register_form.email.errors %}<div class="form-errors">{{ register_form.email.errors }}</div>{% endif %}
+
+        <input class="field" type="text" name="phone" placeholder="{{ t.auth.phone }}" value="{{ register_form.phone.value|default:'' }}">
+
+        <input class="field" type="password" name="password" placeholder="{{ t.auth.password }}" required>
+        {% if register_form.password.errors %}<div class="form-errors">{{ register_form.password.errors }}</div>{% endif %}
+        <input class="field" type="password" name="password2" placeholder="{{ t.auth.password2 }}" required>
+        {% if register_form.password2.errors %}<div class="form-errors">{{ register_form.password2.errors }}</div>{% endif %}
+
+        <button class="btn btn-primary" style="padding:14px;margin-top:8px;" type="submit">{{ t.auth.registerBtn }}</button>
+      </form>
+    {% else %}
+      <form method="post" class="form-grid">
+        {% csrf_token %}
+        <input type="hidden" name="mode" value="login">
+        {% if login_form.non_field_errors %}<div class="form-errors">{{ login_form.non_field_errors }}</div>{% endif %}
+
+        <input class="field" type="email" name="email" placeholder="{{ t.auth.email }}" value="{{ login_form.email.value|default:'' }}" required>
+        <input class="field" type="password" name="password" placeholder="{{ t.auth.password }}" required>
+
+        <button class="btn btn-primary" style="padding:14px;margin-top:8px;" type="submit">{{ t.auth.loginBtn }}</button>
+      </form>
+    {% endif %}
+  </div>
+{% endblock %}

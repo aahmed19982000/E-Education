@@ -1,0 +1,41 @@
+{% extends "dashboard/base.html" %}
+{% block title %}رسائل تواصل معنا{% endblock %}
+{% block page_title %}رسائل تواصل معنا{% endblock %}
+
+{% block content %}
+<div class="dash-toolbar">
+  <h2>كل الرسائل ({{ contact_messages|length }})</h2>
+</div>
+
+<div class="dash-table-wrap">
+  {% if contact_messages %}
+  <table class="dash-table">
+    <thead>
+      <tr>
+        <th>الاسم</th><th>البريد الإلكتروني</th><th>الهاتف</th><th>التاريخ</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for msg in contact_messages %}
+      <tr>
+        <td>{{ msg.name }}</td>
+        <td>{{ msg.email }}</td>
+        <td>{{ msg.phone|default:"—" }}</td>
+        <td>{{ msg.created_at|date:"Y-m-d H:i" }}</td>
+        <td>
+          <div class="dash-table-actions">
+            <a href="{% url 'dashboard:message_detail' msg.pk %}">عرض</a>
+            {% if can_write_messages %}
+              <a class="danger" href="{% url 'dashboard:message_delete' msg.pk %}">حذف</a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="dash-empty">لا توجد رسائل بعد.</div>
+  {% endif %}
+</div>
+{% endblock %}

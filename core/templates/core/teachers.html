@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t.teachers.title }} · {{ t.brand }}{% endblock %}
+
+{% block content %}
+  <div class="page">
+    <div class="teachers-hero">
+      <div>
+        <h1>{{ t.teachers.title }}</h1>
+        <p>{{ t.teachers.intro }}</p>
+        <a class="btn btn-accent btn-lg" href="{% url 'contact:contact' %}">{{ t.teachers.cta }}</a>
+      </div>
+      <div class="hero-art"><span>[ {{ t.imgTeachersAlt }} ]</span></div>
+    </div>
+
+    <div class="teachers-details">
+      {% for d in t.teachers.details %}
+        <div class="teacher-detail">
+          <div class="label">{{ d.label }}</div>
+          <div class="value">{{ d.value }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <h3 class="curriculum-title">{{ t.teachers.curriculumTitle }}</h3>
+    <div class="curriculum-tags">
+      {% for c in t.teachers.curriculum %}<span>{{ c }}</span>{% endfor %}
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="dash-card">
+  <form method="post">
+    {% csrf_token %}
+    <div class="dash-form-grid">
+      <div class="dash-field"><label>{{ form.code.label }}</label>{{ form.code }}{{ form.code.errors }}</div>
+      <div class="dash-field"><label>{{ form.order.label }}</label>{{ form.order }}{{ form.order.errors }}</div>
+      <div class="dash-field"><label>{{ form.name_ar.label }}</label>{{ form.name_ar }}{{ form.name_ar.errors }}</div>
+      <div class="dash-field"><label>{{ form.name_en.label }}</label>{{ form.name_en }}{{ form.name_en.errors }}</div>
+      <div class="dash-field"><label>{{ form.duration_ar.label }}</label>{{ form.duration_ar }}{{ form.duration_ar.errors }}</div>
+      <div class="dash-field"><label>{{ form.duration_en.label }}</label>{{ form.duration_en }}{{ form.duration_en.errors }}</div>
+      <div class="dash-field"><label>{{ form.price_group.label }}</label>{{ form.price_group }}{{ form.price_group.errors }}</div>
+      <div class="dash-field"><label>{{ form.price_private.label }}</label>{{ form.price_private }}{{ form.price_private.errors }}</div>
+    </div>
+    <div class="dash-form-grid full">
+      <div class="dash-field"><label>{{ form.description_ar.label }}</label>{{ form.description_ar }}{{ form.description_ar.errors }}</div>
+      <div class="dash-field"><label>{{ form.description_en.label }}</label>{{ form.description_en }}{{ form.description_en.errors }}</div>
+    </div>
+    <div class="dash-form-actions">
+      <button type="submit" class="btn btn-primary">حفظ</button>
+      <a class="btn btn-outline" href="{% url 'dashboard:levels_list' %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

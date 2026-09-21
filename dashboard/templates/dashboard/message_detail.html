@@ -1,0 +1,21 @@
+{% extends "dashboard/base.html" %}
+{% block title %}رسالة من {{ object.name }}{% endblock %}
+{% block page_title %}رسالة من {{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="dash-card">
+  <div class="dash-form-grid">
+    <div class="dash-field"><label>الاسم</label><div>{{ object.name }}</div></div>
+    <div class="dash-field"><label>البريد الإلكتروني</label><div>{{ object.email }}</div></div>
+    <div class="dash-field"><label>الهاتف</label><div>{{ object.phone|default:"—" }}</div></div>
+    <div class="dash-field"><label>التاريخ</label><div>{{ object.created_at|date:"Y-m-d H:i" }}</div></div>
+  </div>
+  <div class="dash-message-body">{{ object.message|linebreaksbr }}</div>
+  <div class="dash-form-actions">
+    <a class="btn btn-outline" href="{% url 'dashboard:messages_list' %}">‹ العودة للرسائل</a>
+    {% if can_write_messages %}
+      <a class="btn" style="background:#b00020; color:#fff;" href="{% url 'dashboard:message_delete' object.pk %}">حذف الرسالة</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

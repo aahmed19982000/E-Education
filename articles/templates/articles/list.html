@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t.articles.title }} · {{ t.brand }}{% endblock %}
+
+{% block content %}
+  <div class="page page-center">
+    <h1>{{ t.articles.title }}</h1>
+    <p class="lead" style="margin-inline:auto;">{{ t.articles.subtitle }}</p>
+
+    <div class="articles-grid" style="text-align:start;">
+      {% for a in articles %}
+        <a class="article-card lg" href="{% url 'articles:detail' slug=a.slug %}">
+          <div class="thumb"></div>
+          <div class="body">
+            <div class="cat">{{ a.category }}</div>
+            <div class="title">{{ a.title }}</div>
+            <p class="excerpt">{{ a.excerpt }}</p>
+            <div class="readtime">{{ a.read_time }}</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}

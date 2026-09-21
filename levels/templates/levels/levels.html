@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t.levels.title }} · {{ t.brand }}{% endblock %}
+
+{% block content %}
+  <div class="page page-center">
+    <h1>{{ t.levels.title }}</h1>
+    <p class="lead" style="margin-inline:auto;">{{ t.levels.subtitle }}</p>
+
+    <div class="mode-toggle">
+      <a class="mode-btn {% if mode == 'group' %}active{% endif %}" href="?mode=group">{{ t.levels.group }}</a>
+      <a class="mode-btn {% if mode == 'private' %}active{% endif %}" href="?mode=private">{{ t.levels.private }}</a>
+    </div>
+
+    <div class="levels-grid" style="text-align:start;">
+      {% for lv in level_cards %}
+        <div class="level-card">
+          <div class="code">{{ lv.code }}</div>
+          <h3>{{ lv.name }}</h3>
+          <p>{{ lv.desc }}</p>
+          <div class="price">{{ lv.price }} {{ t.levels.currency }}</div>
+          <div class="duration">{{ lv.duration }}</div>
+          <a class="btn-block" style="display:block;text-align:center;text-decoration:none;" href="{% url 'contact:contact' %}">{{ t.levels.subscribe }}</a>
+        </div>
+      {% endfor %}
+    </div>
+
+    <p class="footnote">{{ t.levels.footnote }}</p>
+  </div>
+{% endblock %}

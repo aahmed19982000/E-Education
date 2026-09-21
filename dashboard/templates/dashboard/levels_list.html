@@ -1,0 +1,46 @@
+{% extends "dashboard/base.html" %}
+{% block title %}المستويات والأسعار{% endblock %}
+{% block page_title %}المستويات والأسعار{% endblock %}
+
+{% block content %}
+<div class="dash-toolbar">
+  <h2>كل المستويات ({{ levels|length }})</h2>
+  {% if can_write_levels %}
+    <a class="btn btn-primary" href="{% url 'dashboard:level_create' %}">+ إضافة مستوى</a>
+  {% endif %}
+</div>
+
+<div class="dash-table-wrap">
+  {% if levels %}
+  <table class="dash-table">
+    <thead>
+      <tr>
+        <th>الرمز</th><th>الاسم</th><th>سعر الجروب</th><th>سعر الخصوصي</th><th>الترتيب</th>
+        {% if can_write_levels %}<th></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for level in levels %}
+      <tr>
+        <td>{{ level.code }}</td>
+        <td class="wrap">{{ level.name_ar }}</td>
+        <td>{{ level.price_group }} ج.م</td>
+        <td>{{ level.price_private }} ج.م</td>
+        <td>{{ level.order }}</td>
+        {% if can_write_levels %}
+        <td>
+          <div class="dash-table-actions">
+            <a href="{% url 'dashboard:level_edit' level.pk %}">تعديل</a>
+            <a class="danger" href="{% url 'dashboard:level_delete' level.pk %}">حذف</a>
+          </div>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="dash-empty">لا توجد مستويات مضافة بعد.</div>
+  {% endif %}
+</div>
+{% endblock %}

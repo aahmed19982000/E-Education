@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} · {{ t.brand }}{% endblock %}
+
+{% block content %}
+  <div class="page-article">
+    <a href="{% url 'articles:list' %}">{{ t.articles.back }}</a>
+    <div class="article-detail-cat">{{ article.category }}</div>
+    <h1 class="article-detail-title">{{ article.title }}</h1>
+    <div class="article-detail-meta">{{ article.read_time }}</div>
+    <div class="article-detail-cover"></div>
+    <div class="article-detail-body">
+      <p>{{ article.excerpt }}</p>
+      <p>{{ article.body|default:t.articles.bodyPlaceholder }}</p>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t.test.introTitle }} · {{ t.brand }}{% endblock %}
+
+{% block content %}
+  <div class="page-narrow page-center">
+    <h1 style="font-size:30px;font-weight:800;color:var(--primary);margin:0 0 14px;">{{ t.test.introTitle }}</h1>
+    <p class="lead" style="margin-inline:auto;">{{ t.test.introDesc }}</p>
+
+    <div class="quiz-info-items">
+      {% for i in t.test.infoItems %}<div>{{ i }}</div>{% endfor %}
+    </div>
+
+    <form method="post" action="{% url 'quiz:start' %}">
+      {% csrf_token %}
+      <button class="btn btn-lg btn-primary" type="submit">{{ t.test.startBtn }}</button>
+    </form>
+  </div>
+{% endblock %}
