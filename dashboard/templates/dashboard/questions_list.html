@@ -15,7 +15,7 @@
   <table class="dash-table">
     <thead>
       <tr>
-        <th>الترتيب</th><th>الوسم</th><th>نص السؤال</th>
+        <th>الترتيب</th><th>النوع</th><th>التصنيف</th><th>نص السؤال</th>
         {% if can_write_questions %}<th></th>{% endif %}
       </tr>
     </thead>
@@ -23,6 +23,11 @@
       {% for q in questions %}
       <tr>
         <td>{{ q.order }}</td>
+        <td class="dash-kind">
+          {% if q.kind == "listening" %}🎧 استماع{% if not q.audio_file %} <span title="لا يوجد مقطع صوتي">⚠</span>{% endif %}
+          {% elif q.kind == "reading" %}📖 قراءة
+          {% else %}✎ عادي{% endif %}
+        </td>
         <td>{{ q.tag_ar }}</td>
         <td class="wrap">{{ q.text_ar }}</td>
         {% if can_write_questions %}

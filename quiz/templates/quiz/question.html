@@ -11,7 +11,12 @@
       <p class="quiz-passage">{{ current_question.passage }}</p>
     {% endif %}
 
-    {% if current_question.audio %}
+    {% if current_question.audio_url %}
+      <div class="quiz-audio has-player">
+        {% if current_question.audio %}<span>{{ current_question.audio }}</span>{% endif %}
+        <audio controls controlsList="nodownload" preload="metadata" src="{{ current_question.audio_url }}"></audio>
+      </div>
+    {% elif current_question.audio %}
       <div class="quiz-audio">
         <div class="dot"></div>
         <span>{{ current_question.audio }}</span>

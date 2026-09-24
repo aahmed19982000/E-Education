@@ -8,7 +8,7 @@ from accounts.auth_utils import authenticate_by_email
 from articles.models import Article
 from contact_us.models import ContactMessage
 from levels.models import Level
-from quiz.models import Question
+from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Question
 
 from .decorators import dashboard_required, section_required
 from .forms import ArticleForm, DashboardLoginForm, LevelForm, QuestionForm, StaffUserCreateForm, StaffUserEditForm
@@ -168,15 +168,26 @@ def questions_list(request):
 def question_form(request, pk=None):
     instance = get_object_or_404(Question, pk=pk) if pk else None
     if request.method == "POST":
-        form = QuestionForm(request.POST, instance=instance)
+        form = QuestionForm(request.POST, request.FILES, instance=instance)
         if form.is_valid():
             form.save()
             messages.success(request, "تم حفظ السؤال بنجاح.")
+            if "save_add_another" in request.POST:
+                return redirect("dashboard:question_create")
             return redirect("dashboard:questions_list")
     else:
         form = QuestionForm(instance=instance)
     ctx = base_context(request, active="questions")
-    ctx.update({"form": form, "instance": instance, "title": "تعديل سؤال" if instance else "إضافة سؤال"})
+    ctx.update({
+        "form": form,
+        "instance": instance,
+        "title": "تعديل سؤال" if instance else "إضافة سؤال",
+        "option_rows": form.option_rows(),
+        "max_options": MAX_OPTIONS,
+        "min_options": MIN_OPTIONS,
+        "audio_max_mb": AUDIO_MAX_MB,
+        "tag_suggestions": Question.objects.order_by("tag_ar").values_list("tag_ar", flat=True).distinct(),
+    })
     return render(request, "dashboard/question_form.html", ctx)
 
 
@@ -184,6 +195,8 @@ def question_form(request, pk=None):
 def question_delete(request, pk):
     instance = get_object_or_404(Question, pk=pk)
     if request.method == "POST":
+        if instance.audio_file:
+            instance.audio_file.delete(save=False)
         instance.delete()
         messages.success(request, "تم حذف السؤال.")
         return redirect("dashboard:questions_list")

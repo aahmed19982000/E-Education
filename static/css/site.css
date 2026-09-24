@@ -206,6 +206,8 @@ section.panel-row { padding: 24px 24px 64px; display: grid; grid-template-column
 .quiz-audio { background: var(--primary); border-radius: 10px; padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
 .quiz-audio .dot { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
 .quiz-audio span { color: #fff; font-family: monospace; font-size: 12px; }
+.quiz-audio.has-player { flex-direction: column; align-items: stretch; gap: 10px; }
+.quiz-audio audio { width: 100%; height: 44px; }
 .quiz-question { font-size: 19px; font-weight: 800; color: var(--primary); margin: 0 0 20px; line-height: 1.6; }
 .quiz-options { display: grid; gap: 12px; }
 .quiz-option { text-align: start; border: 1px solid var(--border); background: #fff; color: var(--text); font-family: inherit; font-size: 15px; padding: 14px 18px; border-radius: 10px; width: 100%; }

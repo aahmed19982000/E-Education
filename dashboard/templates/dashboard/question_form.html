@@ -1,53 +1,143 @@
 {% extends "dashboard/base.html" %}
+{% load static %}
 {% block title %}{{ title }}{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="dash-card">
-  <form method="post">
-    {% csrf_token %}
-    <div class="dash-form-grid">
-      <div class="dash-field"><label>{{ form.order.label }}</label>{{ form.order }}{{ form.order.errors }}</div>
-      <div class="dash-field"><label>{{ form.tag_ar.label }}</label>{{ form.tag_ar }}{{ form.tag_ar.errors }}</div>
-      <div class="dash-field"><label>{{ form.tag_en.label }}</label>{{ form.tag_en }}{{ form.tag_en.errors }}</div>
-      <div class="dash-field"><label>{{ form.audio_label_ar.label }}</label>{{ form.audio_label_ar }}{{ form.audio_label_ar.errors }}</div>
-      <div class="dash-field"><label>{{ form.audio_label_en.label }}</label>{{ form.audio_label_en }}{{ form.audio_label_en.errors }}</div>
+<form method="post" enctype="multipart/form-data" class="qf" id="question-form"
+      data-max-options="{{ max_options }}" data-min-options="{{ min_options }}" data-audio-max-mb="{{ audio_max_mb }}">
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="qf-errors">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>
+  {% endif %}
+
+  {# 1. Question type #}
+  <section class="dash-card qf-section">
+    <div class="qf-step"><span>1</span> نوع السؤال</div>
+    <div class="qf-kinds">
+      {% for radio in form.kind %}
+        <label class="qf-kind">
+          {{ radio.tag }}
+          <span class="qf-kind-icon" aria-hidden="true">{% if forloop.counter == 1 %}✎{% elif forloop.counter == 2 %}📖{% else %}🎧{% endif %}</span>
+          <span class="qf-kind-label">{{ radio.choice_label }}</span>
+        </label>
+      {% endfor %}
     </div>
+
+    <div class="dash-form-grid qf-meta">
+      <div class="dash-field">
+        <label for="{{ form.tag_ar.id_for_label }}">{{ form.tag_ar.label }}</label>
+        {{ form.tag_ar }}{{ form.tag_ar.errors }}
+        <datalist id="tag-suggestions">
+          {% for t in tag_suggestions %}<option value="{{ t }}">{% endfor %}
+        </datalist>
+      </div>
+      <div class="dash-field qf-en">
+        <label for="{{ form.tag_en.id_for_label }}">{{ form.tag_en.label }}</label>{{ form.tag_en }}{{ form.tag_en.errors }}
+      </div>
+      <div class="dash-field qf-order">
+        <label for="{{ form.order.id_for_label }}">{{ form.order.label }}</label>{{ form.order }}
+        <small class="qf-hint">{{ form.order.help_text }}</small>{{ form.order.errors }}
+      </div>
+    </div>
+
+    <label class="qf-en-toggle">
+      <input type="checkbox" id="toggle-en"> إضافة ترجمة إنجليزية <small>(اختياري — لو تُركت فارغة يظهر النص العربي)</small>
+    </label>
+  </section>
+
+  {# 2a. Reading passage #}
+  <section class="dash-card qf-section" data-kind="reading">
+    <div class="qf-step"><span>2</span> نص القراءة</div>
     <div class="dash-form-grid full">
-      <div class="dash-field"><label>{{ form.passage_ar.label }}</label>{{ form.passage_ar }}{{ form.passage_ar.errors }}</div>
-      <div class="dash-field"><label>{{ form.passage_en.label }}</label>{{ form.passage_en }}{{ form.passage_en.errors }}</div>
-      <div class="dash-field"><label>{{ form.text_ar.label }}</label>{{ form.text_ar }}{{ form.text_ar.errors }}</div>
-      <div class="dash-field"><label>{{ form.text_en.label }}</label>{{ form.text_en }}{{ form.text_en.errors }}</div>
+      <div class="dash-field">{{ form.passage_ar }}{{ form.passage_ar.errors }}</div>
+      <div class="dash-field qf-en"><label for="{{ form.passage_en.id_for_label }}">{{ form.passage_en.label }}</label>{{ form.passage_en }}{{ form.passage_en.errors }}</div>
     </div>
+  </section>
 
-    <div class="dash-options-group">
-      <div class="dash-field-title">الاختيارات (عربي)</div>
-      <div class="dash-form-grid">
-        <div class="dash-field"><label>{{ form.option1_ar.label }}</label>{{ form.option1_ar }}{{ form.option1_ar.errors }}</div>
-        <div class="dash-field"><label>{{ form.option2_ar.label }}</label>{{ form.option2_ar }}{{ form.option2_ar.errors }}</div>
-        <div class="dash-field"><label>{{ form.option3_ar.label }}</label>{{ form.option3_ar }}{{ form.option3_ar.errors }}</div>
-        <div class="dash-field"><label>{{ form.option4_ar.label }}</label>{{ form.option4_ar }}{{ form.option4_ar.errors }}</div>
-      </div>
-    </div>
+  {# 2b. Listening audio #}
+  <section class="dash-card qf-section" data-kind="listening">
+    <div class="qf-step"><span>2</span> المقطع الصوتي</div>
 
-    <div class="dash-options-group">
-      <div class="dash-field-title">Options (English)</div>
-      <div class="dash-form-grid">
-        <div class="dash-field"><label>{{ form.option1_en.label }}</label>{{ form.option1_en }}{{ form.option1_en.errors }}</div>
-        <div class="dash-field"><label>{{ form.option2_en.label }}</label>{{ form.option2_en }}{{ form.option2_en.errors }}</div>
-        <div class="dash-field"><label>{{ form.option3_en.label }}</label>{{ form.option3_en }}{{ form.option3_en.errors }}</div>
-        <div class="dash-field"><label>{{ form.option4_en.label }}</label>{{ form.option4_en }}{{ form.option4_en.errors }}</div>
+    <input type="hidden" name="remove_audio" id="remove-audio" value="0">
+
+    {% if instance.audio_file %}
+      <div class="qf-audio-current" id="audio-current">
+        <div class="qf-audio-title">المقطع الحالي</div>
+        <audio controls preload="metadata" src="{{ instance.audio_file.url }}"></audio>
+        <button type="button" class="qf-link danger" id="audio-remove">حذف المقطع</button>
       </div>
+    {% endif %}
+
+    <div class="qf-audio-drop" id="audio-drop">
+      <div class="qf-audio-actions">
+        <label class="btn btn-outline qf-file-btn">
+          ⬆ رفع ملف صوتي
+          {{ form.audio_file }}
+        </label>
+        <span class="qf-or">أو</span>
+        <button type="button" class="btn btn-outline" id="rec-btn">🎙 تسجيل من الميكروفون</button>
+        <span class="qf-rec-timer" id="rec-timer" hidden>00:00</span>
+      </div>
+      <p class="qf-hint">اسحب الملف وأفلته هنا · MP3, WAV, M4A, OGG · حتى {{ audio_max_mb }} ميجابايت</p>
+      <div class="qf-audio-preview" id="audio-preview" hidden>
+        <div class="qf-audio-title" id="audio-preview-name"></div>
+        <audio controls id="audio-preview-player"></audio>
+        <button type="button" class="qf-link danger" id="audio-clear">إلغاء</button>
+      </div>
+      {{ form.audio_file.errors }}
     </div>
 
     <div class="dash-form-grid">
-      <div class="dash-field"><label>{{ form.correct_index.label }}</label>{{ form.correct_index }}{{ form.correct_index.errors }}</div>
+      <div class="dash-field">
+        <label for="{{ form.audio_label_ar.id_for_label }}">{{ form.audio_label_ar.label }} <small class="qf-hint">(اختياري، مثل: محادثة في مطعم)</small></label>
+        {{ form.audio_label_ar }}{{ form.audio_label_ar.errors }}
+      </div>
+      <div class="dash-field qf-en"><label for="{{ form.audio_label_en.id_for_label }}">{{ form.audio_label_en.label }}</label>{{ form.audio_label_en }}{{ form.audio_label_en.errors }}</div>
+    </div>
+  </section>
+
+  {# 3. Question + options #}
+  <section class="dash-card qf-section">
+    <div class="qf-step"><span class="qf-step-num">2</span> السؤال والاختيارات</div>
+    <div class="dash-form-grid full">
+      <div class="dash-field">
+        <label for="{{ form.text_ar.id_for_label }}">{{ form.text_ar.label }}</label>{{ form.text_ar }}{{ form.text_ar.errors }}
+      </div>
+      <div class="dash-field qf-en"><label for="{{ form.text_en.id_for_label }}">{{ form.text_en.label }}</label>{{ form.text_en }}{{ form.text_en.errors }}</div>
     </div>
 
-    <div class="dash-form-actions">
-      <button type="submit" class="btn btn-primary">حفظ</button>
-      <a class="btn btn-outline" href="{% url 'dashboard:questions_list' %}">إلغاء</a>
+    <div class="qf-options-head">
+      <span>الاختيارات</span>
+      <small class="qf-hint">اضغط على الدائرة بجوار الإجابة الصحيحة</small>
     </div>
-  </form>
-</div>
+    <div class="qf-options" id="options">
+      {% for row in option_rows %}
+        <div class="qf-option">
+          <label class="qf-correct" title="الإجابة الصحيحة">
+            <input type="radio" name="correct_index" value="{{ row.index }}" {% if form.correct_index.value|stringformat:"s" == row.index|stringformat:"s" %}checked{% endif %}>
+            <span></span>
+          </label>
+          <div class="qf-option-inputs">
+            <input type="text" name="option_ar" class="field" value="{{ row.ar }}" placeholder="الاختيار {{ forloop.counter }}">
+            <input type="text" name="option_en" class="field qf-en" value="{{ row.en }}" placeholder="Option {{ forloop.counter }} (English)" dir="ltr">
+          </div>
+          <button type="button" class="qf-option-remove" aria-label="حذف الاختيار">×</button>
+        </div>
+      {% endfor %}
+    </div>
+    <button type="button" class="qf-link" id="add-option">+ إضافة اختيار</button>
+  </section>
+
+  <div class="dash-form-actions qf-actions">
+    <button type="submit" class="btn btn-primary">حفظ</button>
+    {% if not instance %}
+      <button type="submit" name="save_add_another" value="1" class="btn btn-outline">حفظ وإضافة سؤال آخر</button>
+    {% endif %}
+    <a class="btn btn-outline" href="{% url 'dashboard:questions_list' %}">إلغاء</a>
+  </div>
+</form>
+
+<script src="{% static 'js/question_form.js' %}" defer></script>
 {% endblock %}

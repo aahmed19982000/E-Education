@@ -1,11 +1,12 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
+from django.db import models
 
 from accounts.models import Profile
 from articles.models import Article
 from levels.models import Level
-from quiz.models import Question
+from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Question
 
 
 class StyledFormMixin:
@@ -14,7 +15,7 @@ class StyledFormMixin:
     def _style_fields(self):
         for field in self.fields.values():
             widget = field.widget
-            if isinstance(widget, forms.CheckboxInput):
+            if isinstance(widget, (forms.CheckboxInput, forms.RadioSelect, forms.HiddenInput)):
                 continue
             css = widget.attrs.get("class", "")
             widget.attrs["class"] = (css + " field").strip()
@@ -87,59 +88,147 @@ class ArticleForm(StyledFormMixin, forms.ModelForm):
 
 
 class QuestionForm(StyledFormMixin, forms.ModelForm):
-    option1_ar = forms.CharField(label="الاختيار 1 (عربي)")
-    option2_ar = forms.CharField(label="الاختيار 2 (عربي)")
-    option3_ar = forms.CharField(label="الاختيار 3 (عربي)")
-    option4_ar = forms.CharField(label="الاختيار 4 (عربي)")
-    option1_en = forms.CharField(label="Option 1 (English)")
-    option2_en = forms.CharField(label="Option 2 (English)")
-    option3_en = forms.CharField(label="Option 3 (English)")
-    option4_en = forms.CharField(label="Option 4 (English)")
-    correct_index = forms.ChoiceField(
-        label="الإجابة الصحيحة",
-        choices=[(0, "الاختيار 1"), (1, "الاختيار 2"), (2, "الاختيار 3"), (3, "الاختيار 4")],
+    """One form for every question type. Options are rendered as rows
+    (Arabic + optional English + a "correct" radio) instead of 8 loose fields,
+    and the English translation is optional (the quiz falls back to Arabic)."""
+
+    kind = forms.ChoiceField(
+        label="نوع السؤال",
+        choices=[
+            (Question.KIND_STANDARD, "سؤال عادي"),
+            (Question.KIND_READING, "قراءة (مع نص)"),
+            (Question.KIND_LISTENING, "استماع (مع مقطع صوتي)"),
+        ],
+        initial=Question.KIND_STANDARD,
+        widget=forms.RadioSelect,
     )
+    correct_index = forms.IntegerField(min_value=0, max_value=MAX_OPTIONS - 1, widget=forms.HiddenInput, required=False)
 
     class Meta:
         model = Question
         fields = [
             "order", "tag_ar", "tag_en",
             "passage_ar", "passage_en",
-            "audio_label_ar", "audio_label_en",
+            "audio_file", "audio_label_ar", "audio_label_en",
             "text_ar", "text_en",
         ]
         widgets = {
-            "passage_ar": forms.Textarea(attrs={"rows": 3}),
-            "passage_en": forms.Textarea(attrs={"rows": 3}),
+            "passage_ar": forms.Textarea(attrs={"rows": 4}),
+            "passage_en": forms.Textarea(attrs={"rows": 4}),
             "text_ar": forms.Textarea(attrs={"rows": 2}),
             "text_en": forms.Textarea(attrs={"rows": 2}),
+            "tag_ar": forms.TextInput(attrs={"list": "tag-suggestions", "autocomplete": "off"}),
+            "audio_file": forms.FileInput(attrs={"accept": "audio/*"}),
         }
         labels = {
             "order": "الترتيب",
-            "tag_ar": "الوسم (عربي)", "tag_en": "الوسم (إنجليزي)",
-            "passage_ar": "نص القراءة (عربي)", "passage_en": "نص القراءة (إنجليزي)",
-            "audio_label_ar": "تسمية الاستماع (عربي)", "audio_label_en": "تسمية الاستماع (إنجليزي)",
-            "text_ar": "نص السؤال (عربي)", "text_en": "نص السؤال (إنجليزي)",
+            "tag_ar": "التصنيف", "tag_en": "التصنيف (إنجليزي)",
+            "passage_ar": "نص القراءة", "passage_en": "نص القراءة (إنجليزي)",
+            "audio_file": "المقطع الصوتي",
+            "audio_label_ar": "وصف المقطع", "audio_label_en": "وصف المقطع (إنجليزي)",
+            "text_ar": "نص السؤال", "text_en": "نص السؤال (إنجليزي)",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk:
-            options_ar = self.instance.options_ar or ["", "", "", ""]
-            options_en = self.instance.options_en or ["", "", "", ""]
-            for i in range(4):
-                self.fields[f"option{i + 1}_ar"].initial = options_ar[i] if i < len(options_ar) else ""
-                self.fields[f"option{i + 1}_en"].initial = options_en[i] if i < len(options_en) else ""
-            self.fields["correct_index"].initial = self.instance.correct_index
+        self.fields["order"].required = False
+        self.fields["order"].help_text = "اتركه فارغًا ليُضاف في آخر الاختبار."
+        self.remove_audio = False
+
+        instance = self.instance
+        if instance.pk:
+            self.fields["kind"].initial = instance.kind
+            self.fields["correct_index"].initial = instance.correct_index
+            options_ar = list(instance.options_ar or [])
+            options_en = list(instance.options_en or [])
+        else:
+            options_ar, options_en = [], []
+            self.fields["correct_index"].initial = 0
+            self.initial["order"] = None  # blank = append to the end
+        self.initial_options = [
+            (options_ar[i] if i < len(options_ar) else "", options_en[i] if i < len(options_en) else "")
+            for i in range(max(len(options_ar), 4))
+        ]
         self._style_fields()
+
+    def option_rows(self):
+        """Rows for the template: submitted values on a re-render, else the saved ones."""
+        if self.is_bound:
+            ar = self.data.getlist("option_ar")
+            en = self.data.getlist("option_en")
+            rows = [(ar[i], en[i] if i < len(en) else "") for i in range(len(ar))]
+        else:
+            rows = self.initial_options
+        while len(rows) < MIN_OPTIONS:
+            rows.append(("", ""))
+        return [{"index": i, "ar": a, "en": e} for i, (a, e) in enumerate(rows[:MAX_OPTIONS])]
+
+    def clean_audio_file(self):
+        audio = self.cleaned_data.get("audio_file")
+        if audio and hasattr(audio, "size") and audio.size > AUDIO_MAX_MB * 1024 * 1024:
+            raise forms.ValidationError(f"حجم الملف أكبر من {AUDIO_MAX_MB} ميجابايت.")
+        return audio
+
+    def clean(self):
+        cleaned = super().clean()
+        kind = cleaned.get("kind")
+
+        # Options: drop blank rows, keep the "correct" pointer aligned with what's left.
+        ar = [v.strip() for v in self.data.getlist("option_ar")][:MAX_OPTIONS]
+        en = [v.strip() for v in self.data.getlist("option_en")][:MAX_OPTIONS]
+        correct = cleaned.get("correct_index")
+        options_ar, options_en, new_correct = [], [], None
+        for i, text in enumerate(ar):
+            if not text:
+                continue
+            if i == correct:
+                new_correct = len(options_ar)
+            options_ar.append(text)
+            options_en.append(en[i] if i < len(en) else "")
+        if len(options_ar) < MIN_OPTIONS:
+            self.add_error(None, f"أضف {MIN_OPTIONS} اختيارات على الأقل.")
+        elif new_correct is None:
+            self.add_error(None, "حدد الإجابة الصحيحة (يجب أن تكون اختيارًا غير فارغ).")
+        cleaned["options_ar"] = options_ar
+        cleaned["options_en"] = options_en if any(options_en) else []
+        cleaned["correct_index"] = new_correct or 0
+
+        # Type-specific requirements.
+        self.remove_audio = self.data.get("remove_audio") == "1"
+        if kind == Question.KIND_READING and not cleaned.get("passage_ar"):
+            self.add_error("passage_ar", "أدخل نص القراءة.")
+        if kind == Question.KIND_LISTENING:
+            has_audio = cleaned.get("audio_file") or (self.instance.audio_file and not self.remove_audio)
+            if not has_audio:
+                self.add_error("audio_file", "ارفع مقطعًا صوتيًا أو سجّل واحدًا.")
+        return cleaned
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        instance.options_ar = [self.cleaned_data[f"option{i + 1}_ar"] for i in range(4)]
-        instance.options_en = [self.cleaned_data[f"option{i + 1}_en"] for i in range(4)]
-        instance.correct_index = int(self.cleaned_data["correct_index"])
+        data = self.cleaned_data
+        kind = data["kind"]
+        old_audio = None
+        if self.instance.pk:
+            old_audio = Question.objects.filter(pk=self.instance.pk).values_list("audio_file", flat=True).first()
+
+        # Clear whatever doesn't belong to the chosen type so hidden fields never leak into the quiz.
+        if kind != Question.KIND_READING:
+            instance.passage_ar = instance.passage_en = ""
+        if kind != Question.KIND_LISTENING or (self.remove_audio and not self.files.get("audio_file")):
+            instance.audio_file = ""
+        if kind != Question.KIND_LISTENING:
+            instance.audio_label_ar = instance.audio_label_en = ""
+
+        if data.get("order") is None:
+            last = Question.objects.aggregate(m=models.Max("order"))["m"]
+            instance.order = (last or 0) + 1
+        instance.options_ar = data["options_ar"]
+        instance.options_en = data["options_en"]
+        instance.correct_index = data["correct_index"]
         if commit:
             instance.save()
+            if old_audio and old_audio != instance.audio_file.name:
+                instance.audio_file.storage.delete(old_audio)
         return instance
 
 
