@@ -20,14 +20,17 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',')
 
-# HTTPS-only hardening: inert while DEBUG=True (plain http:// dev server),
-# automatically enabled once DJANGO_DEBUG=False is set behind real TLS.
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
-SECURE_SSL_REDIRECT = not DEBUG
-SECURE_HSTS_SECONDS = 0 if DEBUG else 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
-SECURE_HSTS_PRELOAD = not DEBUG
+# HTTPS-only hardening: off by default (plain http:// dev server, or a
+# deployment not yet behind TLS); set DJANGO_USE_HTTPS=True once the site is
+# served over real HTTPS (e.g. Nginx + a certificate), or this redirects
+# every request to a https:// port nothing is listening on.
+USE_HTTPS = os.environ.get('DJANGO_USE_HTTPS', 'False').lower() == 'true'
+SESSION_COOKIE_SECURE = USE_HTTPS
+CSRF_COOKIE_SECURE = USE_HTTPS
+SECURE_SSL_REDIRECT = USE_HTTPS
+SECURE_HSTS_SECONDS = 31536000 if USE_HTTPS else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = USE_HTTPS
+SECURE_HSTS_PRELOAD = USE_HTTPS
 
 
 INSTALLED_APPS = [
