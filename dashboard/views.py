@@ -1,17 +1,24 @@
 from django.contrib import messages
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from accounts.auth_utils import authenticate_by_email
 from articles.models import Article
 from contact_us.models import ContactMessage
 from levels.models import Level
-from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Question
+from quiz.grading import format_marks, question_marks
+from django.db.models import Count
+
+from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
 
 from .decorators import dashboard_required, section_required
-from .forms import ArticleForm, DashboardLoginForm, LevelForm, QuestionForm, StaffUserCreateForm, StaffUserEditForm
+from .forms import (
+    ArticleForm, CategoryForm, DashboardLoginForm, LevelForm, PlacementForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, StaffUserEditForm,
+)
 from .permissions import (
     SECTION_ARTICLES, SECTION_LEVELS, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_USERS,
     can_access, get_dashboard_role, role_label,
@@ -160,8 +167,57 @@ def article_delete(request, pk):
 @section_required(SECTION_QUESTIONS)
 def questions_list(request):
     ctx = base_context(request, active="questions")
-    ctx["questions"] = Question.objects.all()
+    questions = list(Question.objects.select_related("category"))
+    settings = QuizSettings.load()
+    marks = question_marks(questions, settings)
+    for q in questions:
+        q.marks_display = format_marks(marks[q.pk])
+    ctx.update({
+        "questions": questions,
+        "quiz_settings": settings,
+        "total_marks": format_marks(sum(marks.values())),
+    })
     return render(request, "dashboard/questions_list.html", ctx)
+
+
+@section_required(SECTION_QUESTIONS, "write")
+def quiz_grading(request):
+    settings = QuizSettings.load()
+    if request.method == "POST":
+        form = QuizSettingsForm(request.POST, instance=settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم حفظ إعدادات الدرجات والوقت.")
+            return redirect("dashboard:questions_list")
+    else:
+        form = QuizSettingsForm(instance=settings)
+    questions = list(Question.objects.all())
+    ctx = base_context(request, active="quiz_settings")
+    ctx.update({
+        "form": form,
+        "title": "الدرجات والوقت",
+        "questions_count": len(questions),
+        "points_sum": format_marks(sum((q.points for q in questions), 0)),
+    })
+    return render(request, "dashboard/quiz_grading.html", ctx)
+
+
+@require_POST
+@section_required(SECTION_QUESTIONS, "write")
+def questions_reorder(request):
+    """Save a new quiz order. Expects every question id, in the desired order."""
+    try:
+        ids = [int(pk) for pk in request.POST.getlist("ids")]
+    except ValueError:
+        return JsonResponse({"ok": False, "error": "invalid ids"}, status=400)
+    questions = {q.pk: q for q in Question.objects.all()}
+    if len(ids) != len(set(ids)) or set(ids) != set(questions):
+        # Someone added/deleted a question since the page loaded.
+        return JsonResponse({"ok": False, "error": "stale"}, status=409)
+    for position, pk in enumerate(ids, start=1):
+        questions[pk].order = position
+    Question.objects.bulk_update(questions.values(), ["order"])
+    return JsonResponse({"ok": True})
 
 
 @section_required(SECTION_QUESTIONS, "write")
@@ -186,18 +242,97 @@ def question_form(request, pk=None):
         "max_options": MAX_OPTIONS,
         "min_options": MIN_OPTIONS,
         "audio_max_mb": AUDIO_MAX_MB,
-        "tag_suggestions": Question.objects.order_by("tag_ar").values_list("tag_ar", flat=True).distinct(),
+        "quiz_settings": form.quiz_settings,
+        "equal_share": _equal_share(form.quiz_settings, instance),
     })
     return render(request, "dashboard/question_form.html", ctx)
+
+
+@section_required(SECTION_QUESTIONS, "write")
+def quiz_placement(request):
+    levels = Level.objects.all()
+    form = PlacementForm(request.POST or None, levels=levels)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ قواعد تحديد المستوى.")
+        return redirect("dashboard:quiz_placement")
+    settings = QuizSettings.load()
+    total = question_marks(Question.objects.all(), settings)
+    ctx = base_context(request, active="questions")
+    ctx.update({
+        "form": form,
+        "title": "تحديد مستوى الطالب",
+        "total_marks": float(sum(total.values())) if total else 0,
+    })
+    return render(request, "dashboard/quiz_placement.html", ctx)
+
+
+# --- Question categories ------------------------------------------------
+
+@section_required(SECTION_QUESTIONS)
+def categories_list(request):
+    ctx = base_context(request, active="questions")
+    ctx["categories"] = Category.objects.annotate(num_questions=Count("questions"))
+    return render(request, "dashboard/categories_list.html", ctx)
+
+
+@section_required(SECTION_QUESTIONS, "write")
+def category_form(request, pk=None):
+    instance = get_object_or_404(Category, pk=pk) if pk else None
+    if request.method == "POST":
+        form = CategoryForm(request.POST, instance=instance)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم حفظ التصنيف.")
+            return redirect("dashboard:categories_list")
+    else:
+        form = CategoryForm(instance=instance)
+    ctx = base_context(request, active="questions")
+    ctx.update({"form": form, "instance": instance, "title": "تعديل تصنيف" if instance else "إضافة تصنيف"})
+    return render(request, "dashboard/category_form.html", ctx)
+
+
+@section_required(SECTION_QUESTIONS, "write")
+def category_delete(request, pk):
+    instance = get_object_or_404(Category, pk=pk)
+    in_use = instance.questions.count()
+    if in_use:
+        messages.error(request, f"لا يمكن حذف التصنيف «{instance.name_ar}» لأنه مستخدم في {in_use} سؤال. انقل الأسئلة لتصنيف آخر أولًا.")
+        return redirect("dashboard:categories_list")
+    if request.method == "POST":
+        instance.delete()
+        messages.success(request, "تم حذف التصنيف.")
+        return redirect("dashboard:categories_list")
+    ctx = base_context(request, active="questions")
+    ctx.update({"object": instance, "title": f"حذف التصنيف: {instance.name_ar}", "cancel_url": "dashboard:categories_list"})
+    return render(request, "dashboard/confirm_delete.html", ctx)
+
+
+@require_POST
+@section_required(SECTION_QUESTIONS, "write")
+def category_quick_add(request):
+    """Create a category from the question form without leaving it."""
+    form = CategoryForm(request.POST)
+    if not form.is_valid():
+        errors = [e for errs in form.errors.values() for e in errs]
+        return JsonResponse({"ok": False, "error": errors[0] if errors else "بيانات غير صحيحة."}, status=400)
+    category = form.save()
+    return JsonResponse({"ok": True, "id": category.pk, "name": category.name_ar})
+
+
+def _equal_share(settings, instance):
+    """Marks each question gets in whole-test mode (counting a new question being added)."""
+    if settings.is_per_question:
+        return None
+    count = Question.objects.count() + (0 if instance else 1)
+    return format_marks(settings.total_marks / count)
 
 
 @section_required(SECTION_QUESTIONS, "write")
 def question_delete(request, pk):
     instance = get_object_or_404(Question, pk=pk)
     if request.method == "POST":
-        if instance.audio_file:
-            instance.audio_file.delete(save=False)
-        instance.delete()
+        instance.delete()  # its audio file is removed by quiz.signals
         messages.success(request, "تم حذف السؤال.")
         return redirect("dashboard:questions_list")
     ctx = base_context(request, active="questions")

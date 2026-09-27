@@ -65,12 +65,22 @@ AR = {
     },
     "test": {
         "introTitle": "اختبار تحديد المستوى المجاني",
-        "introDesc": "6 أسئلة تغطي القواعد والقراءة والاستماع، تستغرق حوالي 5 دقائق، وتعطيك تقديرًا فوريًا لمستواك.",
-        "infoItems": ["مجاني بالكامل", "6 أسئلة فقط", "نتيجة فورية"],
+        "introDesc": "أسئلة متدرجة من المستوى المبتدئ حتى المتقدم تغطي القواعد والمفردات والقراءة والاستماع، وتعطيك تقديرًا فوريًا لمستواك.",
+        "infoItems": ["مجاني بالكامل", "نتيجة فورية"],
         "startBtn": "ابدأ الاختبار الآن",
         "resultEyebrow": "نتيجتك المبدئية",
         "resultDesc": "هذه نتيجة تقريبية بناءً على إجاباتك. يمكنك الاشتراك في هذا المستوى مباشرة أو مراجعته مع فريقنا.",
         "resultCta": "شاهد تفاصيل هذا المستوى",
+        "scoreLabel": "درجتك", "outOf": "من",
+        "recommended": "المستوى المناسب لك", "allLevels": "شاهد كل المستويات",
+        "questionOf": "سؤال {n} من {total}", "prev": "السابق", "next": "التالي",
+        "finish": "إنهاء الاختبار وعرض النتيجة", "examTime": "الوقت المتبقي للاختبار",
+        "questionTime": "وقت السؤال", "timeUp": "انتهى وقت هذا السؤال، لا يمكن تغيير الإجابة.",
+        "confirmFinish": "لديك {n} بدون إجابة. هل تريد إنهاء الاختبار؟",
+        "examTimeUp": "انتهى وقت الاختبار", "goTo": "انتقل إلى السؤال",
+        "answeredOf": "أجبت على {n} من {total}",
+        "infoExamTime": "مدة الاختبار {n}", "infoQuestionTime": "{n} لكل سؤال",
+        "noTimeLimit": "بدون وقت محدد",
     },
     "articles": {
         "title": "مقالات ومصادر تعلم اللغة الإنجليزية", "subtitle": "محتوى مجاني يدعم رحلتك في تعلم الإنجليزية",
@@ -154,12 +164,22 @@ EN = {
     },
     "test": {
         "introTitle": "Free level test",
-        "introDesc": "6 questions covering grammar, reading and listening, about 5 minutes, with an instant estimate of your level.",
-        "infoItems": ["Completely free", "Just 6 questions", "Instant result"],
+        "introDesc": "Questions from beginner to advanced covering grammar, vocabulary, reading and listening, with an instant estimate of your level.",
+        "infoItems": ["Completely free", "Instant result"],
         "startBtn": "Start the test",
         "resultEyebrow": "Your initial result",
         "resultDesc": "This is an approximate result based on your answers. You can subscribe to this level directly or review it with our team.",
         "resultCta": "See this level's details",
+        "scoreLabel": "Your score", "outOf": "out of",
+        "recommended": "Your recommended level", "allLevels": "See all levels",
+        "questionOf": "Question {n} of {total}", "prev": "Previous", "next": "Next",
+        "finish": "Finish test & see result", "examTime": "Test time left",
+        "questionTime": "Question time", "timeUp": "Time's up for this question; the answer can't be changed.",
+        "confirmFinish": "You have {n} unanswered. Finish the test anyway?",
+        "examTimeUp": "Test time is up", "goTo": "Go to question",
+        "answeredOf": "You answered {n} of {total}",
+        "infoExamTime": "Test time: {n}", "infoQuestionTime": "{n} per question",
+        "noTimeLimit": "No time limit",
     },
     "articles": {
         "title": "English learning articles & resources", "subtitle": "Free content to support your English learning journey",
@@ -187,6 +207,36 @@ LEVEL_NAMES = {
     "ar": ["A1 — التأسيس", "A2 — الأساسيات المتقدمة", "B1 — ما قبل المتوسط", "B2 — المتوسط", "C1 — فوق المتوسط", "C2 — المتقدم"],
     "en": ["A1 — Foundations", "A2 — Elementary", "B1 — Pre-Intermediate", "B2 — Intermediate", "C1 — Upper-Intermediate", "C2 — Advanced"],
 }
+
+
+# Arabic noun forms by count: (1, 2, 3–10, 11+). English: (singular, plural).
+COUNT_FORMS = {
+    "ar": {
+        "question": ("سؤال واحد", "سؤالان", "{n} أسئلة", "{n} سؤالًا"),
+        "minute": ("دقيقة واحدة", "دقيقتان", "{n} دقائق", "{n} دقيقة"),
+        "second": ("ثانية واحدة", "ثانيتان", "{n} ثوانٍ", "{n} ثانية"),
+    },
+    "en": {
+        "question": ("{n} question", "{n} questions"),
+        "minute": ("{n} minute", "{n} minutes"),
+        "second": ("{n} second", "{n} seconds"),
+    },
+}
+
+
+def count_phrase(n, noun, lang):
+    """'5 دقائق', '11 سؤالًا', '1 minute' — the number with the correctly inflected noun."""
+    if lang == "en":
+        singular, plural = COUNT_FORMS["en"][noun]
+        return (singular if n == 1 else plural).format(n=n)
+    one, two, few, many = COUNT_FORMS["ar"][noun]
+    if n == 1:
+        return one
+    if n == 2:
+        return two
+    if 3 <= n % 100 <= 10:
+        return few.format(n=n)
+    return many.format(n=n)
 
 
 def get_translations(lang):

@@ -1,3 +1,4 @@
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
 from articles.models import Article
@@ -52,39 +53,8 @@ ARTICLES = [
          read_time_ar="5 دقائق قراءة", read_time_en="5 min read"),
 ]
 
-QUESTIONS = [
-    dict(order=1, tag_ar="قواعد", tag_en="Grammar",
-         text_ar="اختر الإجابة الصحيحة: She ___ to the market every day.", text_en="Choose the correct answer: She ___ to the market every day.",
-         options_ar=["goes", "go", "going", "gone"], options_en=["goes", "go", "going", "gone"], correct_index=0),
-    dict(order=2, tag_ar="قواعد", tag_en="Grammar",
-         text_ar="اختر الإجابة الصحيحة: They ___ finished the project yet.", text_en="Choose the correct answer: They ___ finished the project yet.",
-         options_ar=["haven't", "hasn't", "didn't", "not"], options_en=["haven't", "hasn't", "didn't", "not"], correct_index=0),
-    dict(order=3, tag_ar="مفردات", tag_en="Vocabulary",
-         text_ar="أقرب معنى لكلمة 'Ancient' هو:", text_en="The closest meaning to 'Ancient' is:",
-         options_ar=["قديم", "جديد", "سريع", "بعيد"], options_en=["Old", "New", "Fast", "Far"], correct_index=0),
-    dict(order=4, tag_ar="قراءة", tag_en="Reading",
-         passage_ar="Sarah works at a small company. Every morning she checks her email before starting her tasks.",
-         passage_en="Sarah works at a small company. Every morning she checks her email before starting her tasks.",
-         text_ar="ماذا تفعل سارة أول شيء كل صباح؟", text_en="What does Sarah do first every morning?",
-         options_ar=["تتحقق من بريدها الإلكتروني", "تبدأ مهامها", "تتصل بمديرها", "تذهب للاجتماع"],
-         options_en=["Checks her email", "Starts her tasks", "Calls her manager", "Goes to a meeting"], correct_index=0),
-    dict(order=5, tag_ar="قراءة", tag_en="Reading",
-         passage_ar="The company plans to open two new branches next year, one in Cairo and one in Alexandria.",
-         passage_en="The company plans to open two new branches next year, one in Cairo and one in Alexandria.",
-         text_ar="كم فرعًا جديدًا تخطط الشركة لفتحه؟", text_en="How many new branches does the company plan to open?",
-         options_ar=["فرع واحد", "فرعان", "ثلاثة فروع", "لا يوجد"],
-         options_en=["One", "Two", "Three", "None"], correct_index=1),
-    dict(order=6, tag_ar="استماع", tag_en="Listening",
-         audio_label_ar="مقطع صوتي تجريبي (30 ثانية)", audio_label_en="Sample audio clip (30 seconds)",
-         text_ar="بعد الاستماع، ما الموضوع الرئيسي للمقطع؟", text_en="After listening, what is the main topic of the clip?",
-         options_ar=["حجز موعد طبي", "التخطيط لرحلة عمل", "طلب طعام", "شكوى عن منتج"],
-         options_en=["Booking a doctor's appointment", "Planning a business trip", "Ordering food", "Complaining about a product"],
-         correct_index=1),
-]
-
-
 class Command(BaseCommand):
-    help = "Seed the database with the levels, articles and quiz questions from the original design."
+    help = "Seed levels and articles, and load the placement test if the quiz is empty."
 
     def handle(self, *args, **options):
         for data in LEVELS:
@@ -95,7 +65,8 @@ class Command(BaseCommand):
             Article.objects.update_or_create(title_en=data["title_en"], defaults=data)
         self.stdout.write(self.style.SUCCESS(f"Articles: {len(ARTICLES)}"))
 
-        Question.objects.all().delete()
-        for data in QUESTIONS:
-            Question.objects.create(**data)
-        self.stdout.write(self.style.SUCCESS(f"Quiz questions: {len(QUESTIONS)}"))
+        # Never touches existing questions: the real placement test is loaded only into an empty quiz.
+        if Question.objects.exists():
+            self.stdout.write(f"Quiz questions: {Question.objects.count()} already exist, left unchanged.")
+        else:
+            call_command("load_placement_test", stdout=self.stdout)

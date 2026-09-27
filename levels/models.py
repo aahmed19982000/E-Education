@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator
 from django.db import models
 
 
@@ -14,6 +15,11 @@ class Level(models.Model):
 
     price_group = models.PositiveIntegerField(help_text="Price in EGP for group sessions")
     price_private = models.PositiveIntegerField(help_text="Price in EGP for private sessions")
+
+    test_min_percent = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=[MaxValueValidator(100)],
+        help_text="Level test: minimum score (%) to be placed in this level. Empty = never assigned by the test.",
+    )
 
     class Meta:
         ordering = ["order", "code"]

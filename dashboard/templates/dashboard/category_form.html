@@ -1,0 +1,22 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="dash-card">
+  <form method="post">
+    {% csrf_token %}
+    <div class="dash-form-grid">
+      <div class="dash-field"><label for="{{ form.name_ar.id_for_label }}">{{ form.name_ar.label }}</label>{{ form.name_ar }}{{ form.name_ar.errors }}</div>
+      <div class="dash-field"><label for="{{ form.name_en.id_for_label }}">{{ form.name_en.label }}</label>{{ form.name_en }}{{ form.name_en.errors }}</div>
+    </div>
+    {% if instance %}
+      <p class="qf-hint">سيتغيّر الاسم في كل الأسئلة التابعة لهذا التصنيف ({{ instance.questions.count }}).</p>
+    {% endif %}
+    <div class="dash-form-actions">
+      <button type="submit" class="btn btn-primary">حفظ</button>
+      <a class="btn btn-outline" href="{% url 'dashboard:categories_list' %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

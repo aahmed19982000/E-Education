@@ -1,4 +1,5 @@
 {% extends "dashboard/base.html" %}
+{% load static %}
 {% block title %}أسئلة اختبار المستوى{% endblock %}
 {% block page_title %}أسئلة اختبار المستوى{% endblock %}
 
@@ -6,30 +7,60 @@
 <div class="dash-toolbar">
   <h2>كل الأسئلة ({{ questions|length }})</h2>
   {% if can_write_questions %}
-    <a class="btn btn-primary" href="{% url 'dashboard:question_create' %}">+ إضافة سؤال</a>
+    <div class="dash-toolbar-actions">
+      <a class="btn btn-outline" href="{% url 'dashboard:categories_list' %}">التصنيفات</a>
+      <a class="btn btn-outline" href="{% url 'dashboard:quiz_grading' %}">⚙ الدرجات والوقت</a>
+      <a class="btn btn-outline" href="{% url 'dashboard:quiz_placement' %}">🎯 تحديد المستوى</a>
+      <a class="btn btn-primary" href="{% url 'dashboard:question_create' %}">+ إضافة سؤال</a>
+    </div>
   {% endif %}
 </div>
 
+{% if questions %}
+  <div class="qg-summary">
+    <span>نظام الدرجات: <strong>{{ quiz_settings.get_grading_mode_display }}</strong></span>
+    <span>الدرجة الكلية: <strong>{{ total_marks }}</strong></span>
+    <span>مدة الاختبار: <strong>{% if quiz_settings.exam_time_minutes %}{{ quiz_settings.exam_time_minutes }} دقيقة{% else %}بدون وقت{% endif %}</strong></span>
+    <span>وقت السؤال: <strong>{% if quiz_settings.question_time_seconds %}{{ quiz_settings.question_time_seconds }} ثانية{% else %}بدون وقت{% endif %}</strong></span>
+  </div>
+{% endif %}
+
+{% if can_write_questions and questions|length > 1 %}
+  <p class="qo-hint">لتغيير ترتيب الأسئلة: اسحب السؤال من المقبض ⠿ أو استخدم الأسهم ↑↓ — يُحفظ الترتيب تلقائيًا.
+    <span class="qo-status" id="reorder-status" role="status" aria-live="polite"></span>
+  </p>
+{% endif %}
+
 <div class="dash-table-wrap">
   {% if questions %}
-  <table class="dash-table">
+  <table class="dash-table{% if can_write_questions %} qo-table{% endif %}" id="questions-table"
+         {% if can_write_questions %}data-reorder-url="{% url 'dashboard:questions_reorder' %}"{% endif %}>
     <thead>
       <tr>
-        <th>الترتيب</th><th>النوع</th><th>التصنيف</th><th>نص السؤال</th>
+        {% if can_write_questions %}<th></th>{% endif %}
+        <th>الترتيب</th><th>النوع</th><th>التصنيف</th><th>نص السؤال</th><th>الدرجة</th>
         {% if can_write_questions %}<th></th>{% endif %}
       </tr>
     </thead>
     <tbody>
       {% for q in questions %}
-      <tr>
-        <td>{{ q.order }}</td>
+      <tr data-id="{{ q.pk }}">
+        {% if can_write_questions %}
+        <td class="qo-move">
+          <span class="qo-handle" title="اسحب لتغيير الترتيب" aria-hidden="true">⠿</span>
+          <button type="button" class="qo-arrow" data-dir="-1" aria-label="تحريك لأعلى">↑</button>
+          <button type="button" class="qo-arrow" data-dir="1" aria-label="تحريك لأسفل">↓</button>
+        </td>
+        {% endif %}
+        <td class="qo-num">{{ forloop.counter }}</td>
         <td class="dash-kind">
           {% if q.kind == "listening" %}🎧 استماع{% if not q.audio_file %} <span title="لا يوجد مقطع صوتي">⚠</span>{% endif %}
           {% elif q.kind == "reading" %}📖 قراءة
           {% else %}✎ عادي{% endif %}
         </td>
-        <td>{{ q.tag_ar }}</td>
+        <td>{{ q.category.name_ar }}</td>
         <td class="wrap">{{ q.text_ar }}</td>
+        <td class="qo-marks">{{ q.marks_display }}</td>
         {% if can_write_questions %}
         <td>
           <div class="dash-table-actions">
@@ -46,4 +77,9 @@
     <div class="dash-empty">لا توجد أسئلة مضافة بعد.</div>
   {% endif %}
 </div>
+
+{% if can_write_questions %}
+  <form id="reorder-csrf" hidden>{% csrf_token %}</form>
+  <script src="{% static 'js/questions_reorder.js' %}" defer></script>
+{% endif %}
 {% endblock %}

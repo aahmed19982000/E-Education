@@ -36,6 +36,9 @@
         {% endif %}
         {% if can_view_questions %}
           <a href="{% url 'dashboard:questions_list' %}" class="{% if active == 'questions' %}active{% endif %}">أسئلة اختبار المستوى</a>
+          {% if can_write_questions %}
+            <a href="{% url 'dashboard:quiz_grading' %}" class="dash-nav-sub{% if active == 'quiz_settings' %} active{% endif %}">⏱ الدرجات والوقت</a>
+          {% endif %}
         {% endif %}
         {% if can_view_messages %}
           <a href="{% url 'dashboard:messages_list' %}" class="{% if active == 'messages' %}active{% endif %}">رسائل تواصل معنا</a>

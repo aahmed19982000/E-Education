@@ -1,0 +1,139 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<form method="post" class="dash-card qg" id="grading-form"
+      data-count="{{ questions_count }}" data-points-sum="{{ points_sum }}">
+  {% csrf_token %}
+  <div class="qf-step"><span>1</span> اختر طريقة حساب الدرجة</div>
+
+  <div class="qg-modes">
+    {% for radio in form.grading_mode %}
+      <label class="qg-mode">
+        {{ radio.tag }}
+        <span class="qg-mode-title">{{ radio.choice_label }}</span>
+        <span class="qg-mode-desc">
+          {% if radio.data.value == "per_question" %}
+            تحدد درجة كل سؤال بنفسك من صفحة السؤال (مثلًا: سؤال القراءة 3 درجات والقواعد درجة واحدة). الدرجة الكلية = مجموع درجات الأسئلة.
+          {% else %}
+            تحدد الدرجة الكلية للاختبار مرة واحدة (مثلًا 100)، وتُقسّم بالتساوي على كل الأسئلة تلقائيًا — حتى لو أضفت أو حذفت أسئلة.
+          {% endif %}
+        </span>
+      </label>
+    {% endfor %}
+  </div>
+  {{ form.grading_mode.errors }}
+
+  <div class="qg-total" data-mode="total">
+    <div class="dash-field">
+      <label for="{{ form.total_marks.id_for_label }}">{{ form.total_marks.label }}</label>
+      {{ form.total_marks }}{{ form.total_marks.errors }}
+    </div>
+  </div>
+
+  <div class="qg-preview" id="grading-preview" role="status" aria-live="polite"></div>
+
+  <div class="qf-step qg-time-step" id="time"><span>2</span> وقت الاختبار</div>
+  <div class="qg-times">
+    <div class="qg-time" data-default="20" data-unit="دقيقة">
+      <label class="qg-switch">
+        <input type="checkbox" class="qg-time-toggle"{% if form.exam_time_minutes.value|default:0|add:0 > 0 %} checked{% endif %}>
+        <span class="qg-switch-track" aria-hidden="true"></span>
+        <span class="qg-switch-label">وقت للاختبار كله</span>
+      </label>
+      <div class="qg-time-body">
+        <div class="qp-input">{{ form.exam_time_minutes }}<span>دقيقة</span></div>
+        <div class="qg-presets">
+          <button type="button" data-value="10">10</button><button type="button" data-value="15">15</button>
+          <button type="button" data-value="20">20</button><button type="button" data-value="30">30</button>
+          <button type="button" data-value="45">45</button><button type="button" data-value="60">60</button>
+        </div>
+      </div>
+      <small class="qf-hint">عند انتهاء الوقت يُنهى الاختبار تلقائيًا وتظهر النتيجة.</small>
+      {{ form.exam_time_minutes.errors }}
+    </div>
+
+    <div class="qg-time" data-default="60" data-unit="ثانية">
+      <label class="qg-switch">
+        <input type="checkbox" class="qg-time-toggle"{% if form.question_time_seconds.value|default:0|add:0 > 0 %} checked{% endif %}>
+        <span class="qg-switch-track" aria-hidden="true"></span>
+        <span class="qg-switch-label">وقت افتراضي لكل سؤال</span>
+      </label>
+      <div class="qg-time-body">
+        <div class="qp-input">{{ form.question_time_seconds }}<span>ثانية</span></div>
+        <div class="qg-presets">
+          <button type="button" data-value="30">30</button><button type="button" data-value="45">45</button>
+          <button type="button" data-value="60">60</button><button type="button" data-value="90">90</button>
+          <button type="button" data-value="120">120</button>
+        </div>
+      </div>
+      <small class="qf-hint">عند انتهاء وقت السؤال يُقفل وينتقل الطالب للسؤال التالي. يمكنك إعطاء سؤال معيّن وقتًا مختلفًا من صفحة تعديله (مفيد لأسئلة الاستماع).</small>
+      {{ form.question_time_seconds.errors }}
+    </div>
+  </div>
+
+  <div class="dash-form-actions">
+    <button type="submit" class="btn btn-primary">حفظ</button>
+    <a class="btn btn-outline" href="{% url 'dashboard:questions_list' %}">إلغاء</a>
+  </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var form = document.getElementById('grading-form');
+  var preview = document.getElementById('grading-preview');
+  var total = form.querySelector('input[name="total_marks"]');
+  var totalBox = form.querySelector('.qg-total');
+  var count = parseInt(form.dataset.count, 10);
+
+  function fmt(n) { return (Math.round(n * 100) / 100).toString(); }
+
+  function update() {
+    var mode = (form.querySelector('input[name="grading_mode"]:checked') || {}).value;
+    form.querySelectorAll('.qg-mode').forEach(function (l) {
+      l.classList.toggle('selected', l.querySelector('input').checked);
+    });
+    totalBox.hidden = mode !== 'total';
+    if (mode === 'total') {
+      var t = parseFloat(total.value) || 0;
+      preview.textContent = count
+        ? 'الاختبار من ' + fmt(t) + ' درجة — كل سؤال من الـ ' + count + ' أسئلة = ' + fmt(t / count) + ' درجة.'
+        : 'لا توجد أسئلة بعد.';
+    } else {
+      preview.textContent = 'مجموع درجات الأسئلة الحالية: ' + form.dataset.pointsSum + ' درجة (' + count + ' أسئلة). يمكنك تعديل درجة كل سؤال من صفحة تعديله.';
+    }
+  }
+  form.addEventListener('input', update);
+  form.addEventListener('change', update);
+  update();
+
+  // Time limits: a switch turns each one on/off (off = 0 is saved), presets fill the value.
+  form.querySelectorAll('.qg-time').forEach(function (box) {
+    var toggle = box.querySelector('.qg-time-toggle');
+    var input = box.querySelector('input[type="number"]');
+    var remembered = parseInt(input.value, 10) > 0 ? input.value : box.dataset.default;
+    function sync() {
+      box.classList.toggle('off', !toggle.checked);
+      box.querySelector('.qg-time-body').hidden = !toggle.checked;
+      if (toggle.checked) {
+        if (!(parseInt(input.value, 10) > 0)) input.value = remembered;
+      } else {
+        if (parseInt(input.value, 10) > 0) remembered = input.value;
+        input.value = 0;
+      }
+      box.querySelectorAll('.qg-presets button').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.value === String(input.value));
+      });
+    }
+    toggle.addEventListener('change', sync);
+    input.addEventListener('input', sync);
+    box.querySelectorAll('.qg-presets button').forEach(function (b) {
+      b.addEventListener('click', function () { input.value = b.dataset.value; sync(); });
+    });
+    sync();
+  });
+});
+</script>
+{% endblock %}

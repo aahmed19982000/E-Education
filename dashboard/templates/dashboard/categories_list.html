@@ -1,0 +1,51 @@
+{% extends "dashboard/base.html" %}
+{% block title %}تصنيفات الأسئلة{% endblock %}
+{% block page_title %}تصنيفات الأسئلة{% endblock %}
+
+{% block content %}
+<div class="dash-toolbar">
+  <h2>كل التصنيفات ({{ categories|length }})</h2>
+  <div class="dash-toolbar-actions">
+    <a class="btn btn-outline" href="{% url 'dashboard:questions_list' %}">‹ الأسئلة</a>
+    {% if can_write_questions %}
+      <a class="btn btn-primary" href="{% url 'dashboard:category_create' %}">+ إضافة تصنيف</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="dash-table-wrap">
+  {% if categories %}
+  <table class="dash-table">
+    <thead>
+      <tr>
+        <th>التصنيف</th><th>بالإنجليزية</th><th>عدد الأسئلة</th>
+        {% if can_write_questions %}<th></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in categories %}
+      <tr>
+        <td><strong>{{ c.name_ar }}</strong></td>
+        <td dir="ltr" style="text-align:start">{{ c.name_en|default:"—" }}</td>
+        <td>{{ c.num_questions }}</td>
+        {% if can_write_questions %}
+        <td>
+          <div class="dash-table-actions">
+            <a href="{% url 'dashboard:category_edit' c.pk %}">تعديل</a>
+            {% if c.num_questions %}
+              <span class="dash-muted" title="انقل الأسئلة لتصنيف آخر أولًا">حذف</span>
+            {% else %}
+              <a class="danger" href="{% url 'dashboard:category_delete' c.pk %}">حذف</a>
+            {% endif %}
+          </div>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="dash-empty">لا توجد تصنيفات بعد.</div>
+  {% endif %}
+</div>
+{% endblock %}

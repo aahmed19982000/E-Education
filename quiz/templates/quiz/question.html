@@ -1,38 +1,92 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ t.test.introTitle }} · {{ t.brand }}{% endblock %}
 
 {% block content %}
-  <div class="page-narrow">
-    <div class="quiz-progress"><div class="quiz-progress-bar" style="width:{{ progress_pct }}%;"></div></div>
-    <div class="quiz-tag">{{ current_question.tag }}</div>
+  <div class="page-narrow quiz-page">
+    <form method="post" action="{% url 'quiz:question' %}" id="quiz-form"
+          data-unanswered="{{ unanswered }}" data-had-answer="{% if chosen is not None %}1{% else %}0{% endif %}"
+          data-confirm="{{ confirm_finish_template }}">
+      {% csrf_token %}
+      <input type="hidden" name="question" value="{{ question_pk }}">
 
-    {% if current_question.passage %}
-      <p class="quiz-passage">{{ current_question.passage }}</p>
-    {% endif %}
-
-    {% if current_question.audio_url %}
-      <div class="quiz-audio has-player">
-        {% if current_question.audio %}<span>{{ current_question.audio }}</span>{% endif %}
-        <audio controls controlsList="nodownload" preload="metadata" src="{{ current_question.audio_url }}"></audio>
+      <div class="quiz-topbar">
+        <span class="quiz-counter">{{ question_of_label }}</span>
+        {% if exam_remaining is not None %}
+          <div class="quiz-timer" id="exam-timer" data-remaining="{{ exam_remaining }}" role="timer" aria-label="{{ t.test.examTime }}">
+            <span class="quiz-timer-label">{{ t.test.examTime }}</span>
+            <strong class="quiz-timer-value">--:--</strong>
+          </div>
+        {% endif %}
       </div>
-    {% elif current_question.audio %}
-      <div class="quiz-audio">
-        <div class="dot"></div>
-        <span>{{ current_question.audio }}</span>
+
+      <div class="quiz-progress"><div class="quiz-progress-bar" style="width:{{ progress_pct }}%;"></div></div>
+
+      {% if total_questions > 1 %}
+        <nav class="quiz-nav-dots" aria-label="{{ t.test.goTo }}">
+          {% for item in navigator %}
+            <button type="submit" name="nav" value="goto:{{ forloop.counter0 }}"
+                    class="quiz-dot{% if item.answered %} answered{% endif %}{% if item.current %} current{% endif %}"
+                    aria-label="{{ t.test.goTo }} {{ item.number }}"{% if item.current %} aria-current="step"{% endif %}>{{ item.number }}</button>
+          {% endfor %}
+        </nav>
+      {% endif %}
+
+      <div class="quiz-tag">{{ current_question.tag }}</div>
+
+      {% if current_question.passage %}
+        <p class="quiz-passage">{{ current_question.passage }}</p>
+      {% endif %}
+
+      {% if current_question.audio_url %}
+        <div class="quiz-audio has-player">
+          {% if current_question.audio %}<span>{{ current_question.audio }}</span>{% endif %}
+          <audio controls controlsList="nodownload" preload="metadata" src="{{ current_question.audio_url }}"></audio>
+        </div>
+      {% elif current_question.audio %}
+        <div class="quiz-audio">
+          <div class="dot"></div>
+          <span>{{ current_question.audio }}</span>
+        </div>
+      {% endif %}
+
+      <h2 class="quiz-question" id="question-text">{{ current_question.text }}</h2>
+
+      {% if question_remaining is not None %}
+        <div class="quiz-qtimer" id="question-timer" data-remaining="{{ question_remaining }}" data-limit="{{ question_limit }}"
+             role="timer" aria-label="{{ t.test.questionTime }}">
+          <div class="quiz-qtimer-track"><div class="quiz-qtimer-bar"></div></div>
+          <span class="quiz-qtimer-value">--:--</span>
+        </div>
+      {% endif %}
+
+      <div class="quiz-locked" id="locked-msg" role="status"{% if not locked %} hidden{% endif %}>{{ t.test.timeUp }}</div>
+
+      <div class="quiz-options" role="radiogroup" aria-labelledby="question-text">
+        {% for opt in current_question.options %}
+          <label class="quiz-option{% if locked %} is-locked{% endif %}">
+            <input type="radio" name="option" value="{{ forloop.counter0 }}"
+                   {% if chosen == forloop.counter0 %}checked{% endif %}{% if locked %} disabled{% endif %}>
+            <span class="quiz-option-mark" aria-hidden="true"></span>
+            <span class="quiz-option-text">{{ opt }}</span>
+          </label>
+        {% endfor %}
       </div>
-    {% endif %}
 
-    <h2 class="quiz-question">{{ current_question.text }}</h2>
-
-    <div class="quiz-options">
-      {% for opt in current_question.options %}
-        <form method="post" action="{% url 'quiz:question' %}">
-          {% csrf_token %}
-          <input type="hidden" name="option" value="{{ forloop.counter0 }}">
-          <button class="quiz-option" type="submit">{{ opt }}</button>
-        </form>
-      {% endfor %}
-    </div>
+      <div class="quiz-actions">
+        {% if not is_first %}
+          <button type="submit" name="nav" value="prev" class="btn btn-outline quiz-prev">{{ t.test.prev }}</button>
+        {% endif %}
+        {% if is_last %}
+          <button type="submit" name="nav" value="finish" class="btn btn-primary quiz-finish" data-finish>{{ t.test.finish }}</button>
+        {% else %}
+          <button type="submit" name="nav" value="next" class="btn btn-primary quiz-next">{{ t.test.next }}</button>
+        {% endif %}
+      </div>
+    </form>
   </div>
+
+  {{ unanswered_phrases|json_script:"unanswered-phrases" }}
+  <script src="{% static 'js/quiz.js' %}" defer></script>
 {% endblock %}

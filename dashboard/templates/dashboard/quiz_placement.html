@@ -1,0 +1,120 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<form method="post" class="qp" id="placement-form" data-total-marks="{{ total_marks }}" novalidate>
+  {% csrf_token %}
+
+  <div class="dash-card qf-section">
+    <div class="qf-step"><span>1</span> الحد الأدنى لكل مستوى</div>
+    <p class="qf-hint qp-intro">
+      اكتب أقل نسبة يحتاجها الطالب ليُوضع في كل مستوى. يحصل الطالب على <strong>أعلى مستوى وصلت له نسبته</strong>.
+      اترك الخانة فارغة لو المستوى لا يُحدَّد من الاختبار.
+    </p>
+
+    {% if form.non_field_errors %}
+      <div class="qf-errors">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>
+    {% endif %}
+
+    {% if form.rows %}
+    <div class="dash-table-wrap qp-table-wrap">
+      <table class="dash-table qp-table">
+        <thead>
+          <tr><th>المستوى</th><th>يبدأ من</th><th>نطاق النسبة</th>{% if total_marks %}<th>بالدرجات (من {{ total_marks|floatformat:"-2" }})</th>{% endif %}</tr>
+        </thead>
+        <tbody>
+          {% for level, field in form.rows %}
+          <tr data-code="{{ level.code }}" data-name="{{ level.name_ar }}">
+            <td class="wrap"><span class="qp-code">{{ level.code }}</span> {{ level.name_ar }}</td>
+            <td>
+              <div class="qp-input">{{ field }}<span>%</span></div>
+              {{ field.errors }}
+            </td>
+            <td class="qp-range"></td>
+            {% if total_marks %}<td class="qp-marks"></td>{% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button type="button" class="qf-link" id="qp-equal">⇅ توزيع النسب بالتساوي على كل المستويات</button>
+    {% else %}
+      <div class="dash-empty">لا توجد مستويات بعد. أضف المستويات أولًا من صفحة «المستويات والأسعار».</div>
+    {% endif %}
+  </div>
+
+  {% if form.rows %}
+  <div class="dash-card qf-section">
+    <div class="qf-step"><span>2</span> جرّب</div>
+    <div class="qp-tester">
+      <label for="qp-try">لو نسبة الطالب</label>
+      <div class="qp-input"><input type="number" id="qp-try" class="field" min="0" max="100" value="50"><span>%</span></div>
+      <span>← يُوضع في:</span>
+      <strong id="qp-result" class="qp-result" role="status" aria-live="polite"></strong>
+    </div>
+  </div>
+
+  <div class="dash-form-actions">
+    <button type="submit" class="btn btn-primary">حفظ</button>
+    <a class="btn btn-outline" href="{% url 'dashboard:questions_list' %}">إلغاء</a>
+  </div>
+  {% endif %}
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var form = document.getElementById('placement-form');
+  var rows = Array.prototype.slice.call(form.querySelectorAll('.qp-table tbody tr'));
+  if (!rows.length) return;
+  var totalMarks = parseFloat(form.dataset.totalMarks) || 0;
+  var tryInput = document.getElementById('qp-try');
+  var result = document.getElementById('qp-result');
+
+  function input(row) { return row.querySelector('input'); }
+  function fmt(n) { return (Math.round(n * 100) / 100).toString(); }
+
+  // Included levels (non-empty), in level order, with their minimum %.
+  function included() {
+    return rows.filter(function (r) { return input(r).value.trim() !== ''; })
+      .map(function (r) { return { row: r, min: parseInt(input(r).value, 10) }; });
+  }
+
+  function update() {
+    var list = included();
+    rows.forEach(function (r) {
+      r.classList.add('qp-off');
+      r.querySelector('.qp-range').textContent = 'لا يُحدَّد من الاختبار';
+      var marks = r.querySelector('.qp-marks');
+      if (marks) marks.textContent = '—';
+    });
+    list.forEach(function (item, i) {
+      var next = list[i + 1];
+      var to = next ? next.min : 100;
+      var range = next ? ('من ' + item.min + '% إلى أقل من ' + to + '%') : ('من ' + item.min + '% إلى 100%');
+      item.row.classList.remove('qp-off');
+      item.row.querySelector('.qp-range').textContent = range;
+      var marks = item.row.querySelector('.qp-marks');
+      if (marks) {
+        marks.textContent = next
+          ? ('من ' + fmt(totalMarks * item.min / 100) + ' إلى أقل من ' + fmt(totalMarks * to / 100))
+          : ('من ' + fmt(totalMarks * item.min / 100) + ' فأكثر');
+      }
+    });
+
+    var p = parseFloat(tryInput.value);
+    if (isNaN(p) || !list.length) { result.textContent = '—'; return; }
+    var placed = list[0];
+    list.forEach(function (item) { if (p >= item.min) placed = item; });
+    result.textContent = placed.row.dataset.code + ' — ' + placed.row.dataset.name;
+  }
+
+  document.getElementById('qp-equal').addEventListener('click', function () {
+    rows.forEach(function (r, i) { input(r).value = Math.floor(i * 100 / rows.length); });
+    update();
+  });
+  form.addEventListener('input', update);
+  update();
+});
+</script>
+{% endblock %}

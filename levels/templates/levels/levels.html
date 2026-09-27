@@ -14,7 +14,7 @@
 
     <div class="levels-grid" style="text-align:start;">
       {% for lv in level_cards %}
-        <div class="level-card">
+        <div class="level-card" id="level-{{ lv.code }}">
           <div class="code">{{ lv.code }}</div>
           <h3>{{ lv.name }}</h3>
           <p>{{ lv.desc }}</p>

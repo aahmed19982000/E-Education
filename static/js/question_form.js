@@ -86,7 +86,96 @@ document.addEventListener('DOMContentLoaded', function () {
     if (idx < list.length - 1) list[idx + 1].querySelector('input[name="option_ar"]').focus();
     else addBtn.click();
   });
+
+  // Drag to reorder options. Pointer events (not HTML5 drag & drop) so it also
+  // works with touch; the "correct" radio travels with its row.
+  optionsBox.addEventListener('pointerdown', function (e) {
+    var handle = e.target.closest('.qf-option-handle');
+    if (!handle || e.button > 0) return;
+    e.preventDefault();
+    var row = handle.closest('.qf-option');
+    row.classList.add('dragging');
+    optionsBox.classList.add('sorting');
+
+    function onMove(ev) {
+      var siblings = Array.prototype.filter.call(rows(), function (r) { return r !== row; });
+      var before = null;
+      for (var i = 0; i < siblings.length; i++) {
+        var rect = siblings[i].getBoundingClientRect();
+        if (ev.clientY < rect.top + rect.height / 2) { before = siblings[i]; break; }
+      }
+      if (before !== row.nextElementSibling || (!before && row !== optionsBox.lastElementChild)) {
+        optionsBox.insertBefore(row, before);
+      }
+    }
+
+    function onUp() {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      row.classList.remove('dragging');
+      optionsBox.classList.remove('sorting');
+      renumber();
+    }
+
+    // Listen on the document: moving the row in the DOM would drop pointer capture on the handle.
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  });
+
   renumber();
+
+  // --- New category without leaving the form ------------------------------------
+  var catSelect = form.querySelector('select[name="category"]');
+  var catBtn = document.getElementById('cat-new-btn');
+  var catBox = document.getElementById('cat-new');
+  var catAr = document.getElementById('cat-new-ar');
+  var catEn = document.getElementById('cat-new-en');
+  var catSave = document.getElementById('cat-new-save');
+  var catError = document.getElementById('cat-new-error');
+  var csrf = form.querySelector('[name="csrfmiddlewaretoken"]').value;
+
+  function toggleCatBox(open) {
+    catBox.hidden = !open;
+    catBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    catError.textContent = '';
+    if (open) catAr.focus();
+  }
+
+  function saveCategory() {
+    var name = catAr.value.trim();
+    if (!name) { catError.textContent = 'اكتب اسم التصنيف.'; catAr.focus(); return; }
+    catSave.disabled = true;
+    var body = new URLSearchParams({ name_ar: name, name_en: catEn.value.trim() });
+    fetch(catBox.dataset.url, {
+      method: 'POST', headers: { 'X-CSRFToken': csrf }, body: body, credentials: 'same-origin',
+    }).then(function (resp) {
+      return resp.json().then(function (data) { return { ok: resp.ok, data: data }; });
+    }).then(function (res) {
+      if (!res.ok || !res.data.ok) {
+        catError.textContent = (res.data && res.data.error) || 'تعذّر إضافة التصنيف.';
+        return;
+      }
+      var option = new Option(res.data.name, res.data.id, true, true);
+      catSelect.add(option);
+      catAr.value = catEn.value = '';
+      toggleCatBox(false);
+      catSelect.focus();
+    }).catch(function () {
+      catError.textContent = 'تعذّر الاتصال بالخادم، حاول مرة أخرى.';
+    }).then(function () { catSave.disabled = false; });
+  }
+
+  catBtn.addEventListener('click', function () { toggleCatBox(catBox.hidden); });
+  document.getElementById('cat-new-cancel').addEventListener('click', function () { toggleCatBox(false); });
+  catSave.addEventListener('click', saveCategory);
+  [catAr, catEn].forEach(function (el) {
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); saveCategory(); }  // don't submit the question form
+      if (e.key === 'Escape') toggleCatBox(false);
+    });
+  });
 
   // --- Audio: upload, drag & drop, microphone recording -----------------------
   var fileInput = form.querySelector('input[type="file"][name="audio_file"]');

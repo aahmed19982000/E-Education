@@ -26,19 +26,38 @@
     </div>
 
     <div class="dash-form-grid qf-meta">
-      <div class="dash-field">
-        <label for="{{ form.tag_ar.id_for_label }}">{{ form.tag_ar.label }}</label>
-        {{ form.tag_ar }}{{ form.tag_ar.errors }}
-        <datalist id="tag-suggestions">
-          {% for t in tag_suggestions %}<option value="{{ t }}">{% endfor %}
-        </datalist>
+      <div class="dash-field qf-category">
+        <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+        <div class="qf-category-row">
+          {{ form.category }}
+          <button type="button" class="btn btn-outline" id="cat-new-btn" aria-expanded="false" aria-controls="cat-new">+ تصنيف جديد</button>
+        </div>
+        {{ form.category.errors }}
+        <div class="qf-cat-new" id="cat-new" hidden data-url="{% url 'dashboard:category_quick_add' %}">
+          <input type="text" class="field" id="cat-new-ar" placeholder="اسم التصنيف (مثلًا: محادثة)" maxlength="100">
+          <input type="text" class="field" id="cat-new-en" placeholder="English name (optional)" maxlength="100" dir="ltr">
+          <button type="button" class="btn btn-primary" id="cat-new-save">إضافة</button>
+          <button type="button" class="qf-link" id="cat-new-cancel">إلغاء</button>
+          <div class="qf-cat-error" id="cat-new-error" role="alert"></div>
+        </div>
+        <a class="qf-hint qf-cat-manage" href="{% url 'dashboard:categories_list' %}" target="_blank" rel="noopener">إدارة التصنيفات ↗</a>
       </div>
-      <div class="dash-field qf-en">
-        <label for="{{ form.tag_en.id_for_label }}">{{ form.tag_en.label }}</label>{{ form.tag_en }}{{ form.tag_en.errors }}
+      {% if form.points %}
+        <div class="dash-field qf-points">
+          <label for="{{ form.points.id_for_label }}">{{ form.points.label }}</label>{{ form.points }}{{ form.points.errors }}
+        </div>
+      {% else %}
+        <div class="dash-field qf-points">
+          <label>درجة السؤال</label>
+          <div class="qf-points-auto">{{ equal_share }} درجة <small class="qf-hint">(الدرجة الكلية مقسّمة بالتساوي — <a href="{% url 'dashboard:quiz_grading' %}">تغيير النظام</a>)</small></div>
+        </div>
+      {% endif %}
+      <div class="dash-field qf-time">
+        <label for="{{ form.time_limit_seconds.id_for_label }}">{{ form.time_limit_seconds.label }}</label>{{ form.time_limit_seconds }}
+        <small class="qf-hint">{{ form.time_limit_seconds.help_text }}</small>{{ form.time_limit_seconds.errors }}
       </div>
-      <div class="dash-field qf-order">
-        <label for="{{ form.order.id_for_label }}">{{ form.order.label }}</label>{{ form.order }}
-        <small class="qf-hint">{{ form.order.help_text }}</small>{{ form.order.errors }}
+      <div class="dash-field qf-position">
+        <label for="{{ form.position.id_for_label }}">{{ form.position.label }}</label>{{ form.position }}{{ form.position.errors }}
       </div>
     </div>
 
@@ -80,7 +99,7 @@
         <button type="button" class="btn btn-outline" id="rec-btn">🎙 تسجيل من الميكروفون</button>
         <span class="qf-rec-timer" id="rec-timer" hidden>00:00</span>
       </div>
-      <p class="qf-hint">اسحب الملف وأفلته هنا · MP3, WAV, M4A, OGG · حتى {{ audio_max_mb }} ميجابايت</p>
+      <p class="qf-hint">اسحب الملف وأفلته هنا · MP3, WAV, M4A, OGG · حتى {{ audio_max_mb }} ميجابايت · يُضغط الملف تلقائيًا عند الحفظ لتوفير المساحة</p>
       <div class="qf-audio-preview" id="audio-preview" hidden>
         <div class="qf-audio-title" id="audio-preview-name"></div>
         <audio controls id="audio-preview-player"></audio>
@@ -110,11 +129,12 @@
 
     <div class="qf-options-head">
       <span>الاختيارات</span>
-      <small class="qf-hint">اضغط على الدائرة بجوار الإجابة الصحيحة</small>
+      <small class="qf-hint">اضغط على الدائرة بجوار الإجابة الصحيحة · اسحب من ⠿ لتغيير ترتيب الاختيارات</small>
     </div>
     <div class="qf-options" id="options">
       {% for row in option_rows %}
         <div class="qf-option">
+          <span class="qf-option-handle" title="اسحب لتغيير الترتيب" aria-hidden="true">⠿</span>
           <label class="qf-correct" title="الإجابة الصحيحة">
             <input type="radio" name="correct_index" value="{{ row.index }}" {% if form.correct_index.value|stringformat:"s" == row.index|stringformat:"s" %}checked{% endif %}>
             <span></span>

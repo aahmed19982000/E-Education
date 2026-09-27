@@ -6,7 +6,8 @@ from django.db import models
 from accounts.models import Profile
 from articles.models import Article
 from levels.models import Level
-from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Question
+from quiz.audio import AudioDecodeError, compress_audio
+from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
 
 
 class StyledFormMixin:
@@ -103,11 +104,15 @@ class QuestionForm(StyledFormMixin, forms.ModelForm):
         widget=forms.RadioSelect,
     )
     correct_index = forms.IntegerField(min_value=0, max_value=MAX_OPTIONS - 1, widget=forms.HiddenInput, required=False)
+    position = forms.ChoiceField(
+        label="مكان السؤال في الاختبار", required=False,
+        error_messages={"invalid_choice": "هذا المكان لم يعد موجودًا، اختر مكانًا آخر."},
+    )
 
     class Meta:
         model = Question
         fields = [
-            "order", "tag_ar", "tag_en",
+            "category", "points", "time_limit_seconds",
             "passage_ar", "passage_en",
             "audio_file", "audio_label_ar", "audio_label_en",
             "text_ar", "text_en",
@@ -117,12 +122,14 @@ class QuestionForm(StyledFormMixin, forms.ModelForm):
             "passage_en": forms.Textarea(attrs={"rows": 4}),
             "text_ar": forms.Textarea(attrs={"rows": 2}),
             "text_en": forms.Textarea(attrs={"rows": 2}),
-            "tag_ar": forms.TextInput(attrs={"list": "tag-suggestions", "autocomplete": "off"}),
             "audio_file": forms.FileInput(attrs={"accept": "audio/*"}),
+            "points": forms.NumberInput(attrs={"step": "0.5", "min": "0"}),
+            "time_limit_seconds": forms.NumberInput(attrs={"step": "5", "min": "0"}),
         }
         labels = {
-            "order": "الترتيب",
-            "tag_ar": "التصنيف", "tag_en": "التصنيف (إنجليزي)",
+            "points": "درجة السؤال",
+            "time_limit_seconds": "وقت هذا السؤال (بالثواني)",
+            "category": "التصنيف",
             "passage_ar": "نص القراءة", "passage_en": "نص القراءة (إنجليزي)",
             "audio_file": "المقطع الصوتي",
             "audio_label_ar": "وصف المقطع", "audio_label_en": "وصف المقطع (إنجليزي)",
@@ -131,8 +138,18 @@ class QuestionForm(StyledFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["order"].required = False
-        self.fields["order"].help_text = "اتركه فارغًا ليُضاف في آخر الاختبار."
+        self._init_position()
+        self.fields["category"].empty_label = "اختر التصنيف…"
+        self.fields["category"].error_messages["required"] = "اختر تصنيفًا للسؤال أو أضف تصنيفًا جديدًا."
+        self.quiz_settings = QuizSettings.load()
+        default_time = self.quiz_settings.question_time_seconds
+        self.fields["time_limit_seconds"].help_text = (
+            f"اتركه فارغًا لاستخدام الوقت الافتراضي ({default_time} ثانية)، أو 0 لإلغاء الوقت لهذا السؤال."
+            if default_time else "اتركه فارغًا ليكون السؤال بدون وقت."
+        )
+        if not self.quiz_settings.is_per_question:
+            # Whole-test grading splits marks equally, so a per-question value would be ignored.
+            del self.fields["points"]
         self.remove_audio = False
 
         instance = self.instance
@@ -144,12 +161,48 @@ class QuestionForm(StyledFormMixin, forms.ModelForm):
         else:
             options_ar, options_en = [], []
             self.fields["correct_index"].initial = 0
-            self.initial["order"] = None  # blank = append to the end
         self.initial_options = [
             (options_ar[i] if i < len(options_ar) else "", options_en[i] if i < len(options_en) else "")
             for i in range(max(len(options_ar), 4))
         ]
         self._style_fields()
+
+    def _init_position(self):
+        """Position dropdown: "at the start" or "after question N" for every other question."""
+        # Number by the real quiz position (what the questions list shows), skipping this question.
+        ordered = list(Question.objects.order_by("order", "pk"))
+        others = [q for q in ordered if q.pk != self.instance.pk]
+        choices = [("start", "في بداية الاختبار")]
+        for number, q in enumerate(ordered, start=1):
+            if q.pk == self.instance.pk:
+                continue
+            text = q.text_ar if len(q.text_ar) <= 60 else q.text_ar[:60] + "…"
+            choices.append((str(q.pk), f"بعد السؤال {number}: {text}"))
+        self.fields["position"].choices = choices
+
+        if self.instance.pk:
+            before = [q for q in others if (q.order, q.pk) < (self.instance.order, self.instance.pk)]
+            self.fields["position"].initial = str(before[-1].pk) if before else "start"
+        else:
+            self.fields["position"].initial = str(others[-1].pk) if others else "start"
+
+    def _place(self, instance):
+        """Put `instance` at the chosen position and renumber the whole quiz 1..n."""
+        position = self.cleaned_data.get("position")
+        others = list(Question.objects.exclude(pk=instance.pk).order_by("order", "pk"))
+        if position == "start":
+            index = 0
+        elif position:
+            index = next((i + 1 for i, q in enumerate(others) if str(q.pk) == position), len(others))
+        else:
+            return
+        others.insert(index, instance)
+        changed = []
+        for number, q in enumerate(others, start=1):
+            if q.order != number:
+                q.order = number
+                changed.append(q)
+        Question.objects.bulk_update(changed, ["order"])
 
     def option_rows(self):
         """Rows for the template: submitted values on a re-render, else the saved ones."""
@@ -165,9 +218,14 @@ class QuestionForm(StyledFormMixin, forms.ModelForm):
 
     def clean_audio_file(self):
         audio = self.cleaned_data.get("audio_file")
-        if audio and hasattr(audio, "size") and audio.size > AUDIO_MAX_MB * 1024 * 1024:
+        if not audio or "audio_file" not in self.files:
+            return audio  # nothing new uploaded
+        if audio.size > AUDIO_MAX_MB * 1024 * 1024:
             raise forms.ValidationError(f"حجم الملف أكبر من {AUDIO_MAX_MB} ميجابايت.")
-        return audio
+        try:
+            return compress_audio(audio)
+        except AudioDecodeError:
+            raise forms.ValidationError("تعذّرت قراءة الملف. تأكد أنه مقطع صوتي سليم.")
 
     def clean(self):
         cleaned = super().clean()
@@ -207,10 +265,6 @@ class QuestionForm(StyledFormMixin, forms.ModelForm):
         instance = super().save(commit=False)
         data = self.cleaned_data
         kind = data["kind"]
-        old_audio = None
-        if self.instance.pk:
-            old_audio = Question.objects.filter(pk=self.instance.pk).values_list("audio_file", flat=True).first()
-
         # Clear whatever doesn't belong to the chosen type so hidden fields never leak into the quiz.
         if kind != Question.KIND_READING:
             instance.passage_ar = instance.passage_en = ""
@@ -219,17 +273,105 @@ class QuestionForm(StyledFormMixin, forms.ModelForm):
         if kind != Question.KIND_LISTENING:
             instance.audio_label_ar = instance.audio_label_en = ""
 
-        if data.get("order") is None:
+        if not instance.pk:
             last = Question.objects.aggregate(m=models.Max("order"))["m"]
-            instance.order = (last or 0) + 1
+            instance.order = (last or 0) + 1  # default: end of the quiz
         instance.options_ar = data["options_ar"]
         instance.options_en = data["options_en"]
         instance.correct_index = data["correct_index"]
         if commit:
             instance.save()
-            if old_audio and old_audio != instance.audio_file.name:
-                instance.audio_file.storage.delete(old_audio)
+            self._place(instance)
         return instance
+
+
+class CategoryForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = ["name_ar", "name_en"]
+        labels = {"name_ar": "اسم التصنيف", "name_en": "الاسم بالإنجليزية (اختياري)"}
+        error_messages = {"name_ar": {"unique": "يوجد تصنيف بهذا الاسم بالفعل."}}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
+    def clean_name_ar(self):
+        return " ".join(self.cleaned_data["name_ar"].split())
+
+    def clean_name_en(self):
+        return " ".join(self.cleaned_data["name_en"].split())
+
+
+class PlacementForm(forms.Form):
+    """Minimum test score (%) for each level. A blank value leaves the level out of the test."""
+
+    def __init__(self, *args, levels, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.levels = list(levels)
+        for level in self.levels:
+            self.fields[self.field_name(level)] = forms.IntegerField(
+                label=level.code, required=False, min_value=0, max_value=100,
+                initial=level.test_min_percent,
+                widget=forms.NumberInput(attrs={"class": "field", "min": 0, "max": 100, "step": 1, "inputmode": "numeric"}),
+                error_messages={
+                    "min_value": "النسبة لا تقل عن 0.",
+                    "max_value": "النسبة لا تزيد عن 100.",
+                    "invalid": "أدخل رقمًا صحيحًا.",
+                },
+            )
+
+    @staticmethod
+    def field_name(level):
+        return f"min_{level.pk}"
+
+    def rows(self):
+        return [(level, self[self.field_name(level)]) for level in self.levels]
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.errors:
+            return cleaned
+        included = [(lvl, cleaned[self.field_name(lvl)]) for lvl in self.levels if cleaned.get(self.field_name(lvl)) is not None]
+        if not included:
+            raise forms.ValidationError("حدد نسبة لمستوى واحد على الأقل.")
+        if included[0][1] != 0:
+            raise forms.ValidationError(f"أول مستوى في الاختبار ({included[0][0].code}) يجب أن يبدأ من 0% حتى يحصل كل طالب على مستوى.")
+        for (prev, prev_min), (lvl, lvl_min) in zip(included, included[1:]):
+            if lvl_min <= prev_min:
+                self.add_error(self.field_name(lvl), f"يجب أن تكون أكبر من نسبة {prev.code} ({prev_min}%).")
+        return cleaned
+
+    def save(self):
+        for level in self.levels:
+            level.test_min_percent = self.cleaned_data.get(self.field_name(level))
+        Level.objects.bulk_update(self.levels, ["test_min_percent"])
+
+
+class QuizSettingsForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = QuizSettings
+        fields = ["grading_mode", "total_marks", "exam_time_minutes", "question_time_seconds"]
+        widgets = {
+            "grading_mode": forms.RadioSelect,
+            "total_marks": forms.NumberInput(attrs={"step": "1", "min": "1"}),
+            "exam_time_minutes": forms.NumberInput(attrs={"step": "1", "min": "0"}),
+            "question_time_seconds": forms.NumberInput(attrs={"step": "5", "min": "0"}),
+        }
+        labels = {
+            "grading_mode": "نظام الدرجات",
+            "total_marks": "الدرجة الكلية للاختبار",
+            "exam_time_minutes": "مدة الاختبار كله (بالدقائق)",
+            "question_time_seconds": "الوقت الافتراضي لكل سؤال (بالثواني)",
+        }
+        help_texts = {
+            "exam_time_minutes": "0 = بدون وقت. عند انتهاء الوقت يُنهى الاختبار وتظهر النتيجة.",
+            "question_time_seconds": "0 = بدون وقت. عند انتهاء وقت السؤال يُقفل وينتقل الطالب للسؤال التالي. يمكن تغييره لسؤال معيّن من صفحة السؤال.",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
 
 
 class StaffUserCreateForm(StyledFormMixin, forms.Form):
