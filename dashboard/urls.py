@@ -24,6 +24,10 @@ urlpatterns = [
     path("team/add/", views.team_form, name="team_create"),
     path("team/<int:pk>/edit/", views.team_form, name="team_edit"),
     path("team/<int:pk>/delete/", views.team_delete, name="team_delete"),
+    path("team/<int:member_pk>/reviews/", views.review_list, name="review_list"),
+    path("team/<int:member_pk>/reviews/add/", views.review_form, name="review_create"),
+    path("team/<int:member_pk>/reviews/<int:pk>/edit/", views.review_form, name="review_edit"),
+    path("team/<int:member_pk>/reviews/<int:pk>/delete/", views.review_delete, name="review_delete"),
 
     path("questions/", views.questions_list, name="questions_list"),
     path("questions/categories/", views.categories_list, name="categories_list"),

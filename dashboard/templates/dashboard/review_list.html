@@ -1,0 +1,42 @@
+{% extends "dashboard/base.html" %}
+{% block title %}تقييمات {{ member.name_ar }}{% endblock %}
+{% block page_title %}تقييمات الطلاب: {{ member.name_ar }}{% endblock %}
+
+{% block content %}
+<div class="dash-toolbar">
+  <h2>{{ reviews|length }} تقييم · <a href="{% url 'dashboard:team_list' %}">‹ رجوع لفريق العمل</a></h2>
+  {% if can_write_team %}
+    <a class="btn btn-primary" href="{% url 'dashboard:review_create' member.pk %}">+ إضافة تقييم</a>
+  {% endif %}
+</div>
+
+<div class="dash-table-wrap">
+  {% if reviews %}
+  <table class="dash-table">
+    <thead>
+      <tr><th>الطالب</th><th>التقييم</th><th>النوع</th><th>النص</th>{% if can_write_team %}<th></th>{% endif %}</tr>
+    </thead>
+    <tbody>
+      {% for r in reviews %}
+      <tr>
+        <td>{{ r.student_name }}</td>
+        <td>{{ r.rating }} ★</td>
+        <td>{% if r.video_file %}فيديو مرفوع{% elif r.youtube_url %}يوتيوب{% else %}نص{% endif %}</td>
+        <td class="wrap">{{ r.text|truncatechars:70 }}</td>
+        {% if can_write_team %}
+        <td>
+          <div class="dash-table-actions">
+            <a href="{% url 'dashboard:review_edit' member.pk r.pk %}">تعديل</a>
+            <a class="danger" href="{% url 'dashboard:review_delete' member.pk r.pk %}">حذف</a>
+          </div>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="dash-empty">لا توجد تقييمات بعد.</div>
+  {% endif %}
+</div>
+{% endblock %}

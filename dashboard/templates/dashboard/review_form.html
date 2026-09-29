@@ -1,0 +1,32 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }} · {{ member.name_ar }}{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="tm-form">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="dash-card tm-errors">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="dash-card tm-section">
+    <div class="dash-form-grid">
+      <div class="dash-field"><label>{{ form.student_name.label }} *</label>{{ form.student_name }}{{ form.student_name.errors }}</div>
+      <div class="dash-field"><label>{{ form.rating.label }}</label>{{ form.rating }}{{ form.rating.errors }}</div>
+    </div>
+    <div class="dash-form-grid full">
+      <div class="dash-field"><label>{{ form.text.label }}</label>{{ form.text }}{{ form.text.errors }}</div>
+    </div>
+    <h3>فيديو (اختياري)</h3>
+    <p class="tm-hint">اكتب نص التقييم، أو أضف فيديو، أو الاتنين. الأفضل رابط يوتيوب للفيديوهات الكبيرة، والرفع المباشر حتى 50 ميجابايت (mp4 / webm / mov).</p>
+    <div class="dash-form-grid">
+      <div class="dash-field"><label>{{ form.youtube_url.label }}</label>{{ form.youtube_url }}{{ form.youtube_url.errors }}</div>
+      <div class="dash-field">
+        <label>{{ form.video_file.label }}</label>{{ form.video_file }}{{ form.video_file.errors }}
+      </div>
+      <div class="dash-field"><label>{{ form.order.label }}</label>{{ form.order }}{{ form.order.errors }}</div>
+    </div>
+  </div>
+  <div class="dash-form-actions tm-actions">
+    <button type="submit" class="btn btn-primary">حفظ</button>
+    <a class="btn btn-outline" href="{% url 'dashboard:review_list' member.pk %}">إلغاء</a>
+  </div>
+</form>
+{% endblock %}

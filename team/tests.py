@@ -51,3 +51,48 @@ class EnglishFallbackTests(TestCase):
         self.assertEqual((en["name"], en["role"], en["bio"]), ("أحمد", "مدرس", "نبذة"))
         self.assertEqual(en["specialties"], ["نحو", "محادثة"])
         self.assertTrue(m.slug)
+
+
+class ReviewTests(TestCase):
+    def setUp(self):
+        self.member = TeamMember.objects.create(name_ar="سارة", role_ar="مدرسة")
+
+    def test_needs_text_or_video(self):
+        from django.core.exceptions import ValidationError
+        from .models import TeamReview
+        with self.assertRaises(ValidationError):
+            TeamReview(member=self.member, student_name="علي").full_clean()
+
+    def test_detail_shows_reviews_and_average(self):
+        from .models import TeamReview
+        TeamReview.objects.create(member=self.member, student_name="علي", rating=5, text="ممتازة")
+        TeamReview.objects.create(member=self.member, student_name="منى", rating=4, youtube_url="https://youtu.be/dQw4w9WgXcQ")
+        r = self.client.get(reverse("team:detail", args=[self.member.slug]))
+        self.assertContains(r, "ممتازة")
+        self.assertContains(r, "youtube-nocookie.com/embed/dQw4w9WgXcQ")
+        self.assertEqual(r.context["avg_rating"], 4.5)
+
+
+class ReviewDashboardTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.member = TeamMember.objects.create(name_ar="سارة", role_ar="مدرسة")
+        self.client.force_login(User.objects.create_superuser("admin", "a@example.com", "x"))
+
+    def test_create_text_review_and_delete(self):
+        from .models import TeamReview
+        url = reverse("dashboard:review_create", args=[self.member.pk])
+        self.assertEqual(self.client.get(url).status_code, 200)
+        r = self.client.post(url, {"student_name": "علي", "rating": 5, "text": "رائعة", "order": 0})
+        self.assertEqual(r.status_code, 302)
+        review = TeamReview.objects.get()
+        self.assertEqual(self.client.get(reverse("dashboard:review_list", args=[self.member.pk])).status_code, 200)
+        del_url = reverse("dashboard:review_delete", args=[self.member.pk, review.pk])
+        self.assertEqual(self.client.get(del_url).status_code, 200)
+        self.client.post(del_url)
+        self.assertFalse(TeamReview.objects.exists())
+
+    def test_empty_review_rejected(self):
+        from .models import TeamReview
+        self.client.post(reverse("dashboard:review_create", args=[self.member.pk]), {"student_name": "علي", "rating": 5})
+        self.assertFalse(TeamReview.objects.exists())

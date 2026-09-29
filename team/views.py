@@ -13,4 +13,10 @@ def team_list(request):
 
 def team_detail(request, slug):
     member = get_object_or_404(TeamMember, slug=slug)
-    return render(request, "team/detail.html", {"member": member.localized(request.lang)})
+    reviews = list(member.reviews.all())
+    avg = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else None
+    return render(request, "team/detail.html", {
+        "member": member.localized(request.lang),
+        "reviews": [r.as_dict() for r in reviews],
+        "avg_rating": avg,
+    })

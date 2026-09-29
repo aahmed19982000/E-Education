@@ -9,7 +9,7 @@
     {% csrf_token %}
     <div class="dash-form-actions">
       <button type="submit" class="btn" style="background:#b00020; color:#fff;">تأكيد الحذف</button>
-      <a class="btn btn-outline" href="{% url cancel_url %}">إلغاء</a>
+      <a class="btn btn-outline" href="{% if cancel_args %}{% url cancel_url cancel_args.0 %}{% else %}{% url cancel_url %}{% endif %}">إلغاء</a>
     </div>
   </form>
 </div>

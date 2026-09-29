@@ -90,7 +90,7 @@ AR = {
     "team": {
         "title": "فريق العمل", "subtitle": "تعرّف على الفريق الذي يقف وراء الأكاديمية ومدرسينا وتخصصاتهم.",
         "ownerBadge": "المالك والمدير", "teachersTitle": "المدرسون", "viewProfile": "عرض الصفحة الشخصية ‹",
-        "back": "‹ رجوع لفريق العمل", "specialties": "التخصصات", "about": "نبذة تعريفية", "empty": "لا يوجد أعضاء بعد.",
+        "back": "‹ رجوع لفريق العمل", "specialties": "التخصصات", "about": "نبذة تعريفية", "reviews": "آراء الطلاب", "reviewsCount": "تقييم", "empty": "لا يوجد أعضاء بعد.",
     },
     "contact": {
         "title": "تواصل معنا", "subtitle": "هل عندك سؤال عن المستويات أو ورشة المدرسين؟ راسلنا.",
@@ -194,7 +194,7 @@ EN = {
     "team": {
         "title": "Our Team", "subtitle": "Meet the people behind the academy, our teachers and their specialties.",
         "ownerBadge": "Owner & Director", "teachersTitle": "Teachers", "viewProfile": "View profile ›",
-        "back": "‹ Back to team", "specialties": "Specialties", "about": "About", "empty": "No team members yet.",
+        "back": "‹ Back to team", "specialties": "Specialties", "about": "About", "reviews": "Student reviews", "reviewsCount": "reviews", "empty": "No team members yet.",
     },
     "contact": {
         "title": "Contact us", "subtitle": "Have a question about levels or the teacher workshop? Reach out.",

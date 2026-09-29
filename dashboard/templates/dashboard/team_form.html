@@ -69,6 +69,7 @@
     </div>
   </div>
 
+  {% if instance %}<p class="tm-hint"><a href="{% url 'dashboard:review_list' instance.pk %}">إدارة تقييمات الطلاب لهذا العضو ‹</a></p>{% endif %}
   <div class="dash-form-actions tm-actions">
     <button type="submit" class="btn btn-primary">حفظ</button>
     <a class="btn btn-outline" href="{% url 'dashboard:team_list' %}">إلغاء</a>

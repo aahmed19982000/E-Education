@@ -10,7 +10,7 @@ from accounts.auth_utils import authenticate_by_email
 from articles.models import Article
 from contact_us.models import ContactMessage
 from levels.models import Level
-from team.models import TeamMember
+from team.models import TeamMember, TeamReview
 from quiz.grading import format_marks, question_marks
 from django.db.models import Count
 
@@ -18,7 +18,7 @@ from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Questi
 
 from .decorators import dashboard_required, section_required
 from .forms import (
-    ArticleForm, CategoryForm, DashboardLoginForm, LevelForm, PlacementForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, StaffUserEditForm,
+    ArticleForm, CategoryForm, DashboardLoginForm, LevelForm, PlacementForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
 )
 from .permissions import (
     SECTION_ARTICLES, SECTION_LEVELS, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_TEAM, SECTION_USERS,
@@ -201,6 +201,45 @@ def team_delete(request, pk):
         return redirect("dashboard:team_list")
     ctx = base_context(request, active="team")
     ctx.update({"object": instance, "title": f"حذف عضو: {instance.name_ar}", "cancel_url": "dashboard:team_list"})
+    return render(request, "dashboard/confirm_delete.html", ctx)
+
+
+@section_required(SECTION_TEAM)
+def review_list(request, member_pk):
+    member = get_object_or_404(TeamMember, pk=member_pk)
+    ctx = base_context(request, active="team")
+    ctx.update({"member": member, "reviews": member.reviews.all()})
+    return render(request, "dashboard/review_list.html", ctx)
+
+
+@section_required(SECTION_TEAM, "write")
+def review_form(request, member_pk, pk=None):
+    member = get_object_or_404(TeamMember, pk=member_pk)
+    instance = get_object_or_404(TeamReview, pk=pk, member=member) if pk else None
+    if request.method == "POST":
+        form = TeamReviewForm(request.POST, request.FILES, instance=instance)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.member = member
+            review.save()
+            messages.success(request, "تم حفظ التقييم.")
+            return redirect("dashboard:review_list", member_pk=member.pk)
+    else:
+        form = TeamReviewForm(instance=instance)
+    ctx = base_context(request, active="team")
+    ctx.update({"form": form, "member": member, "instance": instance, "title": "تعديل تقييم" if instance else "إضافة تقييم"})
+    return render(request, "dashboard/review_form.html", ctx)
+
+
+@section_required(SECTION_TEAM, "write")
+def review_delete(request, member_pk, pk):
+    instance = get_object_or_404(TeamReview, pk=pk, member_id=member_pk)
+    if request.method == "POST":
+        instance.delete()
+        messages.success(request, "تم حذف التقييم.")
+        return redirect("dashboard:review_list", member_pk=member_pk)
+    ctx = base_context(request, active="team")
+    ctx.update({"object": instance, "title": f"حذف تقييم: {instance.student_name}", "cancel_url": "dashboard:review_list", "cancel_args": [member_pk]})
     return render(request, "dashboard/confirm_delete.html", ctx)
 
 

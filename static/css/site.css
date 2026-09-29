@@ -361,3 +361,14 @@ section.panel-row { padding: 24px 24px 64px; display: grid; grid-template-column
   .team-owner .team-tags { justify-content: center; }
   .team-head { flex-direction: column; text-align: center; }
 }
+
+/* Team reviews */
+.team-rating { font-size: 14px; font-weight: 800; color: var(--primary); margin-top: 6px; }
+.team-rating small { font-weight: 400; color: var(--muted); }
+.stars { color: var(--accent); letter-spacing: 2px; }
+.review-list { display: grid; gap: 16px; }
+.review-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+.review-card .team-video { margin: 0 0 14px; }
+.review-video { width: 100%; max-height: 420px; border-radius: 10px; background: #000; margin-bottom: 14px; display: block; }
+.review-text { font-size: 15px; line-height: 1.9; color: #3A4258; margin: 8px 0; }
+.review-author { font-size: 13px; font-weight: 800; color: var(--primary); }

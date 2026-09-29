@@ -15,7 +15,7 @@
   <table class="dash-table">
     <thead>
       <tr>
-        <th>الاسم</th><th>المسمى الوظيفي</th><th>الفيديو</th><th>الترتيب</th>
+        <th>الاسم</th><th>المسمى الوظيفي</th><th>الفيديو</th><th>التقييمات</th><th>الترتيب</th>
         {% if can_write_team %}<th></th>{% endif %}
       </tr>
     </thead>
@@ -25,6 +25,7 @@
         <td class="wrap">{{ m.name_ar }}{% if m.is_owner %} <strong>(المالك والمدير)</strong>{% endif %}</td>
         <td>{{ m.role_ar }}</td>
         <td>{% if m.youtube_url %}✓{% else %}—{% endif %}</td>
+        <td><a href="{% url 'dashboard:review_list' m.pk %}">{{ m.reviews.count }} · إدارة</a></td>
         <td>{{ m.order }}</td>
         {% if can_write_team %}
         <td>

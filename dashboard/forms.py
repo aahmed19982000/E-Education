@@ -6,7 +6,7 @@ from django.db import models
 from accounts.models import Profile
 from articles.models import Article
 from levels.models import Level
-from team.models import TeamMember
+from team.models import VIDEO_MAX_MB, TeamMember, TeamReview
 from quiz.audio import AudioDecodeError, compress_audio
 from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
 
@@ -123,6 +123,31 @@ class TeamMemberForm(StyledFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._style_fields()
+
+
+class TeamReviewForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = TeamReview
+        fields = ["student_name", "rating", "text", "youtube_url", "video_file", "order"]
+        widgets = {
+            "rating": forms.Select(choices=[(i, "★" * i) for i in range(5, 0, -1)]),
+            "text": forms.Textarea(attrs={"rows": 4}),
+            "youtube_url": forms.URLInput(attrs={"placeholder": "https://www.youtube.com/watch?v=..."}),
+        }
+        labels = {
+            "student_name": "اسم الطالب", "rating": "التقييم", "text": "نص التقييم",
+            "youtube_url": "رابط فيديو يوتيوب", "video_file": "أو ارفع ملف فيديو", "order": "الترتيب",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
+    def clean_video_file(self):
+        video = self.cleaned_data.get("video_file")
+        if video and hasattr(video, "size") and video.size > VIDEO_MAX_MB * 1024 * 1024:
+            raise forms.ValidationError(f"حجم الفيديو أكبر من {VIDEO_MAX_MB} ميجابايت. استخدم رابط يوتيوب للفيديوهات الكبيرة.")
+        return video
 
 
 class QuestionForm(StyledFormMixin, forms.ModelForm):
