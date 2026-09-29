@@ -42,3 +42,12 @@ class TeamPageTests(TestCase):
 
     def test_detail_404(self):
         self.assertEqual(self.client.get(reverse("team:detail", args=["nope"])).status_code, 404)
+
+
+class EnglishFallbackTests(TestCase):
+    def test_empty_english_falls_back_to_arabic(self):
+        m = TeamMember.objects.create(name_ar="أحمد", role_ar="مدرس", specialties_ar="نحو، محادثة", bio_ar="نبذة")
+        en = m.localized("en")
+        self.assertEqual((en["name"], en["role"], en["bio"]), ("أحمد", "مدرس", "نبذة"))
+        self.assertEqual(en["specialties"], ["نحو", "محادثة"])
+        self.assertTrue(m.slug)

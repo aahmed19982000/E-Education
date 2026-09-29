@@ -101,14 +101,18 @@ class TeamMemberForm(StyledFormMixin, forms.ModelForm):
             "youtube_url", "photo",
         ]
         widgets = {
-            "specialties_ar": forms.Textarea(attrs={"rows": 2, "placeholder": "افصل بين التخصصات بفاصلة"}),
-            "specialties_en": forms.Textarea(attrs={"rows": 2, "placeholder": "Separate specialties with commas"}),
+            "specialties_ar": forms.HiddenInput(),
+            "specialties_en": forms.HiddenInput(),
+            "name_ar": forms.TextInput(attrs={"placeholder": "مثال: محمد عزت"}),
+            "name_en": forms.TextInput(attrs={"placeholder": "Example: Mohamed Ezzat"}),
+            "role_ar": forms.TextInput(attrs={"placeholder": "مثال: مدرس لغة إنجليزية"}),
+            "role_en": forms.TextInput(attrs={"placeholder": "Example: English Teacher"}),
             "bio_ar": forms.Textarea(attrs={"rows": 6}),
             "bio_en": forms.Textarea(attrs={"rows": 6}),
             "youtube_url": forms.URLInput(attrs={"placeholder": "https://www.youtube.com/watch?v=..."}),
         }
         labels = {
-            "is_owner": "المالك والمدير (يظهر في أول الصفحة)", "order": "الترتيب",
+            "is_owner": "المالك والمدير", "order": "الترتيب",
             "name_ar": "الاسم (عربي)", "name_en": "الاسم (إنجليزي)",
             "role_ar": "المسمى الوظيفي (عربي)", "role_en": "المسمى الوظيفي (إنجليزي)",
             "specialties_ar": "التخصصات (عربي)", "specialties_en": "التخصصات (إنجليزي)",

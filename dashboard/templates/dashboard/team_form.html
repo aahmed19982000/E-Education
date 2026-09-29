@@ -3,29 +3,126 @@
 {% block page_title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="dash-card">
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
+<form method="post" enctype="multipart/form-data" class="tm-form">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="dash-card tm-errors">{{ form.non_field_errors }}</div>{% endif %}
+
+  <div class="dash-card tm-section">
+    <h3>١. البيانات الأساسية</h3>
+    <p class="tm-hint">الإنجليزي اختياري، ولو تركته فارغًا يظهر النص العربي في النسخة الإنجليزية.</p>
     <div class="dash-form-grid">
-      <div class="dash-field"><label>{{ form.order.label }}</label>{{ form.order }}{{ form.order.errors }}</div>
-      <div class="dash-field"><label>{{ form.is_owner }} {{ form.is_owner.label }}</label>{{ form.is_owner.errors }}</div>
-      <div class="dash-field"><label>{{ form.name_ar.label }}</label>{{ form.name_ar }}{{ form.name_ar.errors }}</div>
+      <div class="dash-field"><label>{{ form.name_ar.label }} *</label>{{ form.name_ar }}{{ form.name_ar.errors }}</div>
       <div class="dash-field"><label>{{ form.name_en.label }}</label>{{ form.name_en }}{{ form.name_en.errors }}</div>
-      <div class="dash-field"><label>{{ form.role_ar.label }}</label>{{ form.role_ar }}{{ form.role_ar.errors }}</div>
+      <div class="dash-field"><label>{{ form.role_ar.label }} *</label>{{ form.role_ar }}{{ form.role_ar.errors }}</div>
       <div class="dash-field"><label>{{ form.role_en.label }}</label>{{ form.role_en }}{{ form.role_en.errors }}</div>
-      <div class="dash-field"><label>{{ form.youtube_url.label }}</label>{{ form.youtube_url }}{{ form.youtube_url.errors }}</div>
-      <div class="dash-field"><label>{{ form.photo.label }}</label>{{ form.photo }}{{ form.photo.errors }}</div>
     </div>
-    <div class="dash-form-grid full">
-      <div class="dash-field"><label>{{ form.specialties_ar.label }}</label>{{ form.specialties_ar }}{{ form.specialties_ar.errors }}</div>
-      <div class="dash-field"><label>{{ form.specialties_en.label }}</label>{{ form.specialties_en }}{{ form.specialties_en.errors }}</div>
+    <div class="tm-inline">
+      <label class="tm-switch">{{ form.is_owner }}<span>{{ form.is_owner.label }} <small>(يظهر في أول الصفحة بكارت مميز)</small></span></label>
+      <div class="dash-field tm-order"><label>{{ form.order.label }}</label>{{ form.order }}{{ form.order.errors }}</div>
+    </div>
+  </div>
+
+  <div class="dash-card tm-section">
+    <h3>٢. التخصصات</h3>
+    <p class="tm-hint">اكتب التخصص واضغط Enter أو الفاصلة لإضافته، وتقدر تحذفه بالضغط على ×.</p>
+    <div class="dash-form-grid">
+      <div class="dash-field">
+        <label>{{ form.specialties_ar.label }}</label>
+        <div class="tm-tags" data-target="{{ form.specialties_ar.id_for_label }}" data-placeholder="مثال: IELTS"></div>
+        {{ form.specialties_ar }}
+      </div>
+      <div class="dash-field">
+        <label>{{ form.specialties_en.label }}</label>
+        <div class="tm-tags" data-target="{{ form.specialties_en.id_for_label }}" data-placeholder="e.g. IELTS"></div>
+        {{ form.specialties_en }}
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-card tm-section">
+    <h3>٣. نبذة تعريفية</h3>
+    <div class="dash-form-grid">
       <div class="dash-field"><label>{{ form.bio_ar.label }}</label>{{ form.bio_ar }}{{ form.bio_ar.errors }}</div>
       <div class="dash-field"><label>{{ form.bio_en.label }}</label>{{ form.bio_en }}{{ form.bio_en.errors }}</div>
     </div>
-    <div class="dash-form-actions">
-      <button type="submit" class="btn btn-primary">حفظ</button>
-      <a class="btn btn-outline" href="{% url 'dashboard:team_list' %}">إلغاء</a>
+  </div>
+
+  <div class="dash-card tm-section">
+    <h3>٤. الفيديو والصورة</h3>
+    <div class="dash-form-grid">
+      <div class="dash-field">
+        <label>{{ form.youtube_url.label }}</label>
+        {{ form.youtube_url }}{{ form.youtube_url.errors }}
+        <span class="tm-hint">الصق أي رابط يوتيوب. يظهر في أول صفحة العضو.</span>
+        <div class="tm-video" id="tmVideo" hidden><iframe title="preview" loading="lazy" allowfullscreen></iframe></div>
+      </div>
+      <div class="dash-field">
+        <label>{{ form.photo.label }}</label>
+        <div class="tm-photo">
+          <div class="tm-photo-preview" id="tmPhotoPreview">{% if instance and instance.photo %}<img src="{{ instance.photo.url }}" alt="">{% else %}<span>بدون صورة</span>{% endif %}</div>
+          <div>
+            {{ form.photo }}{{ form.photo.errors }}
+            <span class="tm-hint">صورة مربعة يفضل (JPG أو PNG).</span>
+          </div>
+        </div>
+      </div>
     </div>
-  </form>
-</div>
+  </div>
+
+  <div class="dash-form-actions tm-actions">
+    <button type="submit" class="btn btn-primary">حفظ</button>
+    <a class="btn btn-outline" href="{% url 'dashboard:team_list' %}">إلغاء</a>
+  </div>
+</form>
+
+<script>
+(function () {
+  // Chip inputs for specialties: hidden field keeps the comma-separated value.
+  document.querySelectorAll('.tm-tags').forEach(function (box) {
+    var hidden = document.getElementById(box.dataset.target);
+    var items = hidden.value.split(/[,\n،]/).map(function (s) { return s.trim(); }).filter(Boolean);
+    var input = document.createElement('input');
+    input.type = 'text'; input.placeholder = box.dataset.placeholder; input.className = 'tm-tag-input';
+    function sync() { hidden.value = items.join(', '); }
+    function render() {
+      box.querySelectorAll('.tm-chip').forEach(function (c) { c.remove(); });
+      items.forEach(function (text, i) {
+        var chip = document.createElement('span'); chip.className = 'tm-chip'; chip.textContent = text;
+        var x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'remove');
+        x.onclick = function () { items.splice(i, 1); sync(); render(); };
+        chip.appendChild(x); box.insertBefore(chip, input);
+      });
+    }
+    function add() {
+      var v = input.value.replace(/[,،]/g, '').trim();
+      if (v && items.indexOf(v) === -1) { items.push(v); sync(); render(); }
+      input.value = '';
+    }
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ',' || e.key === '،') { e.preventDefault(); add(); }
+      else if (e.key === 'Backspace' && !input.value && items.length) { items.pop(); sync(); render(); }
+    });
+    input.addEventListener('blur', add);
+    box.appendChild(input); box.addEventListener('click', function () { input.focus(); });
+    render();
+  });
+
+  // Live YouTube preview.
+  var yt = document.getElementById('id_youtube_url'), wrap = document.getElementById('tmVideo');
+  function ytId(u) { var m = /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/|v\/))([A-Za-z0-9_-]{11})/.exec(u || ''); return m ? m[1] : ''; }
+  function preview() {
+    var id = ytId(yt.value);
+    wrap.hidden = !id;
+    wrap.querySelector('iframe').src = id ? 'https://www.youtube-nocookie.com/embed/' + id : '';
+  }
+  yt.addEventListener('input', preview); preview();
+
+  // Live photo preview.
+  var file = document.getElementById('id_photo'), box = document.getElementById('tmPhotoPreview');
+  if (file) file.addEventListener('change', function () {
+    if (!file.files[0]) return;
+    box.innerHTML = ''; var img = document.createElement('img'); img.src = URL.createObjectURL(file.files[0]); box.appendChild(img);
+  });
+})();
+</script>
 {% endblock %}

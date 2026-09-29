@@ -25,10 +25,10 @@ class TeamMember(models.Model):
     is_owner = models.BooleanField(default=False)
 
     name_ar = models.CharField(max_length=150)
-    name_en = models.CharField(max_length=150)
+    name_en = models.CharField(max_length=150, blank=True)
 
     role_ar = models.CharField(max_length=150)
-    role_en = models.CharField(max_length=150)
+    role_en = models.CharField(max_length=150, blank=True)
 
     specialties_ar = models.TextField(blank=True)
     specialties_en = models.TextField(blank=True)
@@ -61,15 +61,17 @@ class TeamMember(models.Model):
         super().save(*args, **kwargs)
 
     def localized(self, lang):
-        ar = lang == "ar"
-        video = youtube_id(self.youtube_url)
+        """Arabic is the master copy: empty English fields fall back to it."""
+        def pick(ar, en):
+            return ar if lang == "ar" else (en or ar)
+
         return {
             "slug": self.slug,
             "is_owner": self.is_owner,
-            "name": self.name_ar if ar else self.name_en,
-            "role": self.role_ar if ar else self.role_en,
-            "specialties": split_list(self.specialties_ar if ar else self.specialties_en),
-            "bio": self.bio_ar if ar else self.bio_en,
+            "name": pick(self.name_ar, self.name_en),
+            "role": pick(self.role_ar, self.role_en),
+            "specialties": split_list(pick(self.specialties_ar, self.specialties_en)),
+            "bio": pick(self.bio_ar, self.bio_en),
             "photo_url": self.photo.url if self.photo else "",
-            "video_id": video,
+            "video_id": youtube_id(self.youtube_url),
         }
