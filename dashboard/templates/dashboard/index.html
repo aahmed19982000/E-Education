@@ -16,6 +16,12 @@
       <div class="label">المقالات</div>
     </div>
   {% endif %}
+  {% if can_view_team %}
+    <div class="dash-stat">
+      <div class="value">{{ team_count }}</div>
+      <div class="label">فريق العمل</div>
+    </div>
+  {% endif %}
   {% if can_view_questions %}
     <div class="dash-stat">
       <div class="value">{{ questions_count }}</div>

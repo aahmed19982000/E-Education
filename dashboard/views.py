@@ -10,6 +10,7 @@ from accounts.auth_utils import authenticate_by_email
 from articles.models import Article
 from contact_us.models import ContactMessage
 from levels.models import Level
+from team.models import TeamMember
 from quiz.grading import format_marks, question_marks
 from django.db.models import Count
 
@@ -17,10 +18,10 @@ from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Questi
 
 from .decorators import dashboard_required, section_required
 from .forms import (
-    ArticleForm, CategoryForm, DashboardLoginForm, LevelForm, PlacementForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, StaffUserEditForm,
+    ArticleForm, CategoryForm, DashboardLoginForm, LevelForm, PlacementForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, StaffUserEditForm,
 )
 from .permissions import (
-    SECTION_ARTICLES, SECTION_LEVELS, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_USERS,
+    SECTION_ARTICLES, SECTION_LEVELS, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_TEAM, SECTION_USERS,
     can_access, get_dashboard_role, role_label,
 )
 
@@ -64,6 +65,8 @@ def base_context(request, active=""):
         "can_view_levels": can_access(role, SECTION_LEVELS),
         "can_write_articles": can_access(role, SECTION_ARTICLES, "write"),
         "can_view_articles": can_access(role, SECTION_ARTICLES),
+        "can_write_team": can_access(role, SECTION_TEAM, "write"),
+        "can_view_team": can_access(role, SECTION_TEAM),
         "can_write_questions": can_access(role, SECTION_QUESTIONS, "write"),
         "can_view_questions": can_access(role, SECTION_QUESTIONS),
         "can_write_messages": can_access(role, SECTION_MESSAGES, "write"),
@@ -79,6 +82,8 @@ def index(request):
         ctx["levels_count"] = Level.objects.count()
     if ctx["can_view_articles"]:
         ctx["articles_count"] = Article.objects.count()
+    if ctx["can_view_team"]:
+        ctx["team_count"] = TeamMember.objects.count()
     if ctx["can_view_questions"]:
         ctx["questions_count"] = Question.objects.count()
     if ctx["can_view_messages"]:
@@ -159,6 +164,43 @@ def article_delete(request, pk):
         return redirect("dashboard:articles_list")
     ctx = base_context(request, active="articles")
     ctx.update({"object": instance, "title": f"حذف مقال: {instance.title_ar}", "cancel_url": "dashboard:articles_list"})
+    return render(request, "dashboard/confirm_delete.html", ctx)
+
+
+# --- Team -------------------------------------------------------------------
+
+@section_required(SECTION_TEAM)
+def team_list(request):
+    ctx = base_context(request, active="team")
+    ctx["members"] = TeamMember.objects.all()
+    return render(request, "dashboard/team_list.html", ctx)
+
+
+@section_required(SECTION_TEAM, "write")
+def team_form(request, pk=None):
+    instance = get_object_or_404(TeamMember, pk=pk) if pk else None
+    if request.method == "POST":
+        form = TeamMemberForm(request.POST, request.FILES, instance=instance)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم حفظ بيانات العضو بنجاح.")
+            return redirect("dashboard:team_list")
+    else:
+        form = TeamMemberForm(instance=instance)
+    ctx = base_context(request, active="team")
+    ctx.update({"form": form, "instance": instance, "title": "تعديل عضو" if instance else "إضافة عضو"})
+    return render(request, "dashboard/team_form.html", ctx)
+
+
+@section_required(SECTION_TEAM, "write")
+def team_delete(request, pk):
+    instance = get_object_or_404(TeamMember, pk=pk)
+    if request.method == "POST":
+        instance.delete()
+        messages.success(request, "تم حذف العضو.")
+        return redirect("dashboard:team_list")
+    ctx = base_context(request, active="team")
+    ctx.update({"object": instance, "title": f"حذف عضو: {instance.name_ar}", "cancel_url": "dashboard:team_list"})
     return render(request, "dashboard/confirm_delete.html", ctx)
 
 

@@ -13,7 +13,7 @@ AR = {
     "imgTeachersAlt": "صورة ورشة تدريب معلمين",
     "nav": {
         "home": "الرئيسية", "about": "عن الأكاديمية", "levels": "المستويات والأسعار",
-        "teachers": "ورش المدرسين", "test": "اختبار المستوى", "articles": "مقالات",
+        "team": "فريق العمل", "teachers": "ورش المدرسين", "test": "اختبار المستوى", "articles": "مقالات",
         "contact": "تواصل معنا", "login": "تسجيل الدخول", "logout": "تسجيل الخروج", "cta": "اختبار مجاني",
     },
     "home": {
@@ -87,6 +87,11 @@ AR = {
         "back": "‹ رجوع للمقالات",
         "bodyPlaceholder": "[ نص المقال الكامل يوضع هنا بعد المراجعة النهائية للمحتوى. ]",
     },
+    "team": {
+        "title": "فريق العمل", "subtitle": "تعرّف على الفريق الذي يقف وراء الأكاديمية ومدرسينا وتخصصاتهم.",
+        "ownerBadge": "المالك والمدير", "teachersTitle": "المدرسون", "viewProfile": "عرض الصفحة الشخصية ‹",
+        "back": "‹ رجوع لفريق العمل", "specialties": "التخصصات", "about": "نبذة تعريفية", "empty": "لا يوجد أعضاء بعد.",
+    },
     "contact": {
         "title": "تواصل معنا", "subtitle": "هل عندك سؤال عن المستويات أو ورشة المدرسين؟ راسلنا.",
         "name": "الاسم", "email": "البريد الإلكتروني", "phone": "رقم الهاتف", "message": "رسالتك", "submit": "إرسال الرسالة",
@@ -112,7 +117,7 @@ EN = {
     "imgTeachersAlt": "teacher training workshop",
     "nav": {
         "home": "Home", "about": "About", "levels": "Levels & Pricing",
-        "teachers": "Teacher Track", "test": "Level Test", "articles": "Articles",
+        "team": "Our Team", "teachers": "Teacher Track", "test": "Level Test", "articles": "Articles",
         "contact": "Contact", "login": "Log in", "logout": "Log out", "cta": "Free level test",
     },
     "home": {
@@ -185,6 +190,11 @@ EN = {
         "title": "English learning articles & resources", "subtitle": "Free content to support your English learning journey",
         "back": "‹ Back to articles",
         "bodyPlaceholder": "[ Full article text goes here after final content review. ]",
+    },
+    "team": {
+        "title": "Our Team", "subtitle": "Meet the people behind the academy, our teachers and their specialties.",
+        "ownerBadge": "Owner & Director", "teachersTitle": "Teachers", "viewProfile": "View profile ›",
+        "back": "‹ Back to team", "specialties": "Specialties", "about": "About", "empty": "No team members yet.",
     },
     "contact": {
         "title": "Contact us", "subtitle": "Have a question about levels or the teacher workshop? Reach out.",

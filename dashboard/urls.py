@@ -20,6 +20,11 @@ urlpatterns = [
     path("articles/<int:pk>/edit/", views.article_form, name="article_edit"),
     path("articles/<int:pk>/delete/", views.article_delete, name="article_delete"),
 
+    path("team/", views.team_list, name="team_list"),
+    path("team/add/", views.team_form, name="team_create"),
+    path("team/<int:pk>/edit/", views.team_form, name="team_edit"),
+    path("team/<int:pk>/delete/", views.team_delete, name="team_delete"),
+
     path("questions/", views.questions_list, name="questions_list"),
     path("questions/categories/", views.categories_list, name="categories_list"),
     path("questions/categories/add/", views.category_form, name="category_create"),

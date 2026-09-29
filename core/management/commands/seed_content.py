@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand
 from articles.models import Article
 from levels.models import Level
 from quiz.models import Question
+from team.models import TeamMember
 
 LEVELS = [
     dict(order=1, code="A1", name_ar="المستوى الأول: التأسيس", name_en="Level 1: Foundations",
@@ -53,6 +54,13 @@ ARTICLES = [
          read_time_ar="5 دقائق قراءة", read_time_en="5 min read"),
 ]
 
+OWNER = dict(
+    order=0, is_owner=True,
+    name_ar="محمد عزت", name_en="Mohamed Ezzat",
+    role_ar="المالك ومدير الأكاديمية", role_en="Owner & Academy Director",
+)
+
+
 class Command(BaseCommand):
     help = "Seed levels and articles, and load the placement test if the quiz is empty."
 
@@ -64,6 +72,10 @@ class Command(BaseCommand):
         for data in ARTICLES:
             Article.objects.update_or_create(title_en=data["title_en"], defaults=data)
         self.stdout.write(self.style.SUCCESS(f"Articles: {len(ARTICLES)}"))
+
+        # Created once, then edited from the dashboard: never overwritten on re-seed.
+        TeamMember.objects.get_or_create(name_en=OWNER["name_en"], defaults=OWNER)
+        self.stdout.write(self.style.SUCCESS("Team owner ensured."))
 
         # Never touches existing questions: the real placement test is loaded only into an empty quiz.
         if Question.objects.exists():

@@ -28,6 +28,7 @@
         <nav class="nav-links">
           <a href="{% url 'core:home' %}" class="{% if request.resolver_match.view_name == 'core:home' %}active{% endif %}">{{ t.nav.home }}</a>
           <a href="{% url 'core:about' %}" class="{% if request.resolver_match.view_name == 'core:about' %}active{% endif %}">{{ t.nav.about }}</a>
+          <a href="{% url 'team:list' %}" class="{% if request.resolver_match.namespace == 'team' %}active{% endif %}">{{ t.nav.team }}</a>
           <a href="{% url 'levels:levels' %}" class="{% if request.resolver_match.view_name == 'levels:levels' %}active{% endif %}">{{ t.nav.levels }}</a>
           <a href="{% url 'core:teachers' %}" class="{% if request.resolver_match.view_name == 'core:teachers' %}active{% endif %}">{{ t.nav.teachers }}</a>
           <a href="{% url 'quiz:intro' %}" class="{% if 'quiz' in request.resolver_match.namespace %}active{% endif %}">{{ t.nav.test }}</a>
@@ -70,6 +71,7 @@
         <div class="footer-links">
           <a href="{% url 'core:home' %}">{{ t.nav.home }}</a>
           <a href="{% url 'core:about' %}">{{ t.nav.about }}</a>
+          <a href="{% url 'team:list' %}">{{ t.nav.team }}</a>
           <a href="{% url 'levels:levels' %}">{{ t.nav.levels }}</a>
           <a href="{% url 'core:teachers' %}">{{ t.nav.teachers }}</a>
           <a href="{% url 'quiz:intro' %}">{{ t.nav.test }}</a>

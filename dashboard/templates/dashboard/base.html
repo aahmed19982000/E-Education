@@ -34,6 +34,9 @@
         {% if can_view_articles %}
           <a href="{% url 'dashboard:articles_list' %}" class="{% if active == 'articles' %}active{% endif %}">المقالات</a>
         {% endif %}
+        {% if can_view_team %}
+          <a href="{% url 'dashboard:team_list' %}" class="{% if active == 'team' %}active{% endif %}">فريق العمل</a>
+        {% endif %}
         {% if can_view_questions %}
           <a href="{% url 'dashboard:questions_list' %}" class="{% if active == 'questions' %}active{% endif %}">أسئلة اختبار المستوى</a>
           {% if can_write_questions %}

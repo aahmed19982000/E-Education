@@ -6,6 +6,7 @@ from django.db import models
 from accounts.models import Profile
 from articles.models import Article
 from levels.models import Level
+from team.models import TeamMember
 from quiz.audio import AudioDecodeError, compress_audio
 from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
 
@@ -81,6 +82,38 @@ class ArticleForm(StyledFormMixin, forms.ModelForm):
             "excerpt_ar": "مقتطف (عربي)", "excerpt_en": "مقتطف (إنجليزي)",
             "body_ar": "نص المقال (عربي)", "body_en": "نص المقال (إنجليزي)",
             "read_time_ar": "مدة القراءة (عربي)", "read_time_en": "مدة القراءة (إنجليزي)",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
+
+class TeamMemberForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = TeamMember
+        fields = [
+            "is_owner", "order",
+            "name_ar", "name_en",
+            "role_ar", "role_en",
+            "specialties_ar", "specialties_en",
+            "bio_ar", "bio_en",
+            "youtube_url", "photo",
+        ]
+        widgets = {
+            "specialties_ar": forms.Textarea(attrs={"rows": 2, "placeholder": "افصل بين التخصصات بفاصلة"}),
+            "specialties_en": forms.Textarea(attrs={"rows": 2, "placeholder": "Separate specialties with commas"}),
+            "bio_ar": forms.Textarea(attrs={"rows": 6}),
+            "bio_en": forms.Textarea(attrs={"rows": 6}),
+            "youtube_url": forms.URLInput(attrs={"placeholder": "https://www.youtube.com/watch?v=..."}),
+        }
+        labels = {
+            "is_owner": "المالك والمدير (يظهر في أول الصفحة)", "order": "الترتيب",
+            "name_ar": "الاسم (عربي)", "name_en": "الاسم (إنجليزي)",
+            "role_ar": "المسمى الوظيفي (عربي)", "role_en": "المسمى الوظيفي (إنجليزي)",
+            "specialties_ar": "التخصصات (عربي)", "specialties_en": "التخصصات (إنجليزي)",
+            "bio_ar": "نبذة تعريفية (عربي)", "bio_en": "نبذة تعريفية (إنجليزي)",
+            "youtube_url": "رابط فيديو يوتيوب", "photo": "الصورة الشخصية",
         }
 
     def __init__(self, *args, **kwargs):

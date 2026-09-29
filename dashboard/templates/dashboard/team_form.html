@@ -1,0 +1,31 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="dash-card">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="dash-form-grid">
+      <div class="dash-field"><label>{{ form.order.label }}</label>{{ form.order }}{{ form.order.errors }}</div>
+      <div class="dash-field"><label>{{ form.is_owner }} {{ form.is_owner.label }}</label>{{ form.is_owner.errors }}</div>
+      <div class="dash-field"><label>{{ form.name_ar.label }}</label>{{ form.name_ar }}{{ form.name_ar.errors }}</div>
+      <div class="dash-field"><label>{{ form.name_en.label }}</label>{{ form.name_en }}{{ form.name_en.errors }}</div>
+      <div class="dash-field"><label>{{ form.role_ar.label }}</label>{{ form.role_ar }}{{ form.role_ar.errors }}</div>
+      <div class="dash-field"><label>{{ form.role_en.label }}</label>{{ form.role_en }}{{ form.role_en.errors }}</div>
+      <div class="dash-field"><label>{{ form.youtube_url.label }}</label>{{ form.youtube_url }}{{ form.youtube_url.errors }}</div>
+      <div class="dash-field"><label>{{ form.photo.label }}</label>{{ form.photo }}{{ form.photo.errors }}</div>
+    </div>
+    <div class="dash-form-grid full">
+      <div class="dash-field"><label>{{ form.specialties_ar.label }}</label>{{ form.specialties_ar }}{{ form.specialties_ar.errors }}</div>
+      <div class="dash-field"><label>{{ form.specialties_en.label }}</label>{{ form.specialties_en }}{{ form.specialties_en.errors }}</div>
+      <div class="dash-field"><label>{{ form.bio_ar.label }}</label>{{ form.bio_ar }}{{ form.bio_ar.errors }}</div>
+      <div class="dash-field"><label>{{ form.bio_en.label }}</label>{{ form.bio_en }}{{ form.bio_en.errors }}</div>
+    </div>
+    <div class="dash-form-actions">
+      <button type="submit" class="btn btn-primary">حفظ</button>
+      <a class="btn btn-outline" href="{% url 'dashboard:team_list' %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

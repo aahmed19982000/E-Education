@@ -1,0 +1,45 @@
+{% extends "dashboard/base.html" %}
+{% block title %}فريق العمل{% endblock %}
+{% block page_title %}فريق العمل{% endblock %}
+
+{% block content %}
+<div class="dash-toolbar">
+  <h2>كل الأعضاء ({{ members|length }})</h2>
+  {% if can_write_team %}
+    <a class="btn btn-primary" href="{% url 'dashboard:team_create' %}">+ إضافة عضو</a>
+  {% endif %}
+</div>
+
+<div class="dash-table-wrap">
+  {% if members %}
+  <table class="dash-table">
+    <thead>
+      <tr>
+        <th>الاسم</th><th>المسمى الوظيفي</th><th>الفيديو</th><th>الترتيب</th>
+        {% if can_write_team %}<th></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in members %}
+      <tr>
+        <td class="wrap">{{ m.name_ar }}{% if m.is_owner %} <strong>(المالك والمدير)</strong>{% endif %}</td>
+        <td>{{ m.role_ar }}</td>
+        <td>{% if m.youtube_url %}✓{% else %}—{% endif %}</td>
+        <td>{{ m.order }}</td>
+        {% if can_write_team %}
+        <td>
+          <div class="dash-table-actions">
+            <a href="{% url 'dashboard:team_edit' m.pk %}">تعديل</a>
+            <a class="danger" href="{% url 'dashboard:team_delete' m.pk %}">حذف</a>
+          </div>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="dash-empty">لا يوجد أعضاء مضافون بعد.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t.team.title }} · {{ t.brand }}{% endblock %}
+
+{% block content %}
+  <div class="page page-center">
+    <h1>{{ t.team.title }}</h1>
+    <p class="lead" style="margin-inline:auto;">{{ t.team.subtitle }}</p>
+
+    {% if owner %}
+      <a class="team-owner" href="{% url 'team:detail' slug=owner.slug %}">
+        <div class="team-avatar xl">
+          {% if owner.photo_url %}<img src="{{ owner.photo_url }}" alt="{{ owner.name }}">{% else %}<span>{{ owner.name|slice:":1" }}</span>{% endif %}
+        </div>
+        <div class="team-owner-body">
+          <div class="team-badge">{{ t.team.ownerBadge }}</div>
+          <div class="team-name">{{ owner.name }}</div>
+          <div class="team-role">{{ owner.role }}</div>
+          {% if owner.specialties %}
+            <div class="team-tags">{% for s in owner.specialties %}<span>{{ s }}</span>{% endfor %}</div>
+          {% endif %}
+          <span class="team-more">{{ t.team.viewProfile }}</span>
+        </div>
+      </a>
+    {% endif %}
+
+    {% if members %}
+      <h2 class="team-section-title">{{ t.team.teachersTitle }}</h2>
+      <div class="team-grid">
+        {% for m in members %}
+          <a class="team-card" href="{% url 'team:detail' slug=m.slug %}">
+            <div class="team-avatar">
+              {% if m.photo_url %}<img src="{{ m.photo_url }}" alt="{{ m.name }}">{% else %}<span>{{ m.name|slice:":1" }}</span>{% endif %}
+            </div>
+            <div class="team-name">{{ m.name }}</div>
+            <div class="team-role">{{ m.role }}</div>
+            {% if m.specialties %}
+              <div class="team-tags">{% for s in m.specialties %}<span>{{ s }}</span>{% endfor %}</div>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    {% elif not owner %}
+      <p class="footnote">{{ t.team.empty }}</p>
+    {% endif %}
+  </div>
+{% endblock %}

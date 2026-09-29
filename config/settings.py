@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'core',
     'levels',
     'articles',
+    'team',
     'quiz',
     'accounts',
     'contact_us',

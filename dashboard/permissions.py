@@ -12,6 +12,7 @@ ROLE_LABELS = {
 
 SECTION_LEVELS = "levels"
 SECTION_ARTICLES = "articles"
+SECTION_TEAM = "team"
 SECTION_QUESTIONS = "questions"
 SECTION_MESSAGES = "messages"
 SECTION_USERS = "users"
@@ -21,6 +22,7 @@ ROLE_PERMISSIONS = {
     ROLE_SUPER_ADMIN: {
         SECTION_LEVELS: "write",
         SECTION_ARTICLES: "write",
+        SECTION_TEAM: "write",
         SECTION_QUESTIONS: "write",
         SECTION_MESSAGES: "write",
         SECTION_USERS: "write",
@@ -28,6 +30,7 @@ ROLE_PERMISSIONS = {
     ROLE_CONTENT_STAFF: {
         SECTION_LEVELS: "write",
         SECTION_ARTICLES: "write",
+        SECTION_TEAM: "write",
         SECTION_QUESTIONS: "write",
         SECTION_MESSAGES: "write",
         SECTION_USERS: None,
@@ -35,6 +38,7 @@ ROLE_PERMISSIONS = {
     ROLE_TEACHER: {
         SECTION_LEVELS: None,
         SECTION_ARTICLES: None,
+        SECTION_TEAM: None,
         SECTION_QUESTIONS: "read",
         SECTION_MESSAGES: "read",
         SECTION_USERS: None,

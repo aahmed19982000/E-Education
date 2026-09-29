@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}{{ member.name }} · {{ t.brand }}{% endblock %}
+
+{% block content %}
+  <div class="page-article team-detail">
+    <a href="{% url 'team:list' %}">{{ t.team.back }}</a>
+
+    {% if member.video_id %}
+      <div class="team-video">
+        <iframe src="https://www.youtube-nocookie.com/embed/{{ member.video_id }}" title="{{ member.name }}"
+                loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      </div>
+    {% endif %}
+
+    <div class="team-head">
+      <div class="team-avatar lg">
+        {% if member.photo_url %}<img src="{{ member.photo_url }}" alt="{{ member.name }}">{% else %}<span>{{ member.name|slice:":1" }}</span>{% endif %}
+      </div>
+      <div>
+        {% if member.is_owner %}<div class="team-badge">{{ t.team.ownerBadge }}</div>{% endif %}
+        <h1 class="team-detail-name">{{ member.name }}</h1>
+        <div class="team-role">{{ member.role }}</div>
+      </div>
+    </div>
+
+    {% if member.specialties %}
+      <h3 class="team-section-title sm">{{ t.team.specialties }}</h3>
+      <div class="team-tags">{% for s in member.specialties %}<span>{{ s }}</span>{% endfor %}</div>
+    {% endif %}
+
+    {% if member.bio %}
+      <h3 class="team-section-title sm">{{ t.team.about }}</h3>
+      <div class="article-detail-body"><p>{{ member.bio|linebreaksbr }}</p></div>
+    {% endif %}
+  </div>
+{% endblock %}
