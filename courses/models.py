@@ -292,6 +292,10 @@ class EnrollmentRequest(models.Model):
         (STATUS_ENROLLED, "تم التسجيل في الكورس"), (STATUS_CLOSED, "مغلق"),
     ]
 
+    PAY_ONLINE = "online"
+    PAY_CONTACT = "contact"
+    PAY_METHOD_CHOICES = [(PAY_ONLINE, "دفع أونلاين"), (PAY_CONTACT, "التواصل معي لترتيب الدفع")]
+
     PAYMENT_UNPAID = "unpaid"
     PAYMENT_PAID = "paid"
     PAYMENT_CHOICES = [(PAYMENT_UNPAID, "لم يدفع"), (PAYMENT_PAID, "دفع")]
@@ -314,6 +318,7 @@ class EnrollmentRequest(models.Model):
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_NEW)
     payment_status = models.CharField(max_length=10, choices=PAYMENT_CHOICES, default=PAYMENT_UNPAID)
+    payment_method = models.CharField(max_length=10, choices=PAY_METHOD_CHOICES, default=PAY_CONTACT)
     assigned_teacher = models.ForeignKey(TeamMember, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     admin_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

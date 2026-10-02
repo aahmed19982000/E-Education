@@ -6,32 +6,50 @@
     <div class="c-eyebrow">{{ t.brand }}</div>
     <h1>{{ t.courses.title }}</h1>
     <p>{{ t.courses.subtitle }}</p>
+    <div class="c-hero-points">
+      <span>{{ t.courses.group }}</span><span>{{ t.courses.private }}</span><span>Zoom</span>
+    </div>
   </div>
 </section>
-<div class="c-wrap c-body">
-  <nav class="c-filters" aria-label="{{ t.courses.pickMode }}">
-    <a href="?mode=group" class="{% if mode == 'group' %}active{% endif %}">{{ t.courses.group }}</a>
-    <a href="?mode=private" class="{% if mode == 'private' %}active{% endif %}">{{ t.courses.private }}</a>
-  </nav>
 
+<div class="c-wrap c-body">
   {% if offers %}
-  <div class="c-grid">
+  <div class="c-offers">
     {% for c in offers %}
-    <article class="c-offer">
-      {% if c.price %}<div class="c-offer-price"><strong>{{ c.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
-      <div class="c-offer-body">
-        <div class="c-badges"><span class="c-badge">{% if mode == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</span></div>
-        <h3>{{ c.title }}</h3>
-        <p>{{ c.description|truncatechars:140 }}</p>
-        <div class="c-offer-hint">{% if mode == "private" %}{{ t.courses.planPrivateHint }}{% else %}{{ t.courses.planGroupHint }}{% endif %}</div>
-        <div class="c-offer-actions">
-          <a class="c-btn" href="{% url 'courses:apply' slug=c.slug %}?mode={{ mode }}">{{ t.courses.bookNow }}</a>
-          <a class="c-btn ghost" href="{% url 'courses:detail' slug=c.slug %}">{{ t.courses.viewCourse }}</a>
+    <article class="c-offer-card">
+      <div class="c-offer-info">
+        <h2>{{ c.title }}</h2>
+        <p>{{ c.description|truncatechars:220 }}</p>
+        <a class="c-offer-link" href="{% url 'courses:detail' slug=c.slug %}">{{ t.courses.viewCourse }}</a>
+      </div>
+      <div class="c-offer-plans">
+        <div class="c-plan-box {% if not c.group.offered %}is-off{% endif %}">
+          <div class="c-plan-tag">{{ t.courses.group }}</div>
+          <div class="c-plan-hint">{{ t.courses.planGroupHint }}</div>
+          {% if c.group.offered %}
+            {% if c.group.price %}<div class="c-plan-price"><strong>{{ c.group.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
+            <a class="c-btn primary" href="{% url 'courses:apply' slug=c.slug %}?mode=group">{{ t.courses.bookNow }}</a>
+          {% else %}<div class="c-plan-na">{{ t.courses.notOffered }}</div>{% endif %}
+        </div>
+        <div class="c-plan-box featured {% if not c.private.offered %}is-off{% endif %}">
+          <div class="c-plan-tag">{{ t.courses.private }}</div>
+          <div class="c-plan-hint">{{ t.courses.planPrivateHint }}</div>
+          {% if c.private.offered %}
+            {% if c.private.price %}<div class="c-plan-price"><strong>{{ c.private.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
+            <a class="c-btn" href="{% url 'courses:apply' slug=c.slug %}?mode=private">{{ t.courses.bookNow }}</a>
+          {% else %}<div class="c-plan-na">{{ t.courses.notOffered }}</div>{% endif %}
         </div>
       </div>
     </article>
     {% endfor %}
   </div>
+
+  <section class="c-how">
+    <h2>{{ t.courses.howTitle }}</h2>
+    <ol class="c-steps c-steps-row">
+      {% for s in t.courses.how %}<li><div><b>{{ s.title }}</b><span>{{ s.desc }}</span></div></li>{% endfor %}
+    </ol>
+  </section>
   {% else %}<div class="c-empty">{{ t.courses.noCourses }}</div>{% endif %}
 </div>
 {% endblock %}

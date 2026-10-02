@@ -454,11 +454,12 @@ class ArabicSlugTests(TestCase):
 
 class WorkshopBookingTests(TestCase):
     def test_booking_lands_in_requests_marked_as_teacher(self):
-        resp = self.client.post(reverse("core:teachers"), {"full_name": "Mona", "email": "m@x.com", "phone": "0100"})
+        resp = self.client.post(reverse("core:teachers"), {"full_name": "Mona", "email": "m@x.com", "phone": "0100", "mode": "private", "payment_method": "online"})
         self.assertContains(resp, "تم استلام طلب الحجز")
         req = EnrollmentRequest.objects.get()
         self.assertEqual(req.kind, EnrollmentRequest.KIND_TEACHER)
         self.assertIsNone(req.course)
+        self.assertEqual((req.mode, req.payment_method), ("private", "online"))
 
     def test_phone_is_required(self):
         resp = self.client.post(reverse("core:teachers"), {"full_name": "Mona", "email": "m@x.com"})

@@ -29,7 +29,8 @@ class WorkshopBookingForm(forms.ModelForm):
 
     class Meta:
         model = EnrollmentRequest
-        fields = ["full_name", "email", "phone", "notes"]
+        fields = ["full_name", "email", "phone", "mode", "payment_method", "notes"]
+        widgets = {"mode": forms.RadioSelect, "payment_method": forms.RadioSelect}
 
     def save(self, commit=True):
         obj = super().save(commit=False)

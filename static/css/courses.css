@@ -128,13 +128,38 @@
   .c-hero h1 { font-size: 30px; }
 }
 
-/* ---- offers (price ribbon cards) ---- */
-.c-offer { position: relative; background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 56px 24px 24px; display: flex; flex-direction: column; box-shadow: 0 6px 20px rgba(20,39,91,.06); }
-.c-offer-price { position: absolute; top: 0; inset-inline-start: 0; background: var(--accent); color: var(--primary); padding: 10px 22px; border-radius: 18px 0 18px 0; font-weight: 800; font-size: 15px; }
-[dir="rtl"] .c-offer-price { border-radius: 0 18px 0 18px; }
-.c-offer-price strong { font-size: 22px; }
-.c-offer-body { display: flex; flex-direction: column; gap: 14px; flex: 1; }
-.c-offer h3 { font-size: 20px; font-weight: 800; color: var(--primary); margin: 0; line-height: 1.4; }
-.c-offer p { color: var(--muted); font-size: 14.5px; line-height: 1.8; margin: 0; flex: 1; }
-.c-offer-hint { font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 14px; }
-.c-offer-actions { display: grid; gap: 10px; }
+/* ---- offers: one card per course, group + private side by side ---- */
+.c-hero-points { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+.c-hero-points span { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); color: #fff; padding: 6px 16px; border-radius: 999px; font-weight: 700; font-size: 13.5px; }
+.c-offers { display: grid; gap: 24px; }
+.c-offer-card { background: #fff; border: 1px solid var(--border); border-radius: 20px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); overflow: hidden; box-shadow: 0 8px 26px rgba(20,39,91,.07); }
+.c-offer-info { padding: 32px; display: flex; flex-direction: column; gap: 14px; justify-content: center; border-inline-end: 1px solid var(--border); background: linear-gradient(180deg, #fff, var(--cream)); }
+.c-offer-info h2 { margin: 0; font-size: 24px; font-weight: 800; color: var(--primary); line-height: 1.4; }
+.c-offer-info p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.9; }
+.c-offer-link { font-weight: 800; color: var(--primary); font-size: 14px; }
+.c-offer-link::after { content: " ‹"; }
+[dir="ltr"] .c-offer-link::after { content: " ›"; }
+.c-offer-plans { display: grid; grid-template-columns: 1fr 1fr; }
+.c-plan-box { padding: 32px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+.c-plan-box + .c-plan-box { border-inline-start: 1px solid var(--border); }
+.c-plan-box.featured { background: var(--primary); color: #fff; }
+.c-plan-tag { font-size: 13px; font-weight: 800; padding: 5px 16px; border-radius: 999px; background: var(--cream); border: 1px solid var(--cream-border); color: var(--primary); }
+.c-plan-box.featured .c-plan-tag { background: var(--accent); border-color: var(--accent); }
+.c-plan-hint { font-size: 13px; color: var(--muted); }
+.c-plan-box.featured .c-plan-hint { color: rgba(255,255,255,.75); }
+.c-plan-price { font-size: 15px; color: var(--muted); margin: 6px 0 8px; }
+.c-plan-price strong { display: block; font-size: 38px; line-height: 1.1; font-weight: 800; color: var(--primary); }
+.c-plan-box.featured .c-plan-price, .c-plan-box.featured .c-plan-price strong { color: #fff; }
+.c-plan-box .c-btn { margin-top: auto; }
+.c-plan-box.is-off { opacity: .55; justify-content: center; }
+.c-plan-na { font-size: 13.5px; color: var(--muted); margin-top: 8px; }
+.c-plan-box.featured .c-plan-na { color: rgba(255,255,255,.75); }
+.c-how { margin-top: 48px; }
+.c-how h2 { font-size: 22px; font-weight: 800; color: var(--primary); margin: 0 0 20px; }
+.c-steps-row { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 24px; }
+@media (max-width: 860px) {
+  .c-offer-card { grid-template-columns: 1fr; }
+  .c-offer-info { border-inline-end: none; border-bottom: 1px solid var(--border); padding: 24px; }
+  .c-plan-box { padding: 24px 16px; }
+}
+@media (max-width: 480px) { .c-offer-plans { grid-template-columns: 1fr; } .c-plan-box + .c-plan-box { border-inline-start: none; border-top: 1px solid var(--border); } }

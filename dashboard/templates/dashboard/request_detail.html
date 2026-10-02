@@ -16,7 +16,8 @@
       <div><dt>الهاتف</dt><dd><a href="tel:{{ obj.phone }}">{{ obj.phone }}</a></dd></div>
       <div><dt>البريد</dt><dd><a href="mailto:{{ obj.email }}">{{ obj.email }}</a></dd></div>
       {% if obj.kind == 'teacher' %}
-        <div><dt>الطلب</dt><dd>حجز مكان في ورشة المدرّسين</dd></div>
+        <div><dt>الطلب</dt><dd>حجز مكان في ورشة المدرّسين — {{ obj.get_mode_display }}</dd></div>
+        <div><dt>طريقة الدفع</dt><dd>{{ obj.get_payment_method_display }}</dd></div>
       {% else %}
         <div><dt>الكورس</dt><dd>{{ obj.course.title_ar|default:"—" }}</dd></div>
         <div><dt>النظام</dt><dd>{{ obj.get_mode_display }}{% if obj.price %} — {{ obj.price }} ج.م{% endif %}</dd></div>

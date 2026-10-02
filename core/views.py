@@ -24,7 +24,8 @@ def teachers(request):
             submitted = True
             form = WorkshopBookingForm()
     else:
-        form = WorkshopBookingForm()
+        mode = request.GET.get("mode")
+        form = WorkshopBookingForm(initial={"mode": mode if mode in ("group", "private") else "group"})
     return render(request, "core/teachers.html", {"form": form, "submitted": submitted})
 
 

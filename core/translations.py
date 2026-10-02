@@ -12,7 +12,7 @@ AR = {
     "imgAboutAlt": "صورة فريق الأكاديمية",
     "imgTeachersAlt": "صورة ورشة تدريب معلمين",
     "courses": {
-        "title": "عروض الكورسات", "subtitle": "كورسات لايف مع مدرسين متخصصين، ومواعيد تناسبك. اختر بين نظام الجروب أو الخصوصي وقارن بين العروض.", "bookNow": "احجز الآن", "pickMode": "اختر نظام الدراسة",
+        "title": "عروض الكورسات", "subtitle": "كورسات لايف مع مدرسين متخصصين، ومواعيد تناسبك. اختر بين نظام الجروب أو الخصوصي وقارن بين العروض.", "bookNow": "احجز الآن", "notOffered": "غير متاح لهذا الكورس", "pickMode": "اختر نظام الدراسة",
         "empty": "لا توجد كورسات متاحة حالياً.", "teacher": "المدرس", "level": "المستوى",
         "schedule": "المواعيد الأسبوعية", "startsOn": "يبدأ في", "minutes": "دقيقة",
         "details": "تفاصيل الكورس", "subscribe": "طلب اشتراك", "enrolled": "أنت مسجل في هذا الكورس",
@@ -84,6 +84,10 @@ AR = {
         "intro": "ورشة متخصصة لمدرسي اللغة الإنجليزية الراغبين في الانتقال من مدارس محلية إلى مدارس دولية (IB، بريطاني، أمريكي). تغطي الورشة المناهج الدولية، أساليب التدريس التفاعلي، ومهارات التقديم للوظائف الدولية.",
         "cta": "احجز مكانك في الورشة",
         "bookTitle": "احجز مكانك في الورشة", "bookDesc": "اترك بياناتك وسيتواصل معك فريقنا لتأكيد الحجز والموعد.",
+        "plansTitle": "اختر نظام الورشة", "planGroup": "جروب", "planGroupDesc": "ورشة مع مجموعة من المدرّسين، تبادل خبرات ونقاش مباشر.",
+        "planPrivate": "خصوصي", "planPrivateDesc": "جلسات فردية بمواعيد مرنة تناسبك وتركيز كامل على احتياجك.",
+        "planPrivatePrice": "السعر بعد التواصل", "bookNow": "احجز الآن", "modeLabel": "نظام الورشة", "payTitle": "طريقة الدفع", "payOnline": "دفع أونلاين", "payContact": "التواصل معي لترتيب الدفع",
+        "payNote": "الدفع الإلكتروني قيد التفعيل؛ عند اختياره سيتواصل معك فريقنا لإتمام الدفع بعد تأكيد الحجز.", "whyTitle": "ماذا ستحصل عليه",
         "bookNotes": "ملاحظات (اختياري)", "bookSubmit": "إرسال طلب الحجز",
         "bookSuccessTitle": "تم استلام طلب الحجز", "bookSuccessDesc": "سيتواصل معك فريقنا في أقرب وقت لتأكيد الحجز.",
         "details": [
@@ -148,7 +152,7 @@ EN = {
     "imgAboutAlt": "academy team",
     "imgTeachersAlt": "teacher training workshop",
     "courses": {
-        "title": "Course offers", "subtitle": "Live courses with specialist teachers, at times that suit you. Choose group or private and compare the offers.", "bookNow": "Book now", "pickMode": "Choose how you study",
+        "title": "Course offers", "subtitle": "Live courses with specialist teachers, at times that suit you. Choose group or private and compare the offers.", "bookNow": "Book now", "notOffered": "Not offered for this course", "pickMode": "Choose how you study",
         "empty": "No courses available right now.", "teacher": "Teacher", "level": "Level",
         "schedule": "Weekly schedule", "startsOn": "Starts on", "minutes": "min",
         "details": "Course details", "subscribe": "Request enrollment", "enrolled": "You are enrolled in this course",
@@ -220,6 +224,10 @@ EN = {
         "intro": "A dedicated workshop for English teachers moving from local schools to international ones (IB, British, American). It covers international curricula, interactive teaching methods, and international job application skills.",
         "cta": "Book your seat",
         "bookTitle": "Book your seat in the workshop", "bookDesc": "Leave your details and our team will contact you to confirm the booking and date.",
+        "plansTitle": "Choose your workshop format", "planGroup": "Group", "planGroupDesc": "Join a cohort of teachers: shared experience and live discussion.",
+        "planPrivate": "Private", "planPrivateDesc": "One-to-one sessions at flexible times, fully focused on your needs.",
+        "planPrivatePrice": "Price on request", "bookNow": "Book now", "modeLabel": "Workshop format", "payTitle": "Payment method", "payOnline": "Pay online", "payContact": "Contact me to arrange payment",
+        "payNote": "Online payment is being enabled; if you choose it, our team will contact you to complete payment once the booking is confirmed.", "whyTitle": "What you get",
         "bookNotes": "Notes (optional)", "bookSubmit": "Send booking request",
         "bookSuccessTitle": "Booking request received", "bookSuccessDesc": "Our team will contact you shortly to confirm your booking.",
         "details": [

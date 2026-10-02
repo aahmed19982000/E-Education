@@ -15,15 +15,16 @@ from .models import Attendance, Course, Enrollment, EnrollmentRequest, Lesson, L
 
 
 def course_list(request):
-    mode = request.GET.get("mode", "group")
-    if mode not in ("group", "private"):
-        mode = "group"
     courses = Course.objects.filter(is_published=True, audience=Course.AUDIENCE_STUDENTS)
     offers = []
     for course in courses:
-        if mode in course.allowed_modes():
-            offers.append({**course.localized(request.lang), "price": course.price_for(mode)})
-    return render(request, "courses/list.html", {"offers": offers, "mode": mode})
+        modes = course.allowed_modes()
+        offers.append({
+            **course.localized(request.lang),
+            "group": {"offered": "group" in modes, "price": course.price_for("group")},
+            "private": {"offered": "private" in modes, "price": course.price_for("private")},
+        })
+    return render(request, "courses/list.html", {"offers": offers})
 
 
 def course_detail(request, slug):

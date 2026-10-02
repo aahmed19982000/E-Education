@@ -1,48 +1,78 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ t.teachers.title }} · {{ t.brand }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/workshop.css' %}">{% endblock %}
 
 {% block content %}
-  <div class="page">
-    <div class="teachers-hero">
-      <div>
-        <h1>{{ t.teachers.title }}</h1>
-        <p>{{ t.teachers.intro }}</p>
-        <a class="btn btn-accent btn-lg" href="#book">{{ t.teachers.cta }}</a>
+<section class="ws-hero">
+  <div class="ws-wrap">
+    <div class="ws-eyebrow">{{ t.brand }}</div>
+    <h1>{{ t.teachers.title }}</h1>
+    <p>{{ t.teachers.intro }}</p>
+    <div class="ws-hero-actions">
+      <a class="ws-btn accent" href="#book">{{ t.teachers.cta }}</a>
+      <a class="ws-btn ghost" href="#plans">{{ t.teachers.plansTitle }}</a>
+    </div>
+  </div>
+</section>
+
+<div class="ws-wrap ws-body">
+  <div class="ws-facts">
+    {% for d in t.teachers.details %}
+      <div class="ws-fact"><div class="label">{{ d.label }}</div><div class="value">{{ d.value }}</div></div>
+    {% endfor %}
+  </div>
+
+  <section class="ws-section">
+    <h2>{{ t.teachers.curriculumTitle }}</h2>
+    <ol class="ws-curriculum">
+      {% for c in t.teachers.curriculum %}<li><span>{{ forloop.counter }}</span>{{ c }}</li>{% endfor %}
+    </ol>
+  </section>
+
+  <section class="ws-section" id="plans">
+    <h2>{{ t.teachers.plansTitle }}</h2>
+    <div class="ws-plans">
+      <div class="ws-plan">
+        <div class="tag">{{ t.teachers.planGroup }}</div>
+        <p>{{ t.teachers.planGroupDesc }}</p>
+        <div class="price"><strong>1,800</strong> {{ t.courses.currency }}</div>
+        <a class="ws-btn primary" href="?mode=group#book">{{ t.teachers.bookNow }}</a>
       </div>
-      <div class="hero-art"><span>[ {{ t.imgTeachersAlt }} ]</span></div>
+      <div class="ws-plan featured">
+        <div class="tag">{{ t.teachers.planPrivate }}</div>
+        <p>{{ t.teachers.planPrivateDesc }}</p>
+        <div class="price small">{{ t.teachers.planPrivatePrice }}</div>
+        <a class="ws-btn accent" href="?mode=private#book">{{ t.teachers.bookNow }}</a>
+      </div>
     </div>
+  </section>
 
-    <div class="teachers-details">
-      {% for d in t.teachers.details %}
-        <div class="teacher-detail">
-          <div class="label">{{ d.label }}</div>
-          <div class="value">{{ d.value }}</div>
+  <section class="ws-book" id="book">
+    <div class="ws-book-intro">
+      <h2>{{ t.teachers.bookTitle }}</h2>
+      <p>{{ t.teachers.bookDesc }}</p>
+    </div>
+    {% if submitted %}
+      <div class="ws-success">
+        <h3>{{ t.teachers.bookSuccessTitle }}</h3>
+        <p>{{ t.teachers.bookSuccessDesc }}</p>
+      </div>
+    {% else %}
+      <form method="post" action="#book" class="ws-form">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="ws-modes" role="radiogroup" aria-label="{{ t.teachers.modeLabel }}">
+          {% for radio in form.mode %}
+            <label class="ws-mode">{{ radio.tag }}<span>{% if radio.data.value == "private" %}{{ t.teachers.planPrivate }}{% else %}{{ t.teachers.planGroup }}{% endif %}</span></label>
+          {% endfor %}
         </div>
-      {% endfor %}
-    </div>
-
-    <h3 class="curriculum-title">{{ t.teachers.curriculumTitle }}</h3>
-    <div class="curriculum-tags">
-      {% for c in t.teachers.curriculum %}<span>{{ c }}</span>{% endfor %}
-    </div>
-
-    <section class="workshop-book" id="book">
-      <h3 class="curriculum-title">{{ t.teachers.bookTitle }}</h3>
-      <p class="lead">{{ t.teachers.bookDesc }}</p>
-      {% if submitted %}
-        <div class="contact-success">
-          <h3>{{ t.teachers.bookSuccessTitle }}</h3>
-          <p>{{ t.teachers.bookSuccessDesc }}</p>
+        <div>
+          <input class="field" type="text" name="full_name" placeholder="{{ t.contact.name }}" value="{{ form.full_name.value|default:'' }}" required>
+          {% if form.full_name.errors %}<div class="form-errors">{{ form.full_name.errors }}</div>{% endif %}
         </div>
-      {% else %}
-        <form method="post" action="#book" class="form-grid">
-          {% csrf_token %}
-          {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
-          <div>
-            <input class="field" type="text" name="full_name" placeholder="{{ t.contact.name }}" value="{{ form.full_name.value|default:'' }}" required>
-            {% if form.full_name.errors %}<div class="form-errors">{{ form.full_name.errors }}</div>{% endif %}
-          </div>
+        <div class="ws-row">
           <div>
             <input class="field" type="email" name="email" placeholder="{{ t.contact.email }}" value="{{ form.email.value|default:'' }}" required>
             {% if form.email.errors %}<div class="form-errors">{{ form.email.errors }}</div>{% endif %}
@@ -51,12 +81,20 @@
             <input class="field" type="text" name="phone" placeholder="{{ t.contact.phone }}" value="{{ form.phone.value|default:'' }}" required>
             {% if form.phone.errors %}<div class="form-errors">{{ form.phone.errors }}</div>{% endif %}
           </div>
-          <div>
-            <textarea class="field" name="notes" rows="4" placeholder="{{ t.teachers.bookNotes }}">{{ form.notes.value|default:'' }}</textarea>
+        </div>
+        <div class="ws-pay">
+          <div class="ws-pay-title">{{ t.teachers.payTitle }}</div>
+          <div class="ws-modes" role="radiogroup" aria-label="{{ t.teachers.payTitle }}">
+            {% for radio in form.payment_method %}
+              <label class="ws-mode">{{ radio.tag }}<span>{% if radio.data.value == "online" %}{{ t.teachers.payOnline }}{% else %}{{ t.teachers.payContact }}{% endif %}</span></label>
+            {% endfor %}
           </div>
-          <button class="btn btn-primary" style="padding:14px;" type="submit">{{ t.teachers.bookSubmit }}</button>
-        </form>
-      {% endif %}
-    </section>
-  </div>
+          <p class="ws-pay-note">{{ t.teachers.payNote }}</p>
+        </div>
+        <textarea class="field" name="notes" rows="4" placeholder="{{ t.teachers.bookNotes }}">{{ form.notes.value|default:'' }}</textarea>
+        <button class="ws-btn primary" type="submit">{{ t.teachers.bookSubmit }}</button>
+      </form>
+    {% endif %}
+  </section>
+</div>
 {% endblock %}
