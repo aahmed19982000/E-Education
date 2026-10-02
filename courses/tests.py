@@ -336,29 +336,27 @@ class DashboardRequestTests(TestCase):
 class AudienceAndModeTests(TestCase):
     def setUp(self):
         self.students = make_course(title_ar="كورس طلاب", audience=Course.AUDIENCE_STUDENTS)
-        self.teachers = make_course(title_ar="كورس مدرسين", audience=Course.AUDIENCE_TEACHERS,
-                                    offers_private=False, price_group=900)
+        self.teachers = make_course(title_ar="كورس مدرسين", audience=Course.AUDIENCE_TEACHERS)
+        self.group_only = make_course(title_ar="كورس جروب فقط", offers_private=False, price_group=900)
 
-    def test_list_filters_by_audience(self):
+    def test_public_pages_show_student_courses_only(self):
         url = reverse("courses:list")
-        resp = self.client.get(url + "?for=teachers")
-        self.assertContains(resp, "كورس مدرسين")
-        self.assertNotContains(resp, "كورس طلاب")
-        resp = self.client.get(url + "?for=students")
+        resp = self.client.get(url)
         self.assertContains(resp, "كورس طلاب")
         self.assertNotContains(resp, "كورس مدرسين")
-        self.assertContains(self.client.get(url + "?for=bogus"), "كورس طلاب")
+        self.assertEqual(self.client.get(reverse("courses:detail", args=[self.teachers.slug])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("courses:apply", args=[self.teachers.slug])).status_code, 404)
 
     def test_apply_rejects_mode_the_course_does_not_offer(self):
-        resp = self.client.post(reverse("courses:apply", args=[self.teachers.slug]), {**APPLY, "mode": "private"})
+        resp = self.client.post(reverse("courses:apply", args=[self.group_only.slug]), {**APPLY, "mode": "private"})
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(EnrollmentRequest.objects.exists())
-        resp = self.client.post(reverse("courses:apply", args=[self.teachers.slug]), {**APPLY, "mode": "group"})
+        resp = self.client.post(reverse("courses:apply", args=[self.group_only.slug]), {**APPLY, "mode": "group"})
         self.assertEqual(resp.status_code, 302)
 
     def test_price_is_the_courses_own_per_mode(self):
-        self.assertEqual(self.teachers.price_for("group"), 900)
-        self.assertIsNone(self.teachers.price_for("private"))
+        self.assertEqual(self.group_only.price_for("group"), 900)
+        self.assertIsNone(self.group_only.price_for("private"))
 
     def test_public_pages_show_no_level_or_schedule(self):
         resp = self.client.get(reverse("courses:detail", args=[self.students.slug]))
@@ -366,7 +364,7 @@ class AudienceAndModeTests(TestCase):
         self.assertNotContains(resp, "المواعيد الأسبوعية")
 
     def test_detail_shows_only_offered_modes(self):
-        resp = self.client.get(reverse("courses:detail", args=[self.teachers.slug]))
+        resp = self.client.get(reverse("courses:detail", args=[self.group_only.slug]))
         self.assertContains(resp, "900")
         self.assertContains(resp, 'class="c-plan"', count=1)  # group only; private is not offered
 

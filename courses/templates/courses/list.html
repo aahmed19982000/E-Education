@@ -9,20 +9,13 @@
   </div>
 </section>
 <div class="c-wrap c-body">
-  <nav class="c-filters" aria-label="{{ t.courses.title }}">
-    <a href="{% url 'courses:list' %}" class="{% if not audience %}active{% endif %}">{{ t.courses.all }}</a>
-    <a href="?for=students" class="{% if audience == 'students' %}active{% endif %}">{{ t.courses.students }}</a>
-    <a href="?for=teachers" class="{% if audience == 'teachers' %}active{% endif %}">{{ t.courses.teachers }}</a>
-  </nav>
-
   {% if courses %}
   <div class="c-grid">
     {% for c in courses %}
-    <a class="c-card {% if c.audience == 'teachers' %}is-teachers{% endif %}" href="{% url 'courses:detail' slug=c.slug %}">
+    <a class="c-card" href="{% url 'courses:detail' slug=c.slug %}">
       <div class="c-card-top"></div>
       <div class="c-card-body">
         <div class="c-badges">
-          <span class="c-badge audience">{% if c.audience == "teachers" %}{{ t.courses.teachers }}{% else %}{{ t.courses.students }}{% endif %}</span>
           {% for m in c.modes %}<span class="c-badge">{% if m == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</span>{% endfor %}
         </div>
         <h3>{{ c.title }}</h3>

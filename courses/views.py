@@ -15,19 +15,12 @@ from .models import Attendance, Course, Enrollment, EnrollmentRequest, Lesson, L
 
 
 def course_list(request):
-    audience = request.GET.get("for", "")
-    courses = Course.objects.filter(is_published=True)
-    if audience in dict(Course.AUDIENCE_CHOICES):
-        courses = courses.filter(audience=audience)
-    else:
-        audience = ""
-    return render(request, "courses/list.html", {
-        "courses": [c.localized(request.lang) for c in courses], "audience": audience,
-    })
+    courses = Course.objects.filter(is_published=True, audience=Course.AUDIENCE_STUDENTS)
+    return render(request, "courses/list.html", {"courses": [c.localized(request.lang) for c in courses]})
 
 
 def course_detail(request, slug):
-    course = get_object_or_404(Course, slug=slug)
+    course = get_object_or_404(Course, slug=slug, audience=Course.AUDIENCE_STUDENTS)
     if not course.is_published and not is_staff_user(request.user):
         raise Http404
     lang = request.lang
@@ -108,7 +101,7 @@ SESSION_REQUESTS = "enrollment_request_ids"
 
 def apply(request, slug):
     """Step 1: the visitor picks a course and fills in their details."""
-    course = get_object_or_404(Course, slug=slug, is_published=True)
+    course = get_object_or_404(Course, slug=slug, is_published=True, audience=Course.AUDIENCE_STUDENTS)
     lang = request.lang
     initial = {}
     if request.user.is_authenticated:
