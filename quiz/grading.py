@@ -1,13 +1,10 @@
 """Exam scoring for both grading modes.
 
 Maths is done with Fractions so an equal split (e.g. 100 marks over 6
-questions) adds back up to exactly the total, and level boundaries don't
-suffer from rounding.
+questions) adds back up to exactly the total.
 """
 from fractions import Fraction
 
-from core.translations import LEVEL_NAMES
-from levels.models import Level
 
 from .models import QuizSettings
 
@@ -35,34 +32,6 @@ def grade(questions, results, settings=None):
     earned = sum((m for pk, m in marks.items() if results.get(pk)), Fraction(0))
     ratio = earned / total if total else Fraction(0)
     return {"earned": earned, "total": total, "ratio": ratio, "percent": round(ratio * 100)}
-
-
-def level_index(ratio, levels=len(LEVEL_NAMES["ar"])):
-    """Map a 0..1 score onto the level list (equal bands, the top band includes 100%)."""
-    return min(int(ratio * levels), levels - 1)
-
-
-def placement_levels():
-    """Levels the test can assign, lowest threshold first."""
-    return list(Level.objects.exclude(test_min_percent=None).order_by("test_min_percent", "order"))
-
-
-def place_level(ratio, levels=None):
-    """The highest level whose minimum % the score reaches.
-
-    Compared exactly (Fraction), so 50% of the marks meets a 50% threshold.
-    A score below every threshold still gets the lowest level; returns None
-    only when no level takes part in the test.
-    """
-    levels = placement_levels() if levels is None else levels
-    if not levels:
-        return None
-    percent = ratio * 100
-    placed = levels[0]
-    for level in levels:
-        if percent >= level.test_min_percent:
-            placed = level
-    return placed
 
 
 def format_marks(value):

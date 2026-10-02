@@ -6,7 +6,6 @@ from django.db import models
 from accounts.models import Profile
 from articles.models import Article
 from courses.models import Attendance, Cohort, CohortSlot, EnrollmentRequest, Course, Enrollment, Lesson, LessonAttachment
-from levels.models import Level
 from team.models import VIDEO_MAX_MB, TeamMember, TeamReview
 from quiz.audio import AudioDecodeError, compress_audio
 from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
@@ -27,33 +26,6 @@ class StyledFormMixin:
 class DashboardLoginForm(StyledFormMixin, forms.Form):
     email = forms.EmailField(label="البريد الإلكتروني")
     password = forms.CharField(widget=forms.PasswordInput, label="كلمة المرور")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._style_fields()
-
-
-class LevelForm(StyledFormMixin, forms.ModelForm):
-    class Meta:
-        model = Level
-        fields = [
-            "code", "order",
-            "name_ar", "name_en",
-            "description_ar", "description_en",
-            "duration_ar", "duration_en",
-            "price_group", "price_private",
-        ]
-        widgets = {
-            "description_ar": forms.Textarea(attrs={"rows": 3}),
-            "description_en": forms.Textarea(attrs={"rows": 3}),
-        }
-        labels = {
-            "code": "الرمز", "order": "الترتيب",
-            "name_ar": "الاسم (عربي)", "name_en": "الاسم (إنجليزي)",
-            "description_ar": "الوصف (عربي)", "description_en": "الوصف (إنجليزي)",
-            "duration_ar": "المدة (عربي)", "duration_en": "المدة (إنجليزي)",
-            "price_group": "سعر الجروب", "price_private": "سعر الخصوصي",
-        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -364,51 +336,6 @@ class CategoryForm(StyledFormMixin, forms.ModelForm):
 
     def clean_name_en(self):
         return " ".join(self.cleaned_data["name_en"].split())
-
-
-class PlacementForm(forms.Form):
-    """Minimum test score (%) for each level. A blank value leaves the level out of the test."""
-
-    def __init__(self, *args, levels, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.levels = list(levels)
-        for level in self.levels:
-            self.fields[self.field_name(level)] = forms.IntegerField(
-                label=level.code, required=False, min_value=0, max_value=100,
-                initial=level.test_min_percent,
-                widget=forms.NumberInput(attrs={"class": "field", "min": 0, "max": 100, "step": 1, "inputmode": "numeric"}),
-                error_messages={
-                    "min_value": "النسبة لا تقل عن 0.",
-                    "max_value": "النسبة لا تزيد عن 100.",
-                    "invalid": "أدخل رقمًا صحيحًا.",
-                },
-            )
-
-    @staticmethod
-    def field_name(level):
-        return f"min_{level.pk}"
-
-    def rows(self):
-        return [(level, self[self.field_name(level)]) for level in self.levels]
-
-    def clean(self):
-        cleaned = super().clean()
-        if self.errors:
-            return cleaned
-        included = [(lvl, cleaned[self.field_name(lvl)]) for lvl in self.levels if cleaned.get(self.field_name(lvl)) is not None]
-        if not included:
-            raise forms.ValidationError("حدد نسبة لمستوى واحد على الأقل.")
-        if included[0][1] != 0:
-            raise forms.ValidationError(f"أول مستوى في الاختبار ({included[0][0].code}) يجب أن يبدأ من 0% حتى يحصل كل طالب على مستوى.")
-        for (prev, prev_min), (lvl, lvl_min) in zip(included, included[1:]):
-            if lvl_min <= prev_min:
-                self.add_error(self.field_name(lvl), f"يجب أن تكون أكبر من نسبة {prev.code} ({prev_min}%).")
-        return cleaned
-
-    def save(self):
-        for level in self.levels:
-            level.test_min_percent = self.cleaned_data.get(self.field_name(level))
-        Level.objects.bulk_update(self.levels, ["test_min_percent"])
 
 
 class QuizSettingsForm(StyledFormMixin, forms.ModelForm):

@@ -10,7 +10,6 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from levels.models import Level
 from quiz.models import Category, Question
 
 MEDIA_ROOT = tempfile.mkdtemp()
@@ -293,47 +292,3 @@ class CategoryManagementTests(TestCase):
         self.assertIn("category", resp.context["form"].errors)
 
 
-class PlacementSettingsTests(TestCase):
-    def setUp(self):
-        self.admin = User.objects.create_superuser("admin@example.com", "admin@example.com", "pass12345!")
-        self.client.force_login(self.admin)
-        self.levels = [
-            Level.objects.create(
-                code=code, order=i, name_ar=code, name_en=code, description_ar="-", description_en="-",
-                duration_ar="-", duration_en="-", price_group=1, price_private=1,
-            )
-            for i, code in enumerate(["A1", "A2", "B1"], start=1)
-        ]
-        self.url = reverse("dashboard:quiz_placement")
-
-    def data(self, *values):
-        return {f"min_{lvl.pk}": v for lvl, v in zip(self.levels, values)}
-
-    def mins(self):
-        return list(Level.objects.order_by("order").values_list("test_min_percent", flat=True))
-
-    def test_saves_thresholds_and_blank_excludes_level(self):
-        resp = self.client.post(self.url, self.data("0", "", "60"))
-        self.assertRedirects(resp, self.url)
-        self.assertEqual(self.mins(), [0, None, 60])
-
-    def test_first_included_level_must_start_at_zero(self):
-        resp = self.client.post(self.url, self.data("10", "40", "70"))
-        self.assertEqual(resp.status_code, 200)
-        self.assertTrue(resp.context["form"].non_field_errors())
-        self.assertEqual(self.mins(), [None, None, None])
-
-    def test_thresholds_must_increase(self):
-        resp = self.client.post(self.url, self.data("0", "50", "50"))
-        self.assertEqual(resp.status_code, 200)
-        self.assertIn(f"min_{self.levels[2].pk}", resp.context["form"].errors)
-
-    def test_rejects_out_of_range(self):
-        resp = self.client.post(self.url, self.data("0", "50", "150"))
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(self.mins(), [None, None, None])
-
-    def test_needs_at_least_one_level(self):
-        resp = self.client.post(self.url, self.data("", "", ""))
-        self.assertEqual(resp.status_code, 200)
-        self.assertTrue(resp.context["form"].non_field_errors())

@@ -1,6 +1,6 @@
 """Bilingual UI copy for the site, ported from the original design.
 
-Business content that lives in the database (levels, articles, quiz
+Business content that lives in the database (articles, quiz
 questions) is NOT here — only static interface strings (nav, headings,
 labels) that don't need an editor.
 """
@@ -22,7 +22,6 @@ AR = {
         "joinZoom": "الدخول إلى الجلسة (Zoom)", "recording": "تسجيل الجلسة", "files": "الملفات",
         "homework": "الواجبات", "notes": "ملاحظات", "back": "رجوع للكورس", "cancelled": "اشتراكك في هذا الكورس ملغي.",
         "present": "حاضر", "absent": "غائب", "placementTitle": "نتيجة اختبار تحديد مستواك",
-        "placementDesc": "مستواك المقترح: {level} (درجتك {p}%). سيساعد المدرس في بناء الجلسة الأولى على هذا المستوى.",
         "noAccess": "رابط الجلسة والتسجيلات والملفات متاحة للمسجلين فقط.",
         "loginFirst": "سجّل الدخول لمتابعة كورساتك.",
         "loginToPay": "تم استلام بياناتك. أنشئ حسابًا أو سجّل الدخول لإكمال الدفع.",
@@ -48,7 +47,7 @@ AR = {
         "all": "الكل", "waitingPlacement": "سيتواصل معك فريقنا لاختيار المدرس وتحديد مواعيدك، وستظهر جلساتك هنا.", "timesNote": "المواعيد تُحدد لكل مجموعة أو طالب بعد التسجيل، حسب ما يناسبك.", "students": "للطلاب", "teachers": "للمدرسين", "paid": "تم الدفع",
     },
     "nav": {
-        "home": "الرئيسية", "about": "عن الأكاديمية", "levels": "المستويات والأسعار",
+        "home": "الرئيسية", "about": "عن الأكاديمية",
         "team": "فريق العمل", "teachers": "ورش المدرسين", "test": "اختبار المستوى", "articles": "مقالات", "courses": "الكورسات", "mycourses": "كورساتي",
         "contact": "تواصل معنا", "login": "تسجيل الدخول", "logout": "تسجيل الخروج", "cta": "اختبار مجاني",
     },
@@ -56,9 +55,9 @@ AR = {
         "eyebrow": "تعلّم الإنجليزية بخطة واضحة",
         "title": "ارتقِ بلغتك الإنجليزية بخطوات مضمونة، من مستواك الحالي حتى الاحتراف",
         "subtitle": "دورات تفاعلية للطلاب، وورش تخصصية للمدرسين الراغبين في الانتقال للمدارس الدولية. ابدأ باختبار تحديد مستوى مجاني.",
-        "cta1": "ابدأ اختبار تحديد المستوى", "cta2": "تصفح المستويات والأسعار",
+        "cta1": "ابدأ اختبار تحديد المستوى", "cta2": "تصفح الكورسات",
         "stats": [{"value": "+2,400", "label": "طالب وطالبة"}, {"value": "+60", "label": "مدرس معتمد"}, {"value": "96%", "label": "نسبة رضا الطلاب"}],
-        "students": {"title": "أنا طالب أريد تعلّم الإنجليزية", "desc": "اختبر مستواك مجانًا، واشترك في المستوى المناسب لك بشكل فردي أو جماعي، وتابع تقدمك خطوة بخطوة.", "cta": "شاهد المستويات"},
+        "students": {"title": "أنا طالب أريد تعلّم الإنجليزية", "desc": "اختبر مستواك مجانًا، واشترك في المستوى المناسب لك بشكل فردي أو جماعي، وتابع تقدمك خطوة بخطوة.", "cta": "شاهد الكورسات"},
         "teachers": {"title": "أنا مدرس وأريد التطور مهنيًا", "desc": "ورشة متخصصة للمدرسين الراغبين في الانتقال من المدارس المحلية إلى المدارس الدولية، بشهادة معتمدة.", "cta": "تعرف على الورشة"},
         "howTitle": "كيف تبدأ؟",
         "steps": [
@@ -80,11 +79,6 @@ AR = {
         ],
         "teacherQuality": "نختار مدرسينا وفق معايير تدريس دولية، ويحصلون على تدريب دوري لتطوير أدائهم. هذا ينعكس مباشرة على جودة الجلسات وسرعة تقدم الطلاب.",
     },
-    "levels": {
-        "title": "المستويات والأسعار", "subtitle": "اختر بين نظام الجروب أو الخصوصي حسب ما يناسبك",
-        "group": "نظام الجروب", "private": "نظام الخصوصي", "subscribe": "اشترك الآن",
-        "footnote": "الأسعار بالجنيه المصري وتشمل جميع مواد المستوى.", "currency": "ج.م",
-    },
     "teachers": {
         "title": "ورشة المدرسين: من المحلي إلى الدولي",
         "intro": "ورشة متخصصة لمدرسي اللغة الإنجليزية الراغبين في الانتقال من مدارس محلية إلى مدارس دولية (IB، بريطاني، أمريكي). تغطي الورشة المناهج الدولية، أساليب التدريس التفاعلي، ومهارات التقديم للوظائف الدولية.",
@@ -105,10 +99,9 @@ AR = {
         "infoItems": ["مجاني بالكامل", "نتيجة فورية"],
         "startBtn": "ابدأ الاختبار الآن",
         "resultEyebrow": "نتيجتك المبدئية",
-        "resultDesc": "هذه نتيجة تقريبية بناءً على إجاباتك. يمكنك الاشتراك في هذا المستوى مباشرة أو مراجعته مع فريقنا.",
-        "resultCta": "شاهد تفاصيل هذا المستوى",
+        "resultDesc": "هذه نتيجة تقريبية بناءً على إجاباتك. يمكنك تصفح الكورسات المناسبة لك أو مراجعة النتيجة مع فريقنا.",
+        "resultCta": "تصفح الكورسات",
         "scoreLabel": "درجتك", "outOf": "من",
-        "recommended": "المستوى المناسب لك", "allLevels": "شاهد كل المستويات",
         "questionOf": "سؤال {n} من {total}", "prev": "السابق", "next": "التالي",
         "finish": "إنهاء الاختبار وعرض النتيجة", "examTime": "الوقت المتبقي للاختبار",
         "questionTime": "وقت السؤال", "timeUp": "انتهى وقت هذا السؤال، لا يمكن تغيير الإجابة.",
@@ -162,7 +155,6 @@ EN = {
         "joinZoom": "Join the session (Zoom)", "recording": "Session recording", "files": "Files",
         "homework": "Homework", "notes": "Notes", "back": "Back to course", "cancelled": "Your enrollment in this course is cancelled.",
         "present": "Present", "absent": "Absent", "placementTitle": "Your level test result",
-        "placementDesc": "Suggested level: {level} (score {p}%). Your teacher will use it to shape the first session.",
         "noAccess": "The Zoom link, recordings and files are for enrolled students only.",
         "loginFirst": "Log in to follow your courses.",
         "loginToPay": "We received your details. Create an account or log in to continue to payment.",
@@ -188,7 +180,7 @@ EN = {
         "all": "All", "waitingPlacement": "Our team will contact you to pick your teacher and times; your sessions will appear here.", "timesNote": "Times are set per group or student after you enroll, to suit you.", "students": "For students", "teachers": "For teachers", "paid": "Paid",
     },
     "nav": {
-        "home": "Home", "about": "About", "levels": "Levels & Pricing",
+        "home": "Home", "about": "About",
         "team": "Our Team", "teachers": "Teacher Track", "test": "Level Test", "articles": "Articles", "courses": "Courses", "mycourses": "My courses",
         "contact": "Contact", "login": "Log in", "logout": "Log out", "cta": "Free level test",
     },
@@ -196,9 +188,9 @@ EN = {
         "eyebrow": "Learn English with a clear plan",
         "title": "Advance your English with a guaranteed path, from where you are now to fluency",
         "subtitle": "Interactive courses for students, and specialized workshops for teachers moving to international schools. Start with a free level test.",
-        "cta1": "Start the level test", "cta2": "Browse levels & pricing",
+        "cta1": "Start the level test", "cta2": "Browse courses",
         "stats": [{"value": "2,400+", "label": "students"}, {"value": "60+", "label": "certified teachers"}, {"value": "96%", "label": "student satisfaction"}],
-        "students": {"title": "I'm a student learning English", "desc": "Test your level for free, join the right level in a group or private track, and track your progress step by step.", "cta": "See levels"},
+        "students": {"title": "I'm a student learning English", "desc": "Test your level for free, join the right level in a group or private track, and track your progress step by step.", "cta": "See courses"},
         "teachers": {"title": "I'm a teacher growing my career", "desc": "A dedicated workshop for teachers moving from local to international schools, with a certificate.", "cta": "See the workshop"},
         "howTitle": "How it works",
         "steps": [
@@ -220,11 +212,6 @@ EN = {
         ],
         "teacherQuality": "Our teachers are selected against international teaching standards and receive regular training. This shows directly in session quality and how fast students progress.",
     },
-    "levels": {
-        "title": "Levels & Pricing", "subtitle": "Choose group or private pricing based on what suits you",
-        "group": "Group", "private": "Private", "subscribe": "Subscribe now",
-        "footnote": "Prices in Egyptian pounds, all level materials included.", "currency": "EGP",
-    },
     "teachers": {
         "title": "Teacher Track: Local to International",
         "intro": "A dedicated workshop for English teachers moving from local schools to international ones (IB, British, American). It covers international curricula, interactive teaching methods, and international job application skills.",
@@ -245,10 +232,9 @@ EN = {
         "infoItems": ["Completely free", "Instant result"],
         "startBtn": "Start the test",
         "resultEyebrow": "Your initial result",
-        "resultDesc": "This is an approximate result based on your answers. You can subscribe to this level directly or review it with our team.",
-        "resultCta": "See this level's details",
+        "resultDesc": "This is an approximate result based on your answers. You can browse the courses that suit you or review the result with our team.",
+        "resultCta": "Browse courses",
         "scoreLabel": "Your score", "outOf": "out of",
-        "recommended": "Your recommended level", "allLevels": "See all levels",
         "questionOf": "Question {n} of {total}", "prev": "Previous", "next": "Next",
         "finish": "Finish test & see result", "examTime": "Test time left",
         "questionTime": "Question time", "timeUp": "Time's up for this question; the answer can't be changed.",
@@ -284,12 +270,6 @@ EN = {
         "linksTitle": "Quick links", "copyright": "© 2026 E-Education Academy. All rights reserved.",
     },
 }
-
-LEVEL_NAMES = {
-    "ar": ["A1 — التأسيس", "A2 — الأساسيات المتقدمة", "B1 — ما قبل المتوسط", "B2 — المتوسط", "C1 — فوق المتوسط", "C2 — المتقدم"],
-    "en": ["A1 — Foundations", "A2 — Elementary", "B1 — Pre-Intermediate", "B2 — Intermediate", "C1 — Upper-Intermediate", "C2 — Advanced"],
-}
-
 
 # Arabic noun forms by count: (1, 2, 3–10, 11+). English: (singular, plural).
 COUNT_FORMS = {

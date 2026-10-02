@@ -153,7 +153,6 @@ class PlacementResult(models.Model):
     """A signed-in student's level-test result, shown on their first course session."""
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="placement_results")
-    level = models.ForeignKey("levels.Level", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     percent = models.PositiveSmallIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
 

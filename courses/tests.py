@@ -8,7 +8,6 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from levels.models import Level
 from quiz.models import PlacementResult
 
 from .models import Attendance, Cohort, CohortSlot, Course, Enrollment, Lesson, LessonAttachment
@@ -154,14 +153,10 @@ class AccessTests(TestCase):
         self.assertNotContains(self.client.get(reverse("courses:mine")), self.course.title_ar)
 
     def test_placement_result_shown_on_first_lesson_only(self):
-        level = Level.objects.create(code="B1", order=1, name_ar="متوسط", name_en="Intermediate",
-                                     description_ar="d", description_en="d", duration_ar="1", duration_en="1",
-                                     price_group=1, price_private=2)
-        PlacementResult.objects.create(user=self.student, level=level, percent=64)
+        PlacementResult.objects.create(user=self.student, percent=64)
         second = Lesson.objects.create(cohort=self.cohort, number=2, starts_at=self.lesson.starts_at + datetime.timedelta(days=7))
         self.client.force_login(self.student)
         first_resp = self.client.get(reverse("courses:lesson", args=[self.lesson.pk]))
-        self.assertContains(first_resp, "B1")
         self.assertContains(first_resp, "64%")
         self.assertNotContains(self.client.get(reverse("courses:lesson", args=[second.pk])), "64%")
 

@@ -4,10 +4,10 @@ from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
-from core.translations import LEVEL_NAMES, count_phrase, get_translations
+from core.translations import count_phrase, get_translations
 
 from .attempt import Attempt
-from .grading import format_marks, grade, level_index, place_level
+from .grading import format_marks, grade
 from .models import PlacementResult, Question, QuizSettings
 
 
@@ -137,25 +137,14 @@ def result(request):
     questions = attempt.questions
     lang = request.lang
     score = grade(questions, attempt.results())
-    level = place_level(score["ratio"])
-    if level:
-        result_level_name = f"{level.code} — {level.name_en if lang == 'en' else level.name_ar}"
-    else:
-        # No level takes part in the test yet: fall back to equal bands over the built-in names.
-        names = LEVEL_NAMES.get(lang, LEVEL_NAMES["ar"])
-        result_level_name = names[level_index(score["ratio"], len(names))]
 
     # Remember a signed-in student's result (once per attempt) for their course pages.
     if request.user.is_authenticated and not attempt.data.get("recorded"):
-        PlacementResult.objects.create(user=request.user, level=level, percent=score["percent"])
+        PlacementResult.objects.create(user=request.user, percent=score["percent"])
         attempt.data["recorded"] = True
         attempt.save()
 
     return render(request, "quiz/result.html", {
-        "result_level": level,
-        "level_card": level.localized(lang, "group") if level else None,
-        "price_private": level.price_private if level else None,
-        "result_level_name": result_level_name,
         "score": format_marks(score["earned"]),
         "total": format_marks(score["total"]),
         "percent": score["percent"],

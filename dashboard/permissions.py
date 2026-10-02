@@ -10,7 +10,6 @@ ROLE_LABELS = {
     ROLE_TEACHER: "مدرّس",
 }
 
-SECTION_LEVELS = "levels"
 SECTION_ARTICLES = "articles"
 SECTION_TEAM = "team"
 SECTION_QUESTIONS = "questions"
@@ -21,7 +20,6 @@ SECTION_USERS = "users"
 # None = no access, "read" = view only, "write" = full CRUD.
 ROLE_PERMISSIONS = {
     ROLE_SUPER_ADMIN: {
-        SECTION_LEVELS: "write",
         SECTION_ARTICLES: "write",
         SECTION_TEAM: "write",
         SECTION_QUESTIONS: "write",
@@ -30,7 +28,6 @@ ROLE_PERMISSIONS = {
         SECTION_USERS: "write",
     },
     ROLE_CONTENT_STAFF: {
-        SECTION_LEVELS: "write",
         SECTION_ARTICLES: "write",
         SECTION_TEAM: "write",
         SECTION_QUESTIONS: "write",
@@ -39,7 +36,6 @@ ROLE_PERMISSIONS = {
         SECTION_USERS: None,
     },
     ROLE_TEACHER: {
-        SECTION_LEVELS: None,
         SECTION_ARTICLES: None,
         SECTION_TEAM: None,
         SECTION_QUESTIONS: "read",

@@ -4,12 +4,6 @@
 
 {% block content %}
 <div class="dash-stats-grid">
-  {% if can_view_levels %}
-    <div class="dash-stat">
-      <div class="value">{{ levels_count }}</div>
-      <div class="label">المستويات والأسعار</div>
-    </div>
-  {% endif %}
   {% if can_view_articles %}
     <div class="dash-stat">
       <div class="value">{{ articles_count }}</div>

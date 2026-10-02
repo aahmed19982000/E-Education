@@ -24,7 +24,7 @@
     <aside class="c-side">
       {% if placement %}
       <div class="c-panel"><h2>{{ t.courses.placementTitle }}</h2>
-        <div class="c-placement"><span class="score">{{ placement.percent }}%</span><b>{{ placement_level }}</b></div></div>
+        <div class="c-placement"><span class="score">{{ placement.percent }}%</span></div></div>
       {% endif %}
       <div class="c-panel"><a class="c-btn ghost" href="{% url 'courses:detail' slug=course.slug %}">{{ t.courses.back }}</a></div>
     </aside>

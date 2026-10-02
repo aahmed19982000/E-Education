@@ -11,7 +11,6 @@ from accounts.auth_utils import authenticate_by_email
 from articles.models import Article
 from contact_us.models import ContactMessage
 from courses.models import Attendance, Cohort, Course, Enrollment, EnrollmentRequest, Lesson
-from levels.models import Level
 from team.models import TeamMember, TeamReview
 from quiz.grading import format_marks, question_marks
 from django.db.models import Count
@@ -20,10 +19,10 @@ from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Questi
 
 from .decorators import dashboard_required, section_required
 from .forms import (
-    ArticleForm, AttachmentFormSet, CategoryForm, CohortForm, CourseForm, EnrollForm, LessonForm, RequestForm, SlotFormSet, DashboardLoginForm, LevelForm, PlacementForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
+    ArticleForm, AttachmentFormSet, CategoryForm, CohortForm, CourseForm, EnrollForm, LessonForm, RequestForm, SlotFormSet, DashboardLoginForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
 )
 from .permissions import (
-    SECTION_ARTICLES, SECTION_COURSES, SECTION_LEVELS, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_TEAM, SECTION_USERS,
+    SECTION_ARTICLES, SECTION_COURSES, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_TEAM, SECTION_USERS,
     can_access, get_dashboard_role, role_label,
 )
 
@@ -63,8 +62,6 @@ def base_context(request, active=""):
         "active": active,
         "role": role,
         "role_display": role_label(role),
-        "can_write_levels": can_access(role, SECTION_LEVELS, "write"),
-        "can_view_levels": can_access(role, SECTION_LEVELS),
         "can_write_articles": can_access(role, SECTION_ARTICLES, "write"),
         "can_view_articles": can_access(role, SECTION_ARTICLES),
         "can_write_team": can_access(role, SECTION_TEAM, "write"),
@@ -82,8 +79,6 @@ def base_context(request, active=""):
 @dashboard_required
 def index(request):
     ctx = base_context(request, active="index")
-    if ctx["can_view_levels"]:
-        ctx["levels_count"] = Level.objects.count()
     if ctx["can_view_articles"]:
         ctx["articles_count"] = Article.objects.count()
     if ctx["can_view_team"]:
@@ -100,42 +95,6 @@ def index(request):
         ctx["users_count"] = User.objects.filter(is_staff=True).count()
     return render(request, "dashboard/index.html", ctx)
 
-
-# --- Levels ---------------------------------------------------------------
-
-@section_required(SECTION_LEVELS)
-def levels_list(request):
-    ctx = base_context(request, active="levels")
-    ctx["levels"] = Level.objects.all()
-    return render(request, "dashboard/levels_list.html", ctx)
-
-
-@section_required(SECTION_LEVELS, "write")
-def level_form(request, pk=None):
-    instance = get_object_or_404(Level, pk=pk) if pk else None
-    if request.method == "POST":
-        form = LevelForm(request.POST, instance=instance)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "تم حفظ المستوى بنجاح.")
-            return redirect("dashboard:levels_list")
-    else:
-        form = LevelForm(instance=instance)
-    ctx = base_context(request, active="levels")
-    ctx.update({"form": form, "instance": instance, "title": "تعديل مستوى" if instance else "إضافة مستوى"})
-    return render(request, "dashboard/level_form.html", ctx)
-
-
-@section_required(SECTION_LEVELS, "write")
-def level_delete(request, pk):
-    instance = get_object_or_404(Level, pk=pk)
-    if request.method == "POST":
-        instance.delete()
-        messages.success(request, "تم حذف المستوى.")
-        return redirect("dashboard:levels_list")
-    ctx = base_context(request, active="levels")
-    ctx.update({"object": instance, "title": f"حذف المستوى {instance.code}", "cancel_url": "dashboard:levels_list"})
-    return render(request, "dashboard/confirm_delete.html", ctx)
 
 
 # --- Articles ---------------------------------------------------------------
@@ -336,24 +295,6 @@ def question_form(request, pk=None):
     })
     return render(request, "dashboard/question_form.html", ctx)
 
-
-@section_required(SECTION_QUESTIONS, "write")
-def quiz_placement(request):
-    levels = Level.objects.all()
-    form = PlacementForm(request.POST or None, levels=levels)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "تم حفظ قواعد تحديد المستوى.")
-        return redirect("dashboard:quiz_placement")
-    settings = QuizSettings.load()
-    total = question_marks(Question.objects.all(), settings)
-    ctx = base_context(request, active="questions")
-    ctx.update({
-        "form": form,
-        "title": "تحديد مستوى الطالب",
-        "total_marks": float(sum(total.values())) if total else 0,
-    })
-    return render(request, "dashboard/quiz_placement.html", ctx)
 
 
 # --- Question categories ------------------------------------------------

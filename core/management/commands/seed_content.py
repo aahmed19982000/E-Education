@@ -2,30 +2,8 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
 from articles.models import Article
-from levels.models import Level
 from quiz.models import Question
 from team.models import TeamMember
-
-LEVELS = [
-    dict(order=1, code="A1", name_ar="المستوى الأول: التأسيس", name_en="Level 1: Foundations",
-         description_ar="أساسيات القواعد والمفردات للمبتدئين تمامًا.", description_en="Core grammar and vocabulary for absolute beginners.",
-         duration_ar="4 أسابيع · 8 جلسات", duration_en="4 weeks · 8 sessions", price_group=1200, price_private=2400),
-    dict(order=2, code="A2", name_ar="المستوى الثاني: الأساسيات المتقدمة", name_en="Level 2: Elementary",
-         description_ar="بناء جمل أطول والتحدث في مواقف يومية.", description_en="Building longer sentences for everyday situations.",
-         duration_ar="4 أسابيع · 8 جلسات", duration_en="4 weeks · 8 sessions", price_group=1300, price_private=2600),
-    dict(order=3, code="B1", name_ar="المستوى الثالث: ما قبل المتوسط", name_en="Level 3: Pre-Intermediate",
-         description_ar="التعبير عن الرأي ومناقشة مواضيع متنوعة.", description_en="Expressing opinions and discussing varied topics.",
-         duration_ar="4 أسابيع · 8 جلسات", duration_en="4 weeks · 8 sessions", price_group=1400, price_private=2800),
-    dict(order=4, code="B2", name_ar="المستوى الرابع: المتوسط", name_en="Level 4: Intermediate",
-         description_ar="طلاقة أكبر في الكتابة والمحادثة المهنية.", description_en="Greater fluency in writing and professional talk.",
-         duration_ar="5 أسابيع · 10 جلسات", duration_en="5 weeks · 10 sessions", price_group=1500, price_private=3000),
-    dict(order=5, code="C1", name_ar="المستوى الخامس: فوق المتوسط", name_en="Level 5: Upper-Intermediate",
-         description_ar="تحليل نصوص معقدة والتحدث بثقة في العمل.", description_en="Analyzing complex texts, speaking confidently at work.",
-         duration_ar="5 أسابيع · 10 جلسات", duration_en="5 weeks · 10 sessions", price_group=1600, price_private=3200),
-    dict(order=6, code="C2", name_ar="المستوى السادس: المتقدم", name_en="Level 6: Advanced",
-         description_ar="إتقان قريب من اللغة الأم في جميع المهارات.", description_en="Near-native command across all language skills.",
-         duration_ar="6 أسابيع · 12 جلسة", duration_en="6 weeks · 12 sessions", price_group=1700, price_private=3400),
-]
 
 ARTICLES = [
     dict(order=1, category_ar="قواعد", category_en="Grammar",
@@ -62,13 +40,9 @@ OWNER = dict(
 
 
 class Command(BaseCommand):
-    help = "Seed levels and articles, and load the placement test if the quiz is empty."
+    help = "Seed articles, and load the placement test if the quiz is empty."
 
     def handle(self, *args, **options):
-        for data in LEVELS:
-            Level.objects.update_or_create(code=data["code"], defaults=data)
-        self.stdout.write(self.style.SUCCESS(f"Levels: {len(LEVELS)}"))
-
         for data in ARTICLES:
             Article.objects.update_or_create(title_en=data["title_en"], defaults=data)
         self.stdout.write(self.style.SUCCESS(f"Articles: {len(ARTICLES)}"))

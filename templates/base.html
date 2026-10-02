@@ -29,7 +29,6 @@
           <a href="{% url 'core:home' %}" class="{% if request.resolver_match.view_name == 'core:home' %}active{% endif %}">{{ t.nav.home }}</a>
           <a href="{% url 'core:about' %}" class="{% if request.resolver_match.view_name == 'core:about' %}active{% endif %}">{{ t.nav.about }}</a>
           <a href="{% url 'team:list' %}" class="{% if request.resolver_match.namespace == 'team' %}active{% endif %}">{{ t.nav.team }}</a>
-          <a href="{% url 'levels:levels' %}" class="{% if request.resolver_match.view_name == 'levels:levels' %}active{% endif %}">{{ t.nav.levels }}</a>
           <a href="{% url 'core:teachers' %}" class="{% if request.resolver_match.view_name == 'core:teachers' %}active{% endif %}">{{ t.nav.teachers }}</a>
           <a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}active{% endif %}">{{ t.nav.courses }}</a>
           {% if user.is_authenticated %}<a href="{% url 'courses:mine' %}" class="{% if request.resolver_match.view_name == 'courses:mine' %}active{% endif %}">{{ t.nav.mycourses }}</a>{% endif %}
@@ -74,7 +73,6 @@
           <a href="{% url 'core:home' %}">{{ t.nav.home }}</a>
           <a href="{% url 'core:about' %}">{{ t.nav.about }}</a>
           <a href="{% url 'team:list' %}">{{ t.nav.team }}</a>
-          <a href="{% url 'levels:levels' %}">{{ t.nav.levels }}</a>
           <a href="{% url 'core:teachers' %}">{{ t.nav.teachers }}</a>
           <a href="{% url 'quiz:intro' %}">{{ t.nav.test }}</a>
           <a href="{% url 'articles:list' %}">{{ t.nav.articles }}</a>

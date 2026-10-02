@@ -79,13 +79,10 @@ def lesson_detail(request, pk):
     placement = None
     if enrollment:
         attendance = Attendance.objects.filter(lesson=lesson, enrollment=enrollment).first()
-        # The level-test result is surfaced on the student's first session only.
+        # The test result is surfaced on the student's first session only.
         if lesson.cohort.lessons.first() == lesson:
-            placement = PlacementResult.objects.filter(user=request.user).select_related("level").first()
+            placement = PlacementResult.objects.filter(user=request.user).first()
     lang = request.lang
-    level_name = ""
-    if placement and placement.level:
-        level_name = f"{placement.level.code} — {placement.level.name_en if lang == 'en' else placement.level.name_ar}"
     return render(request, "courses/lesson.html", {
         "course": course.localized(lang),
         "lesson": lesson.localized(lang),
@@ -95,7 +92,6 @@ def lesson_detail(request, pk):
         "homework": lesson.attachments.filter(kind=LessonAttachment.KIND_HOMEWORK),
         "attendance": attendance,
         "placement": placement,
-        "placement_level": level_name,
     })
 
 

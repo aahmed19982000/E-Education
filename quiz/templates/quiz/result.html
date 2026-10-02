@@ -5,7 +5,7 @@
 {% block content %}
   <div class="page-narrow page-center">
     <div class="quiz-eyebrow">{{ t.test.resultEyebrow }}</div>
-    <h1 style="font-size:34px;font-weight:800;color:var(--primary);margin:0 0 14px;">{{ result_level_name }}</h1>
+    <h1 style="font-size:34px;font-weight:800;color:var(--primary);margin:0 0 14px;">{{ percent }}%</h1>
     <div class="quiz-score">
       <span class="quiz-score-label">{{ t.test.scoreLabel }}</span>
       <span class="quiz-score-value">{{ score }} <small>{{ t.test.outOf }} {{ total }}</small></span>
@@ -14,22 +14,6 @@
     </div>
     <p class="lead" style="margin-inline:auto;">{{ t.test.resultDesc }}</p>
 
-    {% if level_card %}
-      <div class="level-card quiz-level-card">
-        <div class="quiz-level-eyebrow">{{ t.test.recommended }}</div>
-        <div class="code">{{ level_card.code }}</div>
-        <h3>{{ level_card.name }}</h3>
-        <p>{{ level_card.desc }}</p>
-        <div class="quiz-level-prices">
-          <div><span>{{ t.levels.group }}</span><strong>{{ level_card.price }} {{ t.levels.currency }}</strong></div>
-          <div><span>{{ t.levels.private }}</span><strong>{{ price_private }} {{ t.levels.currency }}</strong></div>
-        </div>
-        <div class="duration">{{ level_card.duration }}</div>
-        <a class="btn-block" style="display:block;text-align:center;text-decoration:none;" href="{% url 'contact:contact' %}">{{ t.levels.subscribe }}</a>
-      </div>
-      <a class="btn btn-outline" href="{% url 'levels:levels' %}#level-{{ result_level.code }}">{{ t.test.allLevels }}</a>
-    {% else %}
-      <a class="btn btn-lg btn-primary" href="{% url 'levels:levels' %}">{{ t.test.resultCta }}</a>
-    {% endif %}
+    <a class="btn btn-lg btn-primary" href="{% url 'courses:list' %}">{{ t.test.resultCta }}</a>
   </div>
 {% endblock %}

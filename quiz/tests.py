@@ -10,9 +10,8 @@ from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from levels.models import Level
 
-from .grading import format_marks, grade, level_index, place_level, question_marks
+from .grading import format_marks, grade, question_marks
 from .models import Category, Question, QuizSettings
 
 
@@ -52,11 +51,6 @@ class GradingTests(TestCase):
         result = grade(self.qs, {a.pk: True, b.pk: False, c.pk: False}, s)
         self.assertEqual(result["earned"], 20)
         self.assertEqual(result["total"], 60)
-
-    def test_level_bands_match_old_count_based_mapping(self):
-        # Old behaviour with 6 equal questions: names[min(correct, 5)].
-        for correct in range(7):
-            self.assertEqual(level_index(Fraction(correct, 6), 6), min(correct, 5))
 
     def test_format_marks(self):
         self.assertEqual(format_marks(Fraction(10)), "10")
@@ -219,49 +213,6 @@ class CategoryTests(TestCase):
         q = make_question(1)
         self.assertEqual(q.localized("en")["tag"], "Grammar")
         self.assertEqual(q.localized("ar")["tag"], "قواعد")
-
-
-def make_level(order, code, min_percent):
-    return Level.objects.create(
-        code=code, order=order, name_ar=f"مستوى {code}", name_en=f"Level {code}",
-        description_ar="-", description_en="-", duration_ar="-", duration_en="-",
-        price_group=100 * order, price_private=200 * order, test_min_percent=min_percent,
-    )
-
-
-class PlacementTests(TestCase):
-    def setUp(self):
-        self.a1 = make_level(1, "A1", 0)
-        self.a2 = make_level(2, "A2", 40)
-        self.b1 = make_level(3, "B1", 75)
-        self.teachers = make_level(4, "T1", None)  # not assigned by the test
-
-    def test_highest_reached_level(self):
-        self.assertEqual(place_level(Fraction(0)), self.a1)
-        self.assertEqual(place_level(Fraction(39, 100)), self.a1)
-        self.assertEqual(place_level(Fraction(40, 100)), self.a2)  # threshold is inclusive
-        self.assertEqual(place_level(Fraction(3, 4)), self.b1)
-        self.assertEqual(place_level(Fraction(1)), self.b1)
-
-    def test_below_every_threshold_gets_lowest_level(self):
-        self.a1.test_min_percent = 10
-        self.a1.save()
-        self.assertEqual(place_level(Fraction(5, 100)), self.a1)
-
-    def test_no_levels_in_test(self):
-        Level.objects.update(test_min_percent=None)
-        self.assertIsNone(place_level(Fraction(1, 2)))
-
-    def test_result_page_recommends_level(self):
-        q1 = make_question(1, correct=0)
-        q2 = make_question(2, correct=0)
-        self.client.post(reverse("quiz:start"))
-        self.client.post(reverse("quiz:question"), {"question": q1.pk, "option": "0", "nav": "next"})
-        self.client.post(reverse("quiz:question"), {"question": q2.pk, "option": "1", "nav": "finish"})  # 50%
-        resp = self.client.get(reverse("quiz:result"))
-        self.assertEqual(resp.context["result_level"], self.a2)
-        self.assertContains(resp, "مستوى A2")
-        self.assertContains(resp, "#level-A2")
 
 
 class CountPhraseTests(TestCase):
