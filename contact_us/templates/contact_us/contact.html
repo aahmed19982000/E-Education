@@ -1,15 +1,31 @@
 {% extends "base.html" %}
-
+{% load static %}
 {% block title %}{{ t.contact.title }} · {{ t.brand }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/home.css' %}">{% endblock %}
 
 {% block content %}
-  <div class="page-contact page-center">
-    <h1>{{ t.contact.title }}</h1>
-    <p class="lead" style="margin-inline:auto;">{{ t.contact.subtitle }}</p>
+  <section class="hm-hero hm-hero-sm">
+    <div class="hm-wrap">
+      <div class="hm-eyebrow">{{ t.brand }}</div>
+      <h1>{{ t.contact.title }}</h1>
+      <p class="hm-lead">{{ t.contact.subtitle }}</p>
+    </div>
+  </section>
 
-    <div class="contact-grid" style="text-align:start;">
+  <div class="hm-wrap hm-contact">
+    <div class="hm-contact-info">
+      {% for c in t.contact.info %}
+        <div class="hm-info-card">
+          <span class="ic">{% if forloop.counter == 1 %}📞{% elif forloop.counter == 2 %}✉️{% else %}🕒{% endif %}</span>
+          <div><div class="label">{{ c.label }}</div><div class="value">{{ c.value }}</div></div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="hm-contact-form">
       {% if submitted %}
-        <div class="contact-success">
+        <div class="hm-success">
+          <div class="tick">✓</div>
           <h3>{{ t.contact.successTitle }}</h3>
           <p>{{ t.contact.successDesc }}</p>
         </div>
@@ -17,34 +33,26 @@
         <form method="post" class="form-grid">
           {% csrf_token %}
           {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
-
-          <div>
-            <input class="field" type="text" name="name" placeholder="{{ t.contact.name }}" value="{{ form.name.value|default:'' }}" required>
-            {% if form.name.errors %}<div class="form-errors">{{ form.name.errors }}</div>{% endif %}
+          <div class="hm-form-row">
+            <div>
+              <input class="field" type="text" name="name" placeholder="{{ t.contact.name }}" value="{{ form.name.value|default:'' }}" required>
+              {% if form.name.errors %}<div class="form-errors">{{ form.name.errors }}</div>{% endif %}
+            </div>
+            <div>
+              <input class="field" type="text" name="phone" placeholder="{{ t.contact.phone }}" value="{{ form.phone.value|default:'' }}">
+            </div>
           </div>
           <div>
             <input class="field" type="email" name="email" placeholder="{{ t.contact.email }}" value="{{ form.email.value|default:'' }}" required>
             {% if form.email.errors %}<div class="form-errors">{{ form.email.errors }}</div>{% endif %}
           </div>
           <div>
-            <input class="field" type="text" name="phone" placeholder="{{ t.contact.phone }}" value="{{ form.phone.value|default:'' }}">
-          </div>
-          <div>
-            <textarea class="field" name="message" rows="5" placeholder="{{ t.contact.message }}" required>{{ form.message.value|default:'' }}</textarea>
+            <textarea class="field" name="message" rows="6" placeholder="{{ t.contact.message }}" required>{{ form.message.value|default:'' }}</textarea>
             {% if form.message.errors %}<div class="form-errors">{{ form.message.errors }}</div>{% endif %}
           </div>
-          <button class="btn btn-primary" style="padding:14px;" type="submit">{{ t.contact.submit }}</button>
+          <button class="hm-btn primary" type="submit">{{ t.contact.submit }}</button>
         </form>
       {% endif %}
-
-      <div>
-        {% for c in t.contact.info %}
-          <div class="contact-info-item">
-            <div class="label">{{ c.label }}</div>
-            <div class="value">{{ c.value }}</div>
-          </div>
-        {% endfor %}
-      </div>
     </div>
   </div>
 {% endblock %}

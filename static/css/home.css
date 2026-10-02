@@ -88,3 +88,19 @@ main > .hm-section:last-of-type { padding-bottom: 72px; }
 .hm-quality h2 { margin: 0 0 12px; font-size: 24px; font-weight: 800; color: var(--primary); }
 .hm-quality p { margin: 0; font-size: 16px; line-height: 1.95; color: #3A4258; max-width: 720px; }
 @media (max-width: 900px) { .hm-quality { flex-direction: column; align-items: flex-start; padding: 26px; } }
+
+/* Contact page */
+.hm-contact { margin-top: -44px; position: relative; z-index: 2; padding-bottom: 80px; display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 24px; align-items: start; }
+.hm-contact-info { display: grid; gap: 16px; }
+.hm-info-card { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 22px; box-shadow: 0 10px 28px rgba(20,39,91,.09); }
+.hm-info-card .ic { flex: none; width: 52px; height: 52px; border-radius: 14px; background: var(--cream); border: 1px solid var(--cream-border); display: grid; place-items: center; font-size: 22px; }
+.hm-info-card .label { font-size: 12.5px; color: #B49A55; font-weight: 700; margin-bottom: 4px; }
+.hm-info-card .value { font-size: 16px; font-weight: 800; color: var(--primary); direction: ltr; unicode-bidi: plaintext; }
+.hm-contact-form { background: #fff; border: 1px solid var(--border); border-radius: 22px; padding: 32px; box-shadow: 0 10px 28px rgba(20,39,91,.09); }
+.hm-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.hm-contact-form .hm-btn { width: 100%; }
+.hm-success { text-align: center; padding: 36px 12px; }
+.hm-success .tick { width: 64px; height: 64px; border-radius: 50%; background: #E2F3EA; color: #1c7a4a; font-size: 30px; font-weight: 800; display: grid; place-items: center; margin: 0 auto 16px; }
+.hm-success h3 { margin: 0 0 8px; font-size: 22px; color: var(--primary); }
+.hm-success p { margin: 0; color: var(--muted); line-height: 1.8; }
+@media (max-width: 900px) { .hm-contact { grid-template-columns: 1fr; } .hm-form-row { grid-template-columns: 1fr; } .hm-contact-form { padding: 22px; } }
