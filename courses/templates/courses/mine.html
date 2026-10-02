@@ -1,31 +1,30 @@
-{% extends "base.html" %}
+{% extends "courses/_base.html" %}
 {% block title %}{{ t.courses.mine }} · {{ t.brand }}{% endblock %}
 {% block content %}
-<div class="page">
-  <h1>{{ t.courses.mine }}</h1>
+<section class="c-hero"><div class="c-wrap"><h1>{{ t.courses.mine }}</h1></div></section>
+<div class="c-wrap c-body">
   {% if cards %}
-  <div class="team-grid">
+  <div class="c-grid">
     {% for c in cards %}
-    <div class="team-card">
-      <div class="team-name"><a href="{% url 'courses:detail' slug=c.course.slug %}">{{ c.course.title }}</a></div>
-      {% if c.teacher %}<div class="team-role">{{ c.teacher.name }}</div>{% endif %}
-      {% if not c.placed %}<div>{{ t.courses.waitingPlacement }}</div>{% endif %}
-      <div style="margin:12px 0;">
-        <div style="background:var(--cream);border-radius:999px;height:10px;overflow:hidden;">
-          <div style="width:{{ c.percent }}%;height:100%;background:var(--accent);"></div>
-        </div>
-        <small>{{ t.courses.progress }}: {{ c.percent }}% — {{ c.attended_label }}</small>
+    <div class="c-card {% if c.course.audience == 'teachers' %}is-teachers{% endif %}">
+      <div class="c-card-top"></div>
+      <div class="c-card-body">
+        <h3><a href="{% url 'courses:detail' slug=c.course.slug %}">{{ c.course.title }}</a></h3>
+        {% if c.teacher %}<div class="c-price">{{ t.courses.teacher }}: <b>{{ c.teacher.name }}</b></div>{% endif %}
+        {% if not c.placed %}
+          <div class="c-notice">{{ t.courses.waitingPlacement }}</div>
+        {% else %}
+          <div><div class="c-progress"><i style="width:{{ c.percent }}%"></i></div>
+            <div class="c-meta"><span>{{ c.attended_label }}</span><b>{{ c.percent }}%</b></div></div>
+          {% if c.next %}<div class="c-next"><b>{{ t.courses.nextSession }}</b>
+            <a href="{% url 'courses:lesson' pk=c.next.pk %}">{{ c.next.title }}</a> · {{ c.next.starts_at|date:"Y-m-d H:i" }}</div>{% endif %}
+        {% endif %}
       </div>
-      {% if c.next %}
-        <div><strong>{{ t.courses.nextSession }}:</strong>
-          <a href="{% url 'courses:lesson' pk=c.next.pk %}">{{ c.next.title }}</a> — {{ c.next.starts_at|date:"Y-m-d H:i" }}</div>
-      {% endif %}
     </div>
     {% endfor %}
   </div>
   {% else %}
-    <p>{{ t.courses.mineEmpty }}</p>
-    <a class="btn btn-primary" href="{% url 'courses:list' %}">{{ t.courses.browse }}</a>
+    <div class="c-empty"><p>{{ t.courses.mineEmpty }}</p><a class="c-btn primary" style="display:inline-block;width:auto;" href="{% url 'courses:list' %}">{{ t.courses.browse }}</a></div>
   {% endif %}
 </div>
 {% endblock %}

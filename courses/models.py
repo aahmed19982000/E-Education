@@ -64,6 +64,8 @@ class Course(models.Model):
             return en if lang == "en" and en else ar
         return {
             "slug": self.slug, "audience": self.audience,
+            "modes": self.allowed_modes(),
+            "from_price": min((p for p in (self.price_for(m) for m in self.allowed_modes()) if p is not None), default=None),
             "title": pick(self.title_ar, self.title_en),
             "description": pick(self.description_ar, self.description_en),
         }

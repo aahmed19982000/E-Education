@@ -121,6 +121,8 @@ def apply(request, slug):
             "phone": getattr(getattr(request.user, "profile", None), "phone", ""),
         }
     form = ApplyForm(request.POST or None, initial=initial, course=course)
+    for name, label in get_translations(lang)["courses"]["f"].items():
+        form.fields[name].label = label
     if request.method == "POST" and form.is_valid():
         enrollment_request = form.save(commit=False)
         enrollment_request.course = course
@@ -134,7 +136,10 @@ def apply(request, slug):
             return redirect(checkout_url)
         messages.info(request, get_translations(lang)["courses"]["loginToPay"])
         return redirect(f"{reverse('accounts:login')}?mode=register&next={checkout_url}")
-    return render(request, "courses/apply.html", {"course": course.localized(lang), "form": form})
+    return render(request, "courses/apply.html", {
+        "course": course.localized(lang), "form": form,
+        "prices": {m: course.price_for(m) for m in course.allowed_modes()},
+    })
 
 
 @login_required

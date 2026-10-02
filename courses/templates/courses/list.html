@@ -1,23 +1,40 @@
-{% extends "base.html" %}
+{% extends "courses/_base.html" %}
 {% block title %}{{ t.courses.title }} · {{ t.brand }}{% endblock %}
 {% block content %}
-<div class="page page-center">
-  <h1>{{ t.courses.title }}</h1>
-  <p class="lead" style="margin-inline:auto;">{{ t.courses.subtitle }}</p>
-  <div class="team-tags" style="justify-content:center;margin-bottom:24px;">
-    <a href="{% url 'courses:list' %}"><span {% if not audience %}style="background:var(--accent);"{% endif %}>{{ t.courses.all }}</span></a>
-    <a href="?for=students"><span {% if audience == "students" %}style="background:var(--accent);"{% endif %}>{{ t.courses.students }}</span></a>
-    <a href="?for=teachers"><span {% if audience == "teachers" %}style="background:var(--accent);"{% endif %}>{{ t.courses.teachers }}</span></a>
+<section class="c-hero">
+  <div class="c-wrap">
+    <div class="c-eyebrow">{{ t.brand }}</div>
+    <h1>{{ t.courses.title }}</h1>
+    <p>{{ t.courses.subtitle }}</p>
   </div>
+</section>
+<div class="c-wrap c-body">
+  <nav class="c-filters" aria-label="{{ t.courses.title }}">
+    <a href="{% url 'courses:list' %}" class="{% if not audience %}active{% endif %}">{{ t.courses.all }}</a>
+    <a href="?for=students" class="{% if audience == 'students' %}active{% endif %}">{{ t.courses.students }}</a>
+    <a href="?for=teachers" class="{% if audience == 'teachers' %}active{% endif %}">{{ t.courses.teachers }}</a>
+  </nav>
+
   {% if courses %}
-  <div class="team-grid">
+  <div class="c-grid">
     {% for c in courses %}
-    <a class="team-card" href="{% url 'courses:detail' slug=c.slug %}">
-      <div class="team-name">{{ c.title }}</div>
-      <div class="team-tags"><span>{% if c.audience == "teachers" %}{{ t.courses.teachers }}{% else %}{{ t.courses.students }}{% endif %}</span></div>
+    <a class="c-card {% if c.audience == 'teachers' %}is-teachers{% endif %}" href="{% url 'courses:detail' slug=c.slug %}">
+      <div class="c-card-top"></div>
+      <div class="c-card-body">
+        <div class="c-badges">
+          <span class="c-badge audience">{% if c.audience == "teachers" %}{{ t.courses.teachers }}{% else %}{{ t.courses.students }}{% endif %}</span>
+          {% for m in c.modes %}<span class="c-badge">{% if m == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</span>{% endfor %}
+        </div>
+        <h3>{{ c.title }}</h3>
+        <p>{{ c.description|truncatechars:120 }}</p>
+        <div class="c-card-foot">
+          {% if c.from_price %}<div class="c-price">{{ t.courses.from }}<strong>{{ c.from_price }} {{ t.courses.currency }}</strong></div><span></span>{% else %}<span></span>{% endif %}
+          <span class="c-more">{{ t.courses.viewCourse }}</span>
+        </div>
+      </div>
     </a>
     {% endfor %}
   </div>
-  {% else %}<p>{{ t.courses.empty }}</p>{% endif %}
+  {% else %}<div class="c-empty">{{ t.courses.noCourses }}</div>{% endif %}
 </div>
 {% endblock %}

@@ -1,27 +1,33 @@
-{% extends "base.html" %}
+{% extends "courses/_base.html" %}
 {% block title %}{{ lesson.title }} · {{ t.brand }}{% endblock %}
 {% block content %}
-<div class="page-narrow">
-  <a href="{% url 'courses:detail' slug=course.slug %}">‹ {{ t.courses.back }}: {{ course.title }}</a>
-  <h1 style="font-size:32px;font-weight:800;color:var(--primary);margin-top:12px;">{{ lesson.title }}</h1>
-  <p>{{ lesson.starts_at|date:"Y-m-d H:i" }} · {{ lesson.duration }} {{ t.courses.minutes }}
-    {% if attendance %} · <strong>{% if attendance.status == "present" %}{{ t.courses.present }}{% else %}{{ t.courses.absent }}{% endif %}</strong>{% endif %}
-  </p>
-
-  {% if placement %}
-  <div class="dash-card" style="background:var(--cream);border:1px solid var(--cream-border);border-radius:14px;padding:18px;margin-bottom:20px;">
-    <strong>{{ t.courses.placementTitle }}</strong>
-    <p style="margin:6px 0 0;">{{ placement_level }} — {{ placement.percent }}%</p>
+<section class="c-hero">
+  <div class="c-wrap">
+    <div class="c-crumbs"><a href="{% url 'courses:detail' slug=course.slug %}">{{ course.title }}</a> / {{ lesson.title }}</div>
+    <h1>{{ lesson.title }}</h1>
+    <p>{{ lesson.starts_at|date:"Y-m-d · H:i" }} · {{ lesson.duration }} {{ t.courses.minutes }}
+      {% if attendance %} · {% if attendance.status == "present" %}{{ t.courses.present }}{% else %}{{ t.courses.absent }}{% endif %}{% endif %}</p>
   </div>
-  {% endif %}
-
-  {% if zoom_url %}<p><a class="btn btn-lg btn-primary" href="{{ zoom_url }}" target="_blank" rel="noopener">{{ t.courses.joinZoom }}</a></p>{% endif %}
-  {% if recording_url %}<p><a class="btn btn-outline" href="{{ recording_url }}" target="_blank" rel="noopener">{{ t.courses.recording }}</a></p>{% endif %}
-
-  {% if lesson.notes %}<h2 class="team-section-title">{{ t.courses.notes }}</h2><p>{{ lesson.notes|linebreaksbr }}</p>{% endif %}
-  {% if files %}<h2 class="team-section-title">{{ t.courses.files }}</h2>
-    <ul>{% for f in files %}<li><a href="{% url 'courses:attachment' pk=f.pk %}">{{ f.title }}</a></li>{% endfor %}</ul>{% endif %}
-  {% if homework %}<h2 class="team-section-title">{{ t.courses.homework }}</h2>
-    <ul>{% for f in homework %}<li><a href="{% url 'courses:attachment' pk=f.pk %}">{{ f.title }}</a></li>{% endfor %}</ul>{% endif %}
+</section>
+<div class="c-wrap c-body">
+  <div class="c-layout">
+    <div>
+      {% if zoom_url %}
+      <div class="c-join"><div><h2>{{ t.courses.joinTitle }}</h2><p>{{ t.courses.joinDesc }}</p></div>
+        <a class="c-btn" href="{{ zoom_url }}" target="_blank" rel="noopener">{{ t.courses.joinZoom }}</a></div>
+      {% endif %}
+      {% if recording_url %}<div class="c-panel"><h2>{{ t.courses.recording }}</h2><a class="c-btn ghost" href="{{ recording_url }}" target="_blank" rel="noopener">{{ t.courses.recording }}</a></div>{% endif %}
+      {% if lesson.notes %}<div class="c-panel"><h2>{{ t.courses.notes }}</h2><p class="c-text">{{ lesson.notes|linebreaksbr }}</p></div>{% endif %}
+      {% if files %}<div class="c-panel"><h2>{{ t.courses.files }}</h2><ul class="c-files">{% for f in files %}<li><a href="{% url 'courses:attachment' pk=f.pk %}">{{ f.title }}</a></li>{% endfor %}</ul></div>{% endif %}
+      {% if homework %}<div class="c-panel"><h2>{{ t.courses.homework }}</h2><ul class="c-files">{% for f in homework %}<li><a href="{% url 'courses:attachment' pk=f.pk %}">{{ f.title }}</a></li>{% endfor %}</ul></div>{% endif %}
+    </div>
+    <aside class="c-side">
+      {% if placement %}
+      <div class="c-panel"><h2>{{ t.courses.placementTitle }}</h2>
+        <div class="c-placement"><span class="score">{{ placement.percent }}%</span><b>{{ placement_level }}</b></div></div>
+      {% endif %}
+      <div class="c-panel"><a class="c-btn ghost" href="{% url 'courses:detail' slug=course.slug %}">{{ t.courses.back }}</a></div>
+    </aside>
+  </div>
 </div>
 {% endblock %}

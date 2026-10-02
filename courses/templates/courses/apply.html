@@ -1,19 +1,43 @@
-{% extends "base.html" %}
+{% extends "courses/_base.html" %}
 {% block title %}{{ t.courses.applyTitle }} · {{ course.title }}{% endblock %}
 {% block content %}
-<div class="page-auth">
-  <h1 style="font-size:28px;">{{ t.courses.applyTitle }}: {{ course.title }}</h1>
-  <form method="post" class="form-grid">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    {% for f in form %}
-      <div>
-        {% if f.name == "mode" %}<div>{% for radio in f %}<label style="margin-inline-end:16px;">{{ radio.tag }} {% if radio.data.value == "group" %}{{ t.courses.group }}{% else %}{{ t.courses.private }}{% endif %}</label>{% endfor %}</div>
-        {% else %}<label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% endif %}
-        {{ f.errors }}
-      </div>
-    {% endfor %}
-    <button type="submit" class="btn-block">{{ t.courses.applySubmit }}</button>
-  </form>
+<section class="c-hero">
+  <div class="c-wrap">
+    <div class="c-stepper"><span class="on" data-n="1">{{ t.courses.stepDetails }}</span><span data-n="2">{{ t.courses.stepPay }}</span><span data-n="3">{{ t.courses.stepDone }}</span></div>
+    <h1>{{ t.courses.applyTitle }}</h1>
+    <p>{{ t.courses.applyLead }}</p>
+  </div>
+</section>
+<div class="c-wrap c-body">
+  <div class="c-layout">
+    <div class="c-panel">
+      <form method="post" class="c-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for f in form %}
+        <div>
+          {% if f.name == "mode" %}
+            <label class="l">{{ f.label }}</label>
+            <div class="c-choice">
+              {% for radio in f %}
+              <label>{{ radio.tag }}{% if radio.data.value == "private" %}{{ t.courses.private }}<small>{{ t.courses.privateHint }}{% if prices.private %} · {{ prices.private }} {{ t.courses.currency }}{% endif %}</small>
+                {% else %}{{ t.courses.group }}<small>{{ t.courses.groupHint }}{% if prices.group %} · {{ prices.group }} {{ t.courses.currency }}{% endif %}</small>{% endif %}</label>
+              {% endfor %}
+            </div>
+          {% else %}
+            <label class="l" for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}
+          {% endif %}
+          {{ f.errors }}
+        </div>
+        {% endfor %}
+        <button type="submit" class="c-btn primary">{{ t.courses.applySubmit }}</button>
+      </form>
+    </div>
+    <aside class="c-side"><div class="c-panel c-summary">
+      <h2>{{ t.courses.summary }}</h2>
+      <dl><div><dt>{{ t.courses.course }}</dt><dd>{{ course.title }}</dd></div></dl>
+      <p class="c-note" style="text-align:start;">{{ t.courses.timesNote }}</p>
+    </div></aside>
+  </div>
 </div>
 {% endblock %}

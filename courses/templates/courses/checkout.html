@@ -1,20 +1,31 @@
-{% extends "base.html" %}
+{% extends "courses/_base.html" %}
 {% block title %}{{ t.courses.checkoutTitle }} · {{ t.brand }}{% endblock %}
 {% block content %}
-<div class="page-narrow page-center">
-  <h1 style="font-size:30px;font-weight:800;color:var(--primary);">{{ t.courses.received }}</h1>
-  {% if course %}<p class="lead" style="margin-inline:auto;">{{ course.title }} — {% if req.mode == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</p>{% endif %}
-  {% if req.price %}<p><strong>{{ t.courses.price }}:</strong> {{ req.price }} {{ t.courses.currency }}</p>{% endif %}
-
-  {% if req.is_paid %}
-    <p><strong>{{ t.courses.paid }}</strong></p>
-  {% elif payments_enabled %}
-    <p><button type="button" class="btn btn-lg btn-primary" disabled>{{ t.courses.pay }}</button></p>
-  {% else %}
-    <p>{{ t.courses.paymentSoon }}</p>
-  {% endif %}
-
-  <p>{{ t.courses.next }}</p>
-  <a class="btn btn-lg btn-accent" href="{% url 'quiz:intro' %}">{{ t.courses.takeTest }}</a>
+<section class="c-hero">
+  <div class="c-wrap">
+    <div class="c-stepper"><span class="done" data-n="1">{{ t.courses.stepDetails }}</span><span class="on" data-n="2">{{ t.courses.stepPay }}</span><span data-n="3">{{ t.courses.stepDone }}</span></div>
+    <h1>{{ t.courses.checkoutTitle }}</h1>
+  </div>
+</section>
+<div class="c-wrap c-body">
+  <div class="c-layout">
+    <div class="c-panel c-success">
+      <div class="tick">✓</div>
+      <h2>{{ t.courses.received }}</h2>
+      {% if req.is_paid %}<div class="c-notice">{{ t.courses.paid }}</div>
+      {% elif payments_enabled %}<button type="button" class="c-btn primary" disabled>{{ t.courses.pay }}</button>
+      {% else %}<div class="c-notice">{{ t.courses.paymentSoon }}</div>{% endif %}
+      <p class="c-text" style="margin:20px 0;">{{ t.courses.next }}</p>
+      <a class="c-btn" href="{% url 'quiz:intro' %}">{{ t.courses.takeTest }}</a>
+    </div>
+    <aside class="c-side"><div class="c-panel c-summary">
+      <h2>{{ t.courses.summary }}</h2>
+      <dl>
+        {% if course %}<div><dt>{{ t.courses.course }}</dt><dd>{{ course.title }}</dd></div>{% endif %}
+        <div><dt>{{ t.courses.type }}</dt><dd>{% if req.mode == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</dd></div>
+      </dl>
+      {% if req.price %}<div class="c-total"><span>{{ t.courses.price }}</span><strong>{{ req.price }} {{ t.courses.currency }}</strong></div>{% endif %}
+    </div></aside>
+  </div>
 </div>
 {% endblock %}

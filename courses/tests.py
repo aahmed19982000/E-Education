@@ -373,7 +373,7 @@ class AudienceAndModeTests(TestCase):
     def test_detail_shows_only_offered_modes(self):
         resp = self.client.get(reverse("courses:detail", args=[self.teachers.slug]))
         self.assertContains(resp, "900")
-        self.assertNotContains(resp, "خصوصي")
+        self.assertContains(resp, 'class="c-plan"', count=1)  # group only; private is not offered
 
     def test_dashboard_requires_at_least_one_mode(self):
         admin = User.objects.create_superuser("adm", "adm@x.com", "pw")

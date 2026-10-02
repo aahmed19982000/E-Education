@@ -1,0 +1,129 @@
+/* Courses area: catalog, course page, apply, checkout, student area. Uses the site tokens from site.css. */
+.c-wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+
+/* ---- header band ---- */
+.c-hero { background: linear-gradient(135deg, var(--primary) 0%, #1d3a82 100%); color: #fff; padding: 56px 0 72px; position: relative; overflow: hidden; }
+.c-hero::after { content: ""; position: absolute; inset-inline-end: -80px; top: -80px; width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle, rgba(217,164,41,.35), transparent 70%); }
+.c-hero .c-wrap { position: relative; z-index: 1; }
+.c-eyebrow { color: var(--accent); font-weight: 800; font-size: 13px; letter-spacing: 1px; margin-bottom: 10px; }
+.c-hero h1 { font-size: 40px; line-height: 1.25; font-weight: 800; margin: 0 0 12px; color: #fff; }
+.c-hero p { font-size: 17px; line-height: 1.8; color: rgba(255,255,255,.82); max-width: 640px; margin: 0; }
+.c-crumbs { font-size: 13px; margin-bottom: 18px; color: rgba(255,255,255,.7); }
+.c-crumbs a { color: rgba(255,255,255,.9); }
+.c-body { margin-top: -36px; padding-bottom: 72px; position: relative; z-index: 2; }
+
+/* ---- filters ---- */
+.c-filters { display: inline-flex; gap: 6px; background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 6px; box-shadow: 0 6px 20px rgba(20,39,91,.08); margin-bottom: 28px; }
+.c-filters a { padding: 8px 20px; border-radius: 999px; font-weight: 700; font-size: 14px; color: var(--muted); }
+.c-filters a.active { background: var(--primary); color: #fff; }
+
+/* ---- cards ---- */
+.c-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+.c-card { background: #fff; border: 1px solid var(--border); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; color: inherit; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+.c-card:hover { transform: translateY(-4px); box-shadow: 0 14px 34px rgba(20,39,91,.12); border-color: var(--accent); color: inherit; }
+.c-card-top { height: 8px; background: var(--primary); }
+.c-card.is-teachers .c-card-top { background: var(--accent); }
+.c-card-body { padding: 24px; display: flex; flex-direction: column; gap: 14px; flex: 1; }
+.c-card h3 { font-size: 20px; font-weight: 800; color: var(--primary); margin: 0; line-height: 1.4; }
+.c-card p { color: var(--muted); font-size: 14.5px; line-height: 1.8; margin: 0; flex: 1; }
+.c-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 16px; border-top: 1px solid var(--border); }
+.c-price { font-size: 13px; color: var(--muted); }
+.c-price strong { display: block; font-size: 20px; color: var(--primary); font-weight: 800; }
+.c-more { font-weight: 800; font-size: 14px; color: var(--primary); }
+.c-more::after { content: " ‹"; }
+[dir="ltr"] .c-more::after { content: " ›"; }
+
+.c-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.c-badge { font-size: 12.5px; font-weight: 800; padding: 5px 12px; border-radius: 999px; background: var(--cream); border: 1px solid var(--cream-border); color: var(--primary); }
+.c-badge.audience { background: var(--primary); border-color: var(--primary); color: #fff; }
+.c-card.is-teachers .c-badge.audience { background: var(--accent); border-color: var(--accent); color: var(--primary); }
+.c-hero .c-badge { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25); color: #fff; }
+.c-empty { text-align: center; background: #fff; border: 1px dashed var(--cream-border); border-radius: 18px; padding: 56px 24px; color: var(--muted); }
+
+/* ---- course page ---- */
+.c-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 28px; align-items: start; }
+.c-panel { background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 28px; }
+.c-panel + .c-panel { margin-top: 20px; }
+.c-panel h2 { font-size: 20px; font-weight: 800; color: var(--primary); margin: 0 0 16px; }
+.c-text { color: var(--text); font-size: 16px; line-height: 2; margin: 0; }
+.c-steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 18px; counter-reset: s; }
+.c-steps li { display: flex; gap: 14px; align-items: flex-start; counter-increment: s; }
+.c-steps li::before { content: counter(s); flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 800; display: grid; place-items: center; }
+.c-steps b { display: block; color: var(--primary); margin-bottom: 2px; }
+.c-steps span { color: var(--muted); font-size: 14.5px; line-height: 1.7; }
+
+.c-side { position: sticky; top: 90px; }
+.c-plans { display: grid; gap: 12px; margin-bottom: 18px; }
+.c-plan { border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; background: var(--bg); }
+.c-plan .name { font-weight: 800; color: var(--primary); }
+.c-plan .hint { font-size: 12.5px; color: var(--muted); }
+.c-plan .amount { font-size: 22px; font-weight: 800; color: var(--primary); text-align: end; }
+.c-plan .amount small { display: block; font-size: 12px; color: var(--muted); font-weight: 600; }
+.c-btn { display: block; width: 100%; text-align: center; border: none; border-radius: 12px; padding: 14px 18px; font-family: inherit; font-weight: 800; font-size: 16px; background: var(--accent); color: var(--primary); cursor: pointer; transition: opacity .2s; }
+.c-btn:hover { opacity: .9; color: var(--primary); }
+.c-btn.primary { background: var(--primary); color: #fff; }
+.c-btn.primary:hover { color: #fff; }
+.c-btn.ghost { background: #fff; border: 1px solid var(--primary); color: var(--primary); }
+.c-note { font-size: 13px; color: var(--muted); line-height: 1.7; margin: 12px 0 0; text-align: center; }
+.c-notice { background: var(--cream); border: 1px solid var(--cream-border); border-radius: 12px; padding: 14px 16px; color: var(--primary); font-size: 14.5px; line-height: 1.8; }
+
+/* ---- session list / timeline ---- */
+.c-timeline { list-style: none; margin: 0; padding: 0; }
+.c-timeline li { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); align-items: center; }
+.c-timeline li:last-child { border-bottom: none; }
+.c-num { flex: none; width: 38px; height: 38px; border-radius: 12px; background: var(--cream); border: 1px solid var(--cream-border); color: var(--primary); font-weight: 800; display: grid; place-items: center; }
+.c-timeline .t { flex: 1; font-weight: 700; color: var(--primary); }
+.c-timeline .d { color: var(--muted); font-size: 13.5px; white-space: nowrap; }
+
+/* ---- forms (apply) ---- */
+.c-form { display: grid; gap: 16px; }
+.c-form label.l { display: block; font-weight: 700; font-size: 14px; color: var(--primary); margin-bottom: 6px; }
+.c-form .field { width: 100%; }
+.c-form .errorlist { list-style: none; padding: 0; margin: 6px 0 0; color: #b00020; font-size: 13px; }
+.c-choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.c-choice label { border: 2px solid var(--border); border-radius: 14px; padding: 14px; cursor: pointer; display: block; font-weight: 800; color: var(--primary); background: #fff; }
+.c-choice label:has(input:checked) { border-color: var(--accent); background: var(--cream); }
+.c-choice input { margin-inline-end: 8px; accent-color: var(--primary); }
+.c-choice small { display: block; font-weight: 600; color: var(--muted); margin-top: 4px; }
+
+/* ---- stepper (apply / checkout) ---- */
+.c-stepper { display: flex; gap: 10px; margin-bottom: 26px; flex-wrap: wrap; }
+.c-stepper span { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: rgba(255,255,255,.6); }
+.c-stepper span::before { content: attr(data-n); width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(255,255,255,.4); display: grid; place-items: center; font-size: 12px; }
+.c-stepper span.on { color: #fff; }
+.c-stepper span.on::before { background: var(--accent); border-color: var(--accent); color: var(--primary); }
+.c-stepper span.done::before { content: "✓"; background: rgba(255,255,255,.2); }
+
+.c-summary dl { margin: 0; display: grid; gap: 12px; }
+.c-summary dt { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.c-summary dd { margin: 2px 0 0; color: var(--primary); font-weight: 800; }
+.c-total { border-top: 1px dashed var(--cream-border); margin-top: 18px; padding-top: 16px; display: flex; justify-content: space-between; align-items: baseline; }
+.c-total strong { font-size: 28px; color: var(--primary); }
+.c-success { text-align: center; padding: 8px 0 4px; }
+.c-success .tick { width: 64px; height: 64px; border-radius: 50%; background: var(--cream); border: 2px solid var(--accent); color: var(--primary); display: grid; place-items: center; font-size: 30px; margin: 0 auto 14px; }
+
+/* ---- my courses / progress ---- */
+.c-progress { background: var(--cream); border-radius: 999px; height: 10px; overflow: hidden; }
+.c-progress i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), #e9bf5a); border-radius: 999px; }
+.c-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 8px; gap: 8px; flex-wrap: wrap; }
+.c-next { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+.c-next b { color: var(--primary); display: block; }
+
+/* ---- lesson ---- */
+.c-join { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; background: linear-gradient(135deg, var(--primary), #1d3a82); color: #fff; border-radius: 18px; padding: 24px 28px; }
+.c-join h2 { color: #fff; margin: 0 0 4px; font-size: 20px; }
+.c-join p { margin: 0; color: rgba(255,255,255,.8); font-size: 14px; }
+.c-join .c-btn { width: auto; padding: 13px 28px; }
+.c-files { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.c-files a { display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; font-weight: 700; color: var(--primary); background: var(--bg); }
+.c-files a:hover { border-color: var(--accent); }
+.c-files a::before { content: "⬇"; color: var(--accent); }
+.c-placement { display: flex; gap: 16px; align-items: center; }
+.c-placement .score { font-size: 32px; font-weight: 800; color: var(--primary); }
+
+@media (max-width: 900px) {
+  .c-layout { grid-template-columns: 1fr; }
+  .c-side { position: static; }
+  .c-hero { padding: 40px 0 60px; }
+  .c-hero h1 { font-size: 30px; }
+}

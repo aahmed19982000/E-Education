@@ -1,34 +1,69 @@
-{% extends "base.html" %}
+{% extends "courses/_base.html" %}
 {% block title %}{{ course.title }} · {{ t.brand }}{% endblock %}
 {% block content %}
-<div class="page-narrow">
-  <h1 style="font-size:34px;font-weight:800;color:var(--primary);">{{ course.title }}</h1>
-  {% if course.description %}<p class="lead">{{ course.description|linebreaksbr }}</p>{% endif %}
-  <ul style="line-height:2;">
-    {% for mode, price in prices.items %}<li><strong>{% if mode == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}:</strong> {% if price %}{{ price }} {{ t.courses.currency }}{% else %}—{% endif %}</li>{% endfor %}
-  </ul>
+<section class="c-hero">
+  <div class="c-wrap">
+    <div class="c-crumbs"><a href="{% url 'courses:list' %}">{{ t.courses.title }}</a> / {{ course.title }}</div>
+    <div class="c-badges" style="margin-bottom:14px;">
+      <span class="c-badge">{% if course.audience == "teachers" %}{{ t.courses.teachers }}{% else %}{{ t.courses.students }}{% endif %}</span>
+      {% for m in course.modes %}<span class="c-badge">{% if m == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</span>{% endfor %}
+    </div>
+    <h1>{{ course.title }}</h1>
+  </div>
+</section>
 
-  <p style="margin:24px 0;">
-    {% if enrolled %}
-      <span class="team-badge">{{ t.courses.enrolled }}</span>
-      <a class="btn btn-primary" href="{% url 'courses:mine' %}">{{ t.courses.goToMine }}</a>
-    {% else %}
-      <a class="btn btn-lg btn-primary" href="{% url 'courses:apply' slug=course.slug %}">{{ t.courses.subscribe }}</a>
-      <br><small style="color:var(--muted);">{{ t.courses.noAccess }}</small>
-    {% endif %}
-  </p>
+<div class="c-wrap c-body">
+  <div class="c-layout">
+    <div>
+      {% if course.description %}
+      <div class="c-panel"><h2>{{ t.courses.details }}</h2><p class="c-text">{{ course.description|linebreaksbr }}</p></div>
+      {% endif %}
 
-  <h2 class="team-section-title">{{ t.courses.sessions }}</h2>
-  {% if enrolled and not placed %}<p>{{ t.courses.waitingPlacement }}</p>{% endif %}
-  {% if lessons %}
-  <ol style="line-height:2;">
-    {% for l in lessons %}
-      <li>
-        {% if enrolled %}<a href="{% url 'courses:lesson' pk=l.pk %}">{{ l.title }}</a>{% else %}{{ l.title }}{% endif %}
-        — {{ l.starts_at|date:"Y-m-d H:i" }}
-      </li>
-    {% endfor %}
-  </ol>
-  {% else %}{% if not enrolled %}<p style="color:var(--muted);">{{ t.courses.timesNote }}</p>{% elif placed %}<p>{{ t.courses.noSessions }}</p>{% endif %}{% endif %}
+      <div class="c-panel">
+        <h2>{{ t.courses.howTitle }}</h2>
+        <ol class="c-steps">
+          {% for step in t.courses.how %}<li><div><b>{{ step.title }}</b><span>{{ step.desc }}</span></div></li>{% endfor %}
+        </ol>
+      </div>
+
+      {% if enrolled %}
+      <div class="c-panel">
+        <h2>{{ t.courses.mySessions }}</h2>
+        {% if not placed %}<div class="c-notice">{{ t.courses.waitingPlacement }}</div>
+        {% elif lessons %}
+        <ul class="c-timeline">
+          {% for l in lessons %}
+          <li><span class="c-num">{{ l.number }}</span>
+            <a class="t" href="{% url 'courses:lesson' pk=l.pk %}">{{ l.title }}</a>
+            <span class="d">{{ l.starts_at|date:"Y-m-d · H:i" }}</span></li>
+          {% endfor %}
+        </ul>
+        {% else %}<p class="c-text">{{ t.courses.noSessions }}</p>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <aside class="c-side">
+      <div class="c-panel">
+        <h2>{{ t.courses.plans }}</h2>
+        <div class="c-plans">
+          {% for mode, price in prices.items %}
+          <div class="c-plan">
+            <div><div class="name">{% if mode == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</div>
+              <div class="hint">{% if mode == "private" %}{{ t.courses.planPrivateHint }}{% else %}{{ t.courses.planGroupHint }}{% endif %}</div></div>
+            <div class="amount">{% if price %}{{ price }}<small>{{ t.courses.currency }}</small>{% else %}—{% endif %}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% if enrolled %}
+          <div class="c-notice" style="margin-bottom:12px;">{{ t.courses.enrolled }}</div>
+          <a class="c-btn primary" href="{% url 'courses:mine' %}">{{ t.courses.goToMine }}</a>
+        {% else %}
+          <a class="c-btn" href="{% url 'courses:apply' slug=course.slug %}">{{ t.courses.subscribe }}</a>
+          <p class="c-note">{{ t.courses.timesNote }}</p>
+        {% endif %}
+      </div>
+    </aside>
+  </div>
 </div>
 {% endblock %}
