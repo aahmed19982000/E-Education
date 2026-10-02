@@ -343,3 +343,9 @@ table.dash-table { width: 100%; border-collapse: collapse; }
 .rq-manage h3 { margin: 0 0 16px; font-size: 17px; color: var(--primary); }
 .rq-enroll { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
 .rq-enroll .field { max-width: 260px; }
+
+/* member categories */
+.dash-group-title { font-size: 16px; font-weight: 800; color: var(--primary); margin: 8px 0 12px; display: flex; align-items: center; gap: 10px; }
+.dash-group-title span { background: var(--cream); border: 1px solid var(--cream-border); border-radius: 999px; padding: 1px 10px; font-size: 12px; }
+.dash-badge.manager { background: #EEE6FA; color: #5b3a9e; }
+.dash-badge.support { background: #E3EEFB; color: #1f5a9e; }

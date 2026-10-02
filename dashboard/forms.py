@@ -368,7 +368,7 @@ class StaffUserCreateForm(StyledFormMixin, forms.Form):
     full_name = forms.CharField(max_length=150, label="الاسم الكامل")
     email = forms.EmailField(label="البريد الإلكتروني")
     password = forms.CharField(widget=forms.PasswordInput, label="كلمة المرور")
-    role = forms.ChoiceField(choices=Profile.ROLE_CHOICES, label="الصلاحية")
+    role = forms.ChoiceField(choices=Profile.ROLE_GROUPS, label="الفئة والصلاحية")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -412,7 +412,7 @@ class StaffUserCreateForm(StyledFormMixin, forms.Form):
 
 
 class StaffUserEditForm(StyledFormMixin, forms.Form):
-    role = forms.ChoiceField(choices=Profile.ROLE_CHOICES, label="الصلاحية")
+    role = forms.ChoiceField(choices=Profile.ROLE_GROUPS, label="الفئة والصلاحية")
     is_active = forms.BooleanField(label="الحساب مفعّل", required=False)
 
     def __init__(self, *args, user=None, **kwargs):

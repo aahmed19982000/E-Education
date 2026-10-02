@@ -21,6 +21,8 @@
       <div class="value">{{ courses_count }}</div>
       <div class="label">الكورسات</div>
     </div>
+  {% endif %}
+  {% if can_view_requests %}
     <a class="dash-stat" href="{% url 'dashboard:requests_list' %}?status=new">
       <div class="value">{{ new_requests_count }}</div>
       <div class="label">طلبات اشتراك جديدة</div>

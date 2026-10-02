@@ -292,3 +292,39 @@ class CategoryManagementTests(TestCase):
         self.assertIn("category", resp.context["form"].errors)
 
 
+
+
+class AdminLevelsTests(TestCase):
+    def make(self, role):
+        user = User.objects.create_user(f"{role}@x.com", f"{role}@x.com", "pass12345!", is_staff=True)
+        user.profile.role = role
+        user.profile.save()
+        return user
+
+    def get(self, user, name):
+        self.client.force_login(user)
+        return self.client.get(reverse(name)).status_code
+
+    def test_manager_manages_members_and_everything(self):
+        manager = self.make("manager")
+        for name in ("dashboard:users_list", "dashboard:requests_list", "dashboard:articles_list", "dashboard:messages_list"):
+            self.assertEqual(self.get(manager, name), 200, name)
+
+    def test_support_sees_requests_and_messages_only(self):
+        support = self.make("support")
+        self.assertEqual(self.get(support, "dashboard:requests_list"), 200)
+        self.assertEqual(self.get(support, "dashboard:messages_list"), 200)
+        self.assertEqual(self.get(support, "dashboard:articles_list"), 403)
+        self.assertEqual(self.get(support, "dashboard:users_list"), 403)
+
+    def test_content_staff_cannot_manage_members(self):
+        self.assertEqual(self.get(self.make("content_staff"), "dashboard:users_list"), 403)
+
+    def test_members_list_is_grouped_into_admins_and_teachers(self):
+        manager = self.make("manager")
+        self.make("teacher")
+        self.client.force_login(manager)
+        resp = self.client.get(reverse("dashboard:users_list"))
+        self.assertEqual([title for title, _ in resp.context["groups"]], ["الإداريون", "المدرّسون"])
+        self.assertEqual(len(resp.context["admins"]), 1)
+        self.assertEqual(len(resp.context["teachers"]), 1)

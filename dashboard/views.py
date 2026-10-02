@@ -9,6 +9,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from accounts.auth_utils import authenticate_by_email
+from accounts.models import Profile
 from articles.models import Article
 from contact_us.models import ContactMessage
 from courses.models import Attendance, Cohort, Course, Enrollment, EnrollmentRequest, Lesson
@@ -23,7 +24,7 @@ from .forms import (
     ArticleForm, AttachmentFormSet, CategoryForm, CohortForm, CourseForm, EnrollForm, LessonForm, RequestForm, SlotFormSet, DashboardLoginForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
 )
 from .permissions import (
-    SECTION_ARTICLES, SECTION_COURSES, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_TEAM, SECTION_USERS,
+    SECTION_ARTICLES, SECTION_COURSES, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_REQUESTS, SECTION_TEAM, SECTION_USERS,
     can_access, get_dashboard_role, role_label,
 )
 
@@ -73,6 +74,8 @@ def base_context(request, active=""):
         "can_view_messages": can_access(role, SECTION_MESSAGES),
         "can_write_courses": can_access(role, SECTION_COURSES, "write"),
         "can_view_courses": can_access(role, SECTION_COURSES),
+        "can_write_requests": can_access(role, SECTION_REQUESTS, "write"),
+        "can_view_requests": can_access(role, SECTION_REQUESTS),
         "can_view_users": can_access(role, SECTION_USERS),
     }
 
@@ -90,7 +93,7 @@ def index(request):
         ctx["messages_count"] = ContactMessage.objects.count()
     if ctx["can_view_courses"]:
         ctx["courses_count"] = Course.objects.count()
-    if ctx["can_view_courses"]:
+    if ctx["can_view_requests"]:
         ctx["new_requests_count"] = EnrollmentRequest.objects.filter(status=EnrollmentRequest.STATUS_NEW).count()
     if ctx["can_view_users"]:
         ctx["users_count"] = User.objects.filter(is_staff=True).count()
@@ -405,7 +408,11 @@ def message_delete(request, pk):
 @section_required(SECTION_USERS)
 def users_list(request):
     ctx = base_context(request, active="users")
-    ctx["staff_users"] = User.objects.filter(is_staff=True).select_related("profile").order_by("-is_superuser", "first_name")
+    staff = User.objects.filter(is_staff=True).select_related("profile").order_by("-is_superuser", "first_name")
+    ctx["admins"] = [u for u in staff if u.is_superuser or u.profile.role != Profile.ROLE_TEACHER]
+    ctx["teachers"] = [u for u in staff if not u.is_superuser and u.profile.role == Profile.ROLE_TEACHER]
+    ctx["staff_total"] = len(staff)
+    ctx["groups"] = [("الإداريون", ctx["admins"]), ("المدرّسون", ctx["teachers"])]
     return render(request, "dashboard/users_list.html", ctx)
 
 
@@ -635,7 +642,7 @@ def attendance_form(request, cohort_pk, pk):
 
 # --- Enrollment requests -----------------------------------------------------
 
-@section_required(SECTION_COURSES)
+@section_required(SECTION_REQUESTS)
 def requests_list(request):
     everything = EnrollmentRequest.objects.all()
     stats = {
@@ -666,10 +673,10 @@ def requests_list(request):
     return render(request, "dashboard/requests_list.html", ctx)
 
 
-@section_required(SECTION_COURSES)
+@section_required(SECTION_REQUESTS)
 def request_detail(request, pk):
     obj = get_object_or_404(EnrollmentRequest.objects.select_related("course", "user"), pk=pk)
-    can_write = can_access(request.dashboard_role, SECTION_COURSES, "write")
+    can_write = can_access(request.dashboard_role, SECTION_REQUESTS, "write")
     form = RequestForm(request.POST or None, instance=obj)
     if request.method == "POST":
         if not can_write:
@@ -684,7 +691,7 @@ def request_detail(request, pk):
     return render(request, "dashboard/request_detail.html", ctx)
 
 
-@section_required(SECTION_COURSES, "write")
+@section_required(SECTION_REQUESTS, "write")
 @require_POST
 def request_enroll(request, pk):
     """Once the teacher and times are agreed, put the student into the course."""

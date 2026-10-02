@@ -42,10 +42,10 @@
         {% endif %}
       </div>
       <div class="dash-form-grid full"><div class="dash-field"><label>{{ form.admin_notes.label }}</label>{{ form.admin_notes }}</div></div>
-      {% if can_write_courses %}<div class="dash-form-actions"><button type="submit" class="btn btn-primary">حفظ</button>
+      {% if can_write_requests %}<div class="dash-form-actions"><button type="submit" class="btn btn-primary">حفظ</button>
         <a class="btn btn-outline" href="{% url 'dashboard:requests_list' %}">رجوع</a></div>{% endif %}
     </form>
-    {% if can_write_courses and can_enroll %}
+    {% if can_write_requests and can_enroll %}
       <form method="post" action="{% url 'dashboard:request_enroll' obj.pk %}" class="rq-enroll">{% csrf_token %}
         <select name="cohort" class="field"><option value="">— بدون مجموعة (تُحدد لاحقًا) —</option>
           {% for c in cohorts %}<option value="{{ c.pk }}">{{ c.name|default:c.get_mode_display }} #{{ c.pk }} — {{ c.teacher.name_ar|default:"بدون مدرس" }}</option>{% endfor %}</select>

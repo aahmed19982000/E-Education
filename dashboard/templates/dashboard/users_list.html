@@ -4,44 +4,38 @@
 
 {% block content %}
 <div class="dash-toolbar">
-  <h2>كل الأعضاء ({{ staff_users|length }})</h2>
+  <h2>كل الأعضاء ({{ staff_total }})</h2>
   <a class="btn btn-primary" href="{% url 'dashboard:user_create' %}">+ إضافة عضو</a>
 </div>
 
-<div class="dash-table-wrap">
+{% for title, members in groups %}
+<div class="dash-group-title">{{ title }} <span>{{ members|length }}</span></div>
+<div class="dash-table-wrap" style="margin-bottom:28px;">
+  {% if members %}
   <table class="dash-table">
     <thead>
-      <tr>
-        <th>الاسم</th><th>البريد الإلكتروني</th><th>الصلاحية</th><th>الحالة</th><th></th>
-      </tr>
+      <tr><th>الاسم</th><th>البريد الإلكتروني</th><th>الصلاحية</th><th>الحالة</th><th></th></tr>
     </thead>
     <tbody>
-      {% for u in staff_users %}
+      {% for u in members %}
       <tr>
         <td>{{ u.get_full_name|default:"—" }}</td>
         <td>{{ u.email }}</td>
         <td>
-          {% if u.is_superuser %}
-            <span class="dash-badge super">مدير عام</span>
-          {% elif u.profile.role == "content_staff" %}
-            <span class="dash-badge content_staff">موظف محتوى</span>
-          {% elif u.profile.role == "teacher" %}
-            <span class="dash-badge teacher">مدرّس</span>
-          {% else %}
-            <span class="dash-badge">—</span>
-          {% endif %}
+          {% if u.is_superuser %}<span class="dash-badge super">مدير عام</span>
+          {% elif u.profile.role == "manager" %}<span class="dash-badge manager">مدير</span>
+          {% elif u.profile.role == "content_staff" %}<span class="dash-badge content_staff">مشرف المحتوى</span>
+          {% elif u.profile.role == "support" %}<span class="dash-badge support">مسؤول خدمة العملاء</span>
+          {% elif u.profile.role == "teacher" %}<span class="dash-badge teacher">مدرّس</span>
+          {% else %}<span class="dash-badge">—</span>{% endif %}
         </td>
-        <td>
-          {% if u.is_active %}مفعّل{% else %}<span class="dash-badge inactive">موقوف</span>{% endif %}
-        </td>
-        <td>
-          {% if not u.is_superuser %}
-            <a href="{% url 'dashboard:user_edit' u.pk %}">تعديل</a>
-          {% endif %}
-        </td>
+        <td>{% if u.is_active %}مفعّل{% else %}<span class="dash-badge inactive">موقوف</span>{% endif %}</td>
+        <td>{% if not u.is_superuser %}<a href="{% url 'dashboard:user_edit' u.pk %}">تعديل</a>{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  {% else %}<div class="dash-empty">لا يوجد أعضاء في هذه الفئة.</div>{% endif %}
 </div>
+{% endfor %}
 {% endblock %}
