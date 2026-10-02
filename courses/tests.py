@@ -450,3 +450,30 @@ class ArabicSlugTests(TestCase):
 
     def test_reserved_words_are_not_used_as_slugs(self):
         self.assertNotEqual(make_course(title_ar="mine", title_en="").slug, "mine")
+
+
+class WorkshopBookingTests(TestCase):
+    def test_booking_lands_in_requests_marked_as_teacher(self):
+        resp = self.client.post(reverse("core:teachers"), {"full_name": "Mona", "email": "m@x.com", "phone": "0100"})
+        self.assertContains(resp, "تم استلام طلب الحجز")
+        req = EnrollmentRequest.objects.get()
+        self.assertEqual(req.kind, EnrollmentRequest.KIND_TEACHER)
+        self.assertIsNone(req.course)
+
+    def test_phone_is_required(self):
+        resp = self.client.post(reverse("core:teachers"), {"full_name": "Mona", "email": "m@x.com"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(EnrollmentRequest.objects.exists())
+
+    def test_dashboard_lists_and_filters_by_kind(self):
+        admin = User.objects.create_superuser("adm2", "adm2@x.com", "pw")
+        EnrollmentRequest.objects.create(full_name="Teacher T", email="t@x.com", phone="1", kind=EnrollmentRequest.KIND_TEACHER)
+        EnrollmentRequest.objects.create(full_name="Student S", email="s@x.com", phone="2")
+        self.client.force_login(admin)
+        url = reverse("dashboard:requests_list")
+        resp = self.client.get(url + "?kind=teacher")
+        self.assertContains(resp, "Teacher T")
+        self.assertNotContains(resp, "Student S")
+        self.assertContains(self.client.get(url + "?q=Student"), "Student S")
+        detail = self.client.get(reverse("dashboard:request_detail", args=[EnrollmentRequest.objects.get(full_name="Teacher T").pk]))
+        self.assertContains(detail, "ورشة المدرّسين")

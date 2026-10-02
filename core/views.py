@@ -2,6 +2,7 @@ from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from articles.models import Article
+from courses.forms import WorkshopBookingForm
 
 
 def home(request):
@@ -15,7 +16,16 @@ def about(request):
 
 
 def teachers(request):
-    return render(request, "core/teachers.html")
+    submitted = False
+    if request.method == "POST":
+        form = WorkshopBookingForm(request.POST)
+        if form.is_valid():
+            form.save()
+            submitted = True
+            form = WorkshopBookingForm()
+    else:
+        form = WorkshopBookingForm()
+    return render(request, "core/teachers.html", {"form": form, "submitted": submitted})
 
 
 def set_language(request, lang_code):

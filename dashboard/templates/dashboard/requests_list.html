@@ -2,9 +2,22 @@
 {% block title %}طلبات الاشتراك{% endblock %}
 {% block page_title %}طلبات الاشتراك{% endblock %}
 {% block content %}
-<form method="get" class="dash-toolbar">
-  <h2>{{ requests|length }} طلب</h2>
-  <div style="display:flex;gap:8px;">
+<div class="rq-stats">
+  <a class="rq-stat" href="?"><span class="n">{{ stats.total }}</span><span class="l">كل الطلبات</span></a>
+  <a class="rq-stat is-new" href="?status=new"><span class="n">{{ stats.new }}</span><span class="l">طلبات جديدة</span></a>
+  <a class="rq-stat is-teacher" href="?kind=teacher"><span class="n">{{ stats.teachers }}</span><span class="l">من مدرّسين</span></a>
+  <a class="rq-stat is-unpaid" href="?kind=student&paid=unpaid"><span class="n">{{ stats.unpaid }}</span><span class="l">طلاب لم يدفعوا</span></a>
+</div>
+
+<form method="get" class="rq-filters">
+  <div class="rq-tabs">
+    <a href="?{% if q %}q={{ q|urlencode }}{% endif %}" class="{% if not kind %}active{% endif %}">الكل</a>
+    <a href="?kind=student{% if q %}&q={{ q|urlencode }}{% endif %}" class="{% if kind == 'student' %}active{% endif %}">طلاب</a>
+    <a href="?kind=teacher{% if q %}&q={{ q|urlencode }}{% endif %}" class="{% if kind == 'teacher' %}active{% endif %}">مدرّسون</a>
+  </div>
+  <div class="rq-controls">
+    {% if kind %}<input type="hidden" name="kind" value="{{ kind }}">{% endif %}
+    <input type="search" name="q" value="{{ q }}" class="field" placeholder="ابحث بالاسم أو الهاتف أو البريد">
     <select name="status" class="field" onchange="this.form.submit()">
       <option value="">كل الحالات</option>
       {% for v, l in status_choices %}<option value="{{ v }}" {% if v == status %}selected{% endif %}>{{ l }}</option>{% endfor %}
@@ -13,23 +26,45 @@
       <option value="">الدفع: الكل</option>
       {% for v, l in payment_choices %}<option value="{{ v }}" {% if v == paid %}selected{% endif %}>{{ l }}</option>{% endfor %}
     </select>
+    <button type="submit" class="btn btn-primary">بحث</button>
+    {% if q or status or paid or kind %}<a class="btn btn-outline" href="?">مسح</a>{% endif %}
   </div>
 </form>
+
 <div class="dash-table-wrap">
   {% if requests %}
-  <table class="dash-table">
-    <thead><tr><th>الاسم</th><th>الهاتف</th><th>الكورس</th><th>النوع</th><th>الدفع</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+  <table class="dash-table rq-table">
+    <thead><tr><th>مقدّم الطلب</th><th>الطلب</th><th>الدفع</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
     <tbody>
     {% for r in requests %}
-      <tr>
-        <td>{{ r.full_name }}</td><td>{{ r.phone }}</td><td class="wrap">{{ r.course.title_ar|default:"—" }}</td>
-        <td>{{ r.get_mode_display }}</td><td>{{ r.get_payment_status_display }}</td><td>{{ r.get_status_display }}</td>
-        <td>{{ r.created_at|date:"Y-m-d H:i" }}</td>
-        <td><div class="dash-table-actions"><a href="{% url 'dashboard:request_detail' r.pk %}">فتح</a></div></td>
+      <tr class="{% if r.status == 'new' %}is-new{% endif %}">
+        <td>
+          <div class="rq-person">
+            <span class="rq-avatar {{ r.kind }}">{{ r.full_name|slice:":1" }}</span>
+            <div>
+              <div class="rq-name">{{ r.full_name }}</div>
+              <div class="rq-sub"><a href="tel:{{ r.phone }}">{{ r.phone }}</a></div>
+            </div>
+          </div>
+        </td>
+        <td class="wrap">
+          <span class="rq-kind {{ r.kind }}">{{ r.get_kind_display }}</span>
+          {% if r.kind == 'teacher' %}
+            <div class="rq-sub">ورشة المدرّسين</div>
+          {% else %}
+            <div class="rq-course">{{ r.course.title_ar|default:"—" }}</div>
+            <div class="rq-sub">{{ r.get_mode_display }}</div>
+          {% endif %}
+        </td>
+        <td>{% if r.kind == 'teacher' %}<span class="rq-muted">—</span>{% else %}<span class="rq-pill pay-{{ r.payment_status }}">{{ r.get_payment_status_display }}</span>{% endif %}</td>
+        <td><span class="rq-pill st-{{ r.status }}">{{ r.get_status_display }}</span></td>
+        <td class="rq-date">{{ r.created_at|date:"Y-m-d" }}<div class="rq-sub">{{ r.created_at|date:"H:i" }}</div></td>
+        <td><div class="dash-table-actions"><a class="rq-open" href="{% url 'dashboard:request_detail' r.pk %}">فتح</a></div></td>
       </tr>
     {% endfor %}
     </tbody>
   </table>
-  {% else %}<div class="dash-empty">لا توجد طلبات.</div>{% endif %}
+  <div class="rq-foot">{{ requests|length }} طلب</div>
+  {% else %}<div class="dash-empty">لا توجد طلبات مطابقة.</div>{% endif %}
 </div>
 {% endblock %}

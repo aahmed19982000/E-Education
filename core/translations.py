@@ -82,7 +82,10 @@ AR = {
     "teachers": {
         "title": "ورشة المدرسين: من المحلي إلى الدولي",
         "intro": "ورشة متخصصة لمدرسي اللغة الإنجليزية الراغبين في الانتقال من مدارس محلية إلى مدارس دولية (IB، بريطاني، أمريكي). تغطي الورشة المناهج الدولية، أساليب التدريس التفاعلي، ومهارات التقديم للوظائف الدولية.",
-        "cta": "سجّل اهتمامك بالورشة",
+        "cta": "احجز مكانك في الورشة",
+        "bookTitle": "احجز مكانك في الورشة", "bookDesc": "اترك بياناتك وسيتواصل معك فريقنا لتأكيد الحجز والموعد.",
+        "bookNotes": "ملاحظات (اختياري)", "bookSubmit": "إرسال طلب الحجز",
+        "bookSuccessTitle": "تم استلام طلب الحجز", "bookSuccessDesc": "سيتواصل معك فريقنا في أقرب وقت لتأكيد الحجز.",
         "details": [
             {"label": "المدة", "value": "6 أسابيع"},
             {"label": "الصيغة", "value": "جلسات أونلاين مباشرة، مرتين أسبوعيًا"},
@@ -122,7 +125,7 @@ AR = {
         "back": "‹ رجوع لفريق العمل", "specialties": "التخصصات", "about": "نبذة تعريفية", "reviews": "آراء الطلاب", "reviewsCount": "تقييم", "empty": "لا يوجد أعضاء بعد.",
     },
     "contact": {
-        "title": "تواصل معنا", "subtitle": "هل عندك سؤال عن المستويات أو ورشة المدرسين؟ راسلنا.",
+        "title": "تواصل معنا", "subtitle": "هل عندك سؤال عن الكورسات أو ورشة المدرسين؟ راسلنا.",
         "name": "الاسم", "email": "البريد الإلكتروني", "phone": "رقم الهاتف", "message": "رسالتك", "submit": "إرسال الرسالة",
         "successTitle": "تم إرسال رسالتك", "successDesc": "سيتواصل معك فريقنا في أقرب وقت ممكن.",
         "info": [{"label": "الهاتف", "value": "01000 000 000"}, {"label": "البريد الإلكتروني", "value": "info@e-education.academy"}, {"label": "مواعيد العمل", "value": "يوميًا من 10ص حتى 10م"}],
@@ -215,7 +218,10 @@ EN = {
     "teachers": {
         "title": "Teacher Track: Local to International",
         "intro": "A dedicated workshop for English teachers moving from local schools to international ones (IB, British, American). It covers international curricula, interactive teaching methods, and international job application skills.",
-        "cta": "Register your interest",
+        "cta": "Book your seat",
+        "bookTitle": "Book your seat in the workshop", "bookDesc": "Leave your details and our team will contact you to confirm the booking and date.",
+        "bookNotes": "Notes (optional)", "bookSubmit": "Send booking request",
+        "bookSuccessTitle": "Booking request received", "bookSuccessDesc": "Our team will contact you shortly to confirm your booking.",
         "details": [
             {"label": "Duration", "value": "6 weeks"},
             {"label": "Format", "value": "Live online sessions, twice a week"},
@@ -255,7 +261,7 @@ EN = {
         "back": "‹ Back to team", "specialties": "Specialties", "about": "About", "reviews": "Student reviews", "reviewsCount": "reviews", "empty": "No team members yet.",
     },
     "contact": {
-        "title": "Contact us", "subtitle": "Have a question about levels or the teacher workshop? Reach out.",
+        "title": "Contact us", "subtitle": "Have a question about the courses or the teacher workshop? Reach out.",
         "name": "Name", "email": "Email", "phone": "Phone number", "message": "Your message", "submit": "Send message",
         "successTitle": "Message sent", "successDesc": "Our team will get back to you shortly.",
         "info": [{"label": "Phone", "value": "01000 000 000"}, {"label": "Email", "value": "info@e-education.academy"}, {"label": "Hours", "value": "Daily, 10am–10pm"}],

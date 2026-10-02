@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
+from django.db import models
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -636,15 +637,30 @@ def attendance_form(request, cohort_pk, pk):
 
 @section_required(SECTION_COURSES)
 def requests_list(request):
-    qs = EnrollmentRequest.objects.select_related("course")
+    everything = EnrollmentRequest.objects.all()
+    stats = {
+        "total": everything.count(),
+        "new": everything.filter(status=EnrollmentRequest.STATUS_NEW).count(),
+        "teachers": everything.filter(kind=EnrollmentRequest.KIND_TEACHER).count(),
+        "unpaid": everything.filter(kind=EnrollmentRequest.KIND_STUDENT,
+                                    payment_status=EnrollmentRequest.PAYMENT_UNPAID).count(),
+    }
+    qs = everything.select_related("course")
+    kind = request.GET.get("kind", "")
+    if kind in dict(EnrollmentRequest.KIND_CHOICES):
+        qs = qs.filter(kind=kind)
     status = request.GET.get("status", "")
     if status in dict(EnrollmentRequest.STATUS_CHOICES):
         qs = qs.filter(status=status)
     paid = request.GET.get("paid", "")
     if paid in dict(EnrollmentRequest.PAYMENT_CHOICES):
         qs = qs.filter(payment_status=paid)
+    q = request.GET.get("q", "").strip()
+    if q:
+        qs = qs.filter(models.Q(full_name__icontains=q) | models.Q(phone__icontains=q) | models.Q(email__icontains=q))
     ctx = base_context(request, active="requests")
-    ctx.update({"requests": qs, "status": status, "paid": paid,
+    ctx.update({"requests": qs, "kind": kind, "status": status, "paid": paid, "q": q, "stats": stats,
+                "kind_choices": EnrollmentRequest.KIND_CHOICES,
                 "status_choices": EnrollmentRequest.STATUS_CHOICES,
                 "payment_choices": EnrollmentRequest.PAYMENT_CHOICES})
     return render(request, "dashboard/requests_list.html", ctx)

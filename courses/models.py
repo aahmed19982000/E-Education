@@ -296,6 +296,12 @@ class EnrollmentRequest(models.Model):
     PAYMENT_PAID = "paid"
     PAYMENT_CHOICES = [(PAYMENT_UNPAID, "لم يدفع"), (PAYMENT_PAID, "دفع")]
 
+    KIND_STUDENT = "student"
+    KIND_TEACHER = "teacher"
+    KIND_CHOICES = [(KIND_STUDENT, "طالب"), (KIND_TEACHER, "مدرّس")]
+
+    # A teacher request is a booking for the teachers' workshop: it has no course.
+    kind = models.CharField(max_length=10, choices=KIND_CHOICES, default=KIND_STUDENT)
     course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, related_name="requests")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
                              related_name="enrollment_requests")

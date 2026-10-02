@@ -284,3 +284,62 @@ table.dash-table { width: 100%; border-collapse: collapse; }
 .tm-photo-preview { width: 88px; height: 88px; border-radius: 50%; overflow: hidden; background: var(--cream); border: 1px solid var(--cream-border); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); flex-shrink: 0; }
 .tm-photo-preview img { width: 100%; height: 100%; object-fit: cover; }
 .tm-actions { position: sticky; bottom: 0; background: var(--bg); padding: 14px 0; margin-top: 0; }
+
+/* ---- enrollment requests ---- */
+.rq-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 22px; }
+.rq-stat { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 2px; color: inherit; border-inline-start: 4px solid var(--primary); transition: box-shadow .2s; }
+.rq-stat:hover { box-shadow: 0 8px 22px rgba(20,39,91,.1); color: inherit; }
+.rq-stat .n { font-size: 28px; font-weight: 800; color: var(--primary); line-height: 1.2; }
+.rq-stat .l { font-size: 13px; color: var(--muted); }
+.rq-stat.is-new { border-inline-start-color: #d9a429; }
+.rq-stat.is-teacher { border-inline-start-color: #1c7a4a; }
+.rq-stat.is-unpaid { border-inline-start-color: #b00020; }
+
+.rq-filters { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.rq-tabs { display: inline-flex; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 4px; }
+.rq-tabs a { padding: 7px 18px; border-radius: 999px; font-size: 13.5px; font-weight: 700; color: var(--muted); }
+.rq-tabs a.active { background: var(--primary); color: #fff; }
+.rq-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.rq-controls .field { width: auto; min-width: 150px; }
+.rq-controls input[type=search] { min-width: 240px; }
+
+.rq-table tr.is-new td:first-child { box-shadow: inset 3px 0 0 #d9a429; }
+[dir="rtl"] .rq-table tr.is-new td:first-child { box-shadow: inset -3px 0 0 #d9a429; }
+.rq-table tbody tr:hover { background: #fafbfe; }
+.rq-person { display: flex; align-items: center; gap: 12px; }
+.rq-avatar { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 15px; background: #E7EAF5; color: var(--primary); }
+.rq-avatar.teacher { background: #E2F3EA; color: #1c7a4a; }
+.rq-avatar.lg { width: 56px; height: 56px; font-size: 22px; }
+.rq-name { font-weight: 800; color: var(--primary); }
+.rq-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.rq-sub a { color: var(--muted); }
+.rq-course { font-weight: 700; margin-top: 4px; }
+.rq-muted { color: var(--muted); }
+.rq-date { color: var(--muted); }
+.rq-open { font-weight: 800; }
+.rq-foot { padding: 12px 16px; font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--border); background: var(--cream); }
+
+.rq-kind { display: inline-block; padding: 3px 11px; border-radius: 6px; font-size: 11.5px; font-weight: 800; background: #E7EAF5; color: var(--primary); }
+.rq-kind.teacher { background: #1c7a4a; color: #fff; }
+.rq-pill { display: inline-block; padding: 3px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: #eee; color: #555; }
+.rq-pill.st-new { background: #FBF0DC; color: #8a6a1c; }
+.rq-pill.st-contacted { background: #E3EEFB; color: #1f5a9e; }
+.rq-pill.st-teacher_assigned { background: #EEE6FA; color: #5b3a9e; }
+.rq-pill.st-enrolled { background: #E2F3EA; color: #1c7a4a; }
+.rq-pill.st-closed { background: #ECECEC; color: #777; }
+.rq-pill.pay-paid { background: #E2F3EA; color: #1c7a4a; }
+.rq-pill.pay-unpaid { background: #F5E4E4; color: #a33333; }
+
+.rq-detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .rq-detail { grid-template-columns: 1fr; } .rq-controls input[type=search] { min-width: 0; flex: 1; } }
+.rq-info-head { display: flex; gap: 16px; align-items: center; margin-bottom: 18px; }
+.rq-info-head h2 { margin: 0 0 8px; font-size: 20px; color: var(--primary); }
+.rq-facts { margin: 0; display: grid; gap: 0; }
+.rq-facts > div { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.rq-facts dt { color: var(--muted); }
+.rq-facts dd { margin: 0; font-weight: 700; text-align: end; }
+.rq-note { margin-top: 16px; background: var(--cream); border: 1px solid var(--cream-border); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.8; }
+.rq-note b { display: block; color: var(--primary); margin-bottom: 4px; }
+.rq-manage h3 { margin: 0 0 16px; font-size: 17px; color: var(--primary); }
+.rq-enroll { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
+.rq-enroll .field { max-width: 260px; }

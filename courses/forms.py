@@ -22,3 +22,18 @@ class ApplyForm(forms.ModelForm):
         for field in self.fields.values():
             if not isinstance(field.widget, forms.RadioSelect):
                 field.widget.attrs["class"] = "field"
+
+
+class WorkshopBookingForm(forms.ModelForm):
+    """Teachers' workshop booking; lands in the same admin requests list, marked as from a teacher."""
+
+    class Meta:
+        model = EnrollmentRequest
+        fields = ["full_name", "email", "phone", "notes"]
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.kind = EnrollmentRequest.KIND_TEACHER
+        if commit:
+            obj.save()
+        return obj

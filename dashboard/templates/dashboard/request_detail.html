@@ -1,32 +1,55 @@
 {% extends "dashboard/base.html" %}
 {% block title %}طلب {{ obj.full_name }}{% endblock %}
-{% block page_title %}طلب اشتراك: {{ obj.full_name }}{% endblock %}
+{% block page_title %}{% if obj.kind == 'teacher' %}حجز ورشة المدرّسين{% else %}طلب اشتراك{% endif %}: {{ obj.full_name }}{% endblock %}
 {% block content %}
-<div class="dash-card" style="margin-bottom:18px;">
-  <p><strong>الكورس:</strong> {{ obj.course.title_ar|default:"—" }} — {{ obj.get_mode_display }}{% if obj.price %} — {{ obj.price }} ج.م{% endif %}</p>
-  <p><strong>الهاتف:</strong> <a href="tel:{{ obj.phone }}">{{ obj.phone }}</a> · <strong>البريد:</strong> <a href="mailto:{{ obj.email }}">{{ obj.email }}</a></p>
-  <p><strong>الحساب:</strong> {% if obj.user %}مسجّل ({{ obj.user.email }}){% else %}لم ينشئ حسابًا (لم يكمل الدفع){% endif %}</p>
-  {% if obj.preferred_times %}<p><strong>المواعيد المناسبة له:</strong> {{ obj.preferred_times|linebreaksbr }}</p>{% endif %}
-  {% if obj.notes %}<p><strong>ملاحظاته:</strong> {{ obj.notes|linebreaksbr }}</p>{% endif %}
-  <p><strong>وصل في:</strong> {{ obj.created_at|date:"Y-m-d H:i" }}</p>
-</div>
-<div class="dash-card">
-  <form method="post">
-    {% csrf_token %}
-    <div class="dash-form-grid">
-      <div class="dash-field"><label>{{ form.status.label }}</label>{{ form.status }}</div>
-      <div class="dash-field"><label>{{ form.payment_status.label }}</label>{{ form.payment_status }}</div>
-      <div class="dash-field"><label>{{ form.assigned_teacher.label }}</label>{{ form.assigned_teacher }}</div>
+<div class="rq-detail">
+  <div class="dash-card rq-info">
+    <div class="rq-info-head">
+      <span class="rq-avatar lg {{ obj.kind }}">{{ obj.full_name|slice:":1" }}</span>
+      <div>
+        <h2>{{ obj.full_name }}</h2>
+        <div><span class="rq-kind {{ obj.kind }}">{{ obj.get_kind_display }}</span>
+          <span class="rq-pill st-{{ obj.status }}">{{ obj.get_status_display }}</span></div>
+      </div>
     </div>
-    <div class="dash-form-grid full"><div class="dash-field"><label>{{ form.admin_notes.label }}</label>{{ form.admin_notes }}</div></div>
-    {% if can_write_courses %}<div class="dash-form-actions"><button type="submit" class="btn btn-primary">حفظ</button>
-      <a class="btn btn-outline" href="{% url 'dashboard:requests_list' %}">رجوع</a></div>{% endif %}
-  </form>
-  {% if can_write_courses and can_enroll %}
-    <form method="post" action="{% url 'dashboard:request_enroll' obj.pk %}" style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">{% csrf_token %}
-      <select name="cohort" class="field" style="max-width:260px;"><option value="">— بدون مجموعة (تُحدد لاحقًا) —</option>
-        {% for c in cohorts %}<option value="{{ c.pk }}">{{ c.name|default:c.get_mode_display }} #{{ c.pk }} — {{ c.teacher.name_ar|default:"بدون مدرس" }}</option>{% endfor %}</select>
-      <button type="submit" class="btn btn-accent">{% if enrolled %}إعادة تفعيل التسجيل في الكورس{% else %}تسجيل الطالب في الكورس{% endif %}</button></form>
-  {% endif %}
+    <dl class="rq-facts">
+      <div><dt>الهاتف</dt><dd><a href="tel:{{ obj.phone }}">{{ obj.phone }}</a></dd></div>
+      <div><dt>البريد</dt><dd><a href="mailto:{{ obj.email }}">{{ obj.email }}</a></dd></div>
+      {% if obj.kind == 'teacher' %}
+        <div><dt>الطلب</dt><dd>حجز مكان في ورشة المدرّسين</dd></div>
+      {% else %}
+        <div><dt>الكورس</dt><dd>{{ obj.course.title_ar|default:"—" }}</dd></div>
+        <div><dt>النظام</dt><dd>{{ obj.get_mode_display }}{% if obj.price %} — {{ obj.price }} ج.م{% endif %}</dd></div>
+        <div><dt>الدفع</dt><dd><span class="rq-pill pay-{{ obj.payment_status }}">{{ obj.get_payment_status_display }}</span></dd></div>
+        <div><dt>الحساب</dt><dd>{% if obj.user %}مسجّل ({{ obj.user.email }}){% else %}لم ينشئ حسابًا (لم يكمل الدفع){% endif %}</dd></div>
+      {% endif %}
+      <div><dt>وصل في</dt><dd>{{ obj.created_at|date:"Y-m-d H:i" }}</dd></div>
+    </dl>
+    {% if obj.preferred_times %}<div class="rq-note"><b>المواعيد المناسبة له</b>{{ obj.preferred_times|linebreaksbr }}</div>{% endif %}
+    {% if obj.notes %}<div class="rq-note"><b>ملاحظاته</b>{{ obj.notes|linebreaksbr }}</div>{% endif %}
+  </div>
+
+  <div class="dash-card rq-manage">
+    <h3>متابعة الطلب</h3>
+    <form method="post">
+      {% csrf_token %}
+      <div class="dash-form-grid">
+        <div class="dash-field"><label>{{ form.status.label }}</label>{{ form.status }}</div>
+        {% if obj.kind != 'teacher' %}
+          <div class="dash-field"><label>{{ form.payment_status.label }}</label>{{ form.payment_status }}</div>
+          <div class="dash-field"><label>{{ form.assigned_teacher.label }}</label>{{ form.assigned_teacher }}</div>
+        {% endif %}
+      </div>
+      <div class="dash-form-grid full"><div class="dash-field"><label>{{ form.admin_notes.label }}</label>{{ form.admin_notes }}</div></div>
+      {% if can_write_courses %}<div class="dash-form-actions"><button type="submit" class="btn btn-primary">حفظ</button>
+        <a class="btn btn-outline" href="{% url 'dashboard:requests_list' %}">رجوع</a></div>{% endif %}
+    </form>
+    {% if can_write_courses and can_enroll %}
+      <form method="post" action="{% url 'dashboard:request_enroll' obj.pk %}" class="rq-enroll">{% csrf_token %}
+        <select name="cohort" class="field"><option value="">— بدون مجموعة (تُحدد لاحقًا) —</option>
+          {% for c in cohorts %}<option value="{{ c.pk }}">{{ c.name|default:c.get_mode_display }} #{{ c.pk }} — {{ c.teacher.name_ar|default:"بدون مدرس" }}</option>{% endfor %}</select>
+        <button type="submit" class="btn btn-accent">{% if enrolled %}إعادة تفعيل التسجيل في الكورس{% else %}تسجيل الطالب في الكورس{% endif %}</button></form>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}
