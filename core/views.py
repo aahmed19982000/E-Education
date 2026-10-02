@@ -3,12 +3,16 @@ from django.utils.http import url_has_allowed_host_and_scheme
 
 from articles.models import Article
 from courses.forms import WorkshopBookingForm
+from courses.models import Course
 
 
 def home(request):
     lang = request.lang
     home_articles = [a.localized(lang) for a in Article.objects.all()[:3]]
-    return render(request, "core/home.html", {"home_articles": home_articles})
+    courses = Course.objects.filter(is_published=True, audience=Course.AUDIENCE_STUDENTS)[:3]
+    return render(request, "core/home.html", {
+        "home_articles": home_articles, "home_courses": [c.localized(lang) for c in courses],
+    })
 
 
 def about(request):
