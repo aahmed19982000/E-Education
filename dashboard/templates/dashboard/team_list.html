@@ -22,7 +22,7 @@
     <tbody>
       {% for m in members %}
       <tr>
-        <td class="wrap">{{ m.name_ar }}{% if m.is_owner %} <strong>(المالك والمدير)</strong>{% endif %}</td>
+        <td class="wrap"><a href="{% url 'dashboard:team_profile' m.pk %}"><strong>{{ m.name_ar }}</strong></a>{% if m.is_owner %} <strong>(المالك والمدير)</strong>{% endif %}</td>
         <td>{{ m.role_ar }}</td>
         <td>{% if m.youtube_url %}✓{% else %}—{% endif %}</td>
         <td><a href="{% url 'dashboard:review_list' m.pk %}">{{ m.reviews.count }} · إدارة</a></td>

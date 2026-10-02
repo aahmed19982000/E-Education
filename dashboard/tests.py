@@ -328,3 +328,56 @@ class AdminLevelsTests(TestCase):
         self.assertEqual([title for title, _ in resp.context["groups"]], ["الإداريون", "المدرّسون"])
         self.assertEqual(len(resp.context["admins"]), 1)
         self.assertEqual(len(resp.context["teachers"]), 1)
+
+
+class TeacherProfileTests(TestCase):
+    def setUp(self):
+        import datetime
+        from courses.models import Cohort, CohortSlot, Course, Enrollment
+        from team.models import TeamMember
+        self.admin = User.objects.create_superuser("tp-admin@x.com", "tp-admin@x.com", "pass12345!")
+        self.teacher = TeamMember.objects.create(name_ar="أ. منى", role_ar="مدرسة", specialties_ar="IELTS، محادثة")
+        self.course = Course.objects.create(title_ar="كورس المحادثة", is_published=True)
+        self.cohort = Cohort.objects.create(course=self.course, teacher=self.teacher, name="مجموعة السبت",
+                                            start_date=datetime.date.today(), weeks=2)
+        CohortSlot.objects.create(cohort=self.cohort, weekday=5, start_time=datetime.time(18, 0), duration_minutes=60)
+        self.cohort.generate_lessons()
+        student = User.objects.create_user("stu@x.com", "stu@x.com", "pw", first_name="سارة")
+        Enrollment.objects.create(user=student, course=self.course, cohort=self.cohort)
+        self.url = reverse("dashboard:team_profile", args=[self.teacher.pk])
+        self.client.force_login(self.admin)
+
+    def test_profile_shows_students_cohorts_and_sessions(self):
+        resp = self.client.get(self.url)
+        self.assertContains(resp, "أ. منى")
+        self.assertContains(resp, "سارة")
+        self.assertContains(resp, "مجموعة السبت")
+        self.assertContains(resp, "كورس المحادثة")
+        self.assertEqual(len(resp.context["students"]), 1)
+
+    def test_availability_can_be_saved_and_flags_sessions_outside_it(self):
+        data = {
+            "availability-TOTAL_FORMS": "1", "availability-INITIAL_FORMS": "0",
+            "availability-MIN_NUM_FORMS": "0", "availability-MAX_NUM_FORMS": "1000",
+            "availability-0-weekday": "5", "availability-0-start_time": "09:00", "availability-0-end_time": "12:00",
+        }
+        self.assertEqual(self.client.post(self.url, data).status_code, 302)
+        self.assertEqual(self.teacher.availability.count(), 1)
+        resp = self.client.get(self.url)
+        self.assertTrue(resp.context["has_outside"])  # Saturday 18:00 is outside 09:00-12:00
+
+    def test_end_must_be_after_start(self):
+        data = {
+            "availability-TOTAL_FORMS": "1", "availability-INITIAL_FORMS": "0",
+            "availability-MIN_NUM_FORMS": "0", "availability-MAX_NUM_FORMS": "1000",
+            "availability-0-weekday": "5", "availability-0-start_time": "12:00", "availability-0-end_time": "09:00",
+        }
+        self.assertEqual(self.client.post(self.url, data).status_code, 200)
+        self.assertEqual(self.teacher.availability.count(), 0)
+
+    def test_support_role_cannot_open_profile(self):
+        support = User.objects.create_user("sup@x.com", "sup@x.com", "pass12345!", is_staff=True)
+        support.profile.role = "support"
+        support.profile.save()
+        self.client.force_login(support)
+        self.assertEqual(self.client.get(self.url).status_code, 403)

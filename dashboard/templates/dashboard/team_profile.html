@@ -1,0 +1,120 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ member.name_ar }}{% endblock %}
+{% block page_title %}ملف المدرّس{% endblock %}
+{% block content %}
+<div class="tp-head dash-card">
+  <div class="tp-photo">{% if member.photo %}<img src="{{ member.photo.url }}" alt="">{% else %}<span>{{ member.name_ar|slice:":1" }}</span>{% endif %}</div>
+  <div class="tp-info">
+    <h2>{{ member.name_ar }}{% if member.name_en %} <small>{{ member.name_en }}</small>{% endif %}</h2>
+    <div class="tp-role">{{ member.role_ar }}</div>
+    {% if specialties %}<div class="tp-tags">{% for s in specialties %}<span>{{ s }}</span>{% endfor %}</div>{% endif %}
+    {% if member.bio_ar %}<p class="tp-bio">{{ member.bio_ar|linebreaksbr }}</p>{% endif %}
+  </div>
+  <div class="tp-actions">
+    {% if can_write_team %}<a class="btn btn-outline" href="{% url 'dashboard:team_edit' member.pk %}">تعديل البيانات</a>{% endif %}
+    <a class="btn btn-outline" href="{% url 'dashboard:review_list' member.pk %}">التقييمات</a>
+    <a class="btn btn-outline" href="{% url 'dashboard:team_list' %}">‹ رجوع</a>
+  </div>
+</div>
+
+<div class="rq-stats">
+  <div class="rq-stat"><span class="n">{{ students|length }}</span><span class="l">طلاب نشطون</span></div>
+  <div class="rq-stat is-teacher"><span class="n">{{ cohorts|length }}</span><span class="l">مجموعات</span></div>
+  <div class="rq-stat is-new"><span class="n">{{ upcoming|length }}{% if upcoming|length == 8 %}+{% endif %}</span><span class="l">جلسات قادمة</span></div>
+  <div class="rq-stat"><span class="n">{{ past_count }}</span><span class="l">جلسات منتهية</span></div>
+  <div class="rq-stat is-teacher"><span class="n">{% if rating_avg %}{{ rating_avg }} ★{% else %}—{% endif %}</span><span class="l">{{ rating_n }} تقييم</span></div>
+</div>
+
+<div class="dash-group-title">الجدول الأسبوعي والأوقات المتاحة</div>
+<div class="dash-card">
+  {% if has_outside %}<div class="tp-warn">⚠ بعض الجلسات المجدولة خارج الأوقات المتاحة للمدرّس.</div>{% endif %}
+  <div class="tp-week">
+    {% for d in week %}
+      <div class="tp-day">
+        <div class="tp-day-name">{{ d.label }}</div>
+        {% for w in d.windows %}<div class="tp-win">متاح {{ w.start_time|time:"H:i" }} – {{ w.end_time|time:"H:i" }}</div>{% endfor %}
+        {% for s in d.slots %}
+          <div class="tp-slot {% if s.outside %}outside{% endif %}">{{ s.slot.start_time|time:"H:i" }} – {{ s.end|time:"H:i" }}<small>{{ s.slot.cohort.course.title_ar }}</small></div>
+        {% endfor %}
+        {% if not d.windows and not d.slots %}<div class="tp-none">—</div>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  <div class="tp-legend"><span class="a"></span> أوقات متاحة <span class="b"></span> جلسات مجدولة</div>
+
+  {% if can_write_team %}
+  <form method="post" class="tp-avail">
+    {% csrf_token %}
+    <h4>تعديل الأوقات المتاحة</h4>
+    {{ formset.management_form }}{{ formset.non_form_errors }}
+    {% for f in formset %}
+      <div class="dash-form-grid">
+        {{ f.id }}{{ f.non_field_errors }}
+        <div class="dash-field"><label>{{ f.weekday.label }}</label>{{ f.weekday }}{{ f.weekday.errors }}</div>
+        <div class="dash-field"><label>{{ f.start_time.label }}</label>{{ f.start_time }}{{ f.start_time.errors }}</div>
+        <div class="dash-field"><label>{{ f.end_time.label }}</label>{{ f.end_time }}{{ f.end_time.errors }}</div>
+        {% if f.instance.pk %}<div class="dash-field"><label>حذف</label>{{ f.DELETE }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <p class="tp-hint">اترك الصف الفارغ لتجاهله. لإضافة أكثر من فترة احفظ ثم أضف من جديد.</p>
+    <button type="submit" class="btn btn-primary">حفظ الأوقات</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="dash-group-title">المجموعات <span>{{ cohorts|length }}</span></div>
+<div class="dash-table-wrap" style="margin-bottom:28px;">
+  {% if cohorts %}
+  <table class="dash-table">
+    <thead><tr><th>الكورس</th><th>المجموعة</th><th>النظام</th><th>الطلاب</th><th>المواعيد</th><th>الجلسة القادمة</th></tr></thead>
+    <tbody>
+    {% for c in cohorts %}
+      <tr>
+        <td class="wrap"><a href="{% url 'dashboard:cohorts_list' c.course.pk %}">{{ c.course.title_ar }}</a></td>
+        <td class="wrap">{{ c.name|default:"—" }}</td>
+        <td>{{ c.get_mode_display }}</td>
+        <td>{{ c.students }}</td>
+        <td class="wrap">{% for s in c.slots.all %}{{ s }}{% if not forloop.last %}، {% endif %}{% empty %}—{% endfor %}</td>
+        <td>{% if c.next_lesson %}{{ c.next_lesson.starts_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="dash-empty">لا توجد مجموعات لهذا المدرّس بعد.</div>{% endif %}
+</div>
+
+<div class="dash-group-title">الطلاب <span>{{ students|length }}</span></div>
+<div class="dash-table-wrap" style="margin-bottom:28px;">
+  {% if students %}
+  <table class="dash-table">
+    <thead><tr><th>الطالب</th><th>البريد</th><th>الكورس</th><th>المجموعة</th><th>الحضور</th></tr></thead>
+    <tbody>
+    {% for s in students %}
+      <tr>
+        <td>{{ s.enrollment.user.get_full_name|default:s.enrollment.user.email }}</td>
+        <td>{{ s.enrollment.user.email }}</td>
+        <td class="wrap">{{ s.enrollment.course.title_ar }}</td>
+        <td class="wrap">{{ s.enrollment.cohort.name|default:s.enrollment.cohort.get_mode_display }}</td>
+        <td>{{ s.attended }} / {{ s.total }} <span class="rq-pill {% if s.percent >= 75 %}pay-paid{% else %}st-new{% endif %}">{{ s.percent }}%</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="dash-empty">لا يوجد طلاب مسجلون مع هذا المدرّس بعد.</div>{% endif %}
+</div>
+
+<div class="dash-group-title">الجلسات القادمة</div>
+<div class="dash-table-wrap">
+  {% if upcoming %}
+  <table class="dash-table">
+    <thead><tr><th>#</th><th>الكورس</th><th>المجموعة</th><th>الموعد</th><th>المدة</th></tr></thead>
+    <tbody>
+    {% for l in upcoming %}
+      <tr><td>{{ l.number }}</td><td class="wrap">{{ l.cohort.course.title_ar }}</td><td class="wrap">{{ l.cohort.name|default:l.cohort.get_mode_display }}</td>
+        <td>{{ l.starts_at|date:"Y-m-d H:i" }}</td><td>{{ l.duration_minutes }} د</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="dash-empty">لا توجد جلسات قادمة.</div>{% endif %}
+</div>
+{% endblock %}

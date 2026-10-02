@@ -13,15 +13,18 @@ from accounts.models import Profile
 from articles.models import Article
 from contact_us.models import ContactMessage
 from courses.models import Attendance, Cohort, Course, Enrollment, EnrollmentRequest, Lesson
-from team.models import TeamMember, TeamReview
+from team.models import WEEKDAYS, TeamMember, TeamReview, split_list
 from quiz.grading import format_marks, question_marks
-from django.db.models import Count
+from django.db.models import Avg, Count
+import datetime
+from django.utils import timezone
+from courses.models import CohortSlot
 
 from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
 
 from .decorators import dashboard_required, section_required
 from .forms import (
-    ArticleForm, AttachmentFormSet, CategoryForm, CohortForm, CourseForm, EnrollForm, LessonForm, RequestForm, SlotFormSet, DashboardLoginForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
+    ArticleForm, AttachmentFormSet, CategoryForm, CohortForm, CourseForm, EnrollForm, LessonForm, RequestForm, SlotFormSet, DashboardLoginForm, AvailabilityFormSet, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
 )
 from .permissions import (
     SECTION_ARTICLES, SECTION_COURSES, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_REQUESTS, SECTION_TEAM, SECTION_USERS,
@@ -145,6 +148,62 @@ def team_list(request):
     ctx = base_context(request, active="team")
     ctx["members"] = TeamMember.objects.all()
     return render(request, "dashboard/team_list.html", ctx)
+
+
+@section_required(SECTION_TEAM)
+def team_profile(request, pk):
+    """Everything about one teacher: students, groups, sessions, schedule and availability."""
+    member = get_object_or_404(TeamMember, pk=pk)
+    can_write = can_access(request.dashboard_role, SECTION_TEAM, "write")
+    formset = AvailabilityFormSet(request.POST or None, instance=member)
+    if request.method == "POST":
+        if not can_write:
+            raise PermissionDenied
+        if formset.is_valid():
+            formset.save()
+            messages.success(request, "تم حفظ الأوقات المتاحة.")
+            return redirect("dashboard:team_profile", pk=member.pk)
+
+    now = timezone.now()
+    cohorts = list(member.cohorts.select_related("course").prefetch_related("slots").annotate(
+        students=Count("enrollments", filter=models.Q(enrollments__status=Enrollment.STATUS_ACTIVE), distinct=True)))
+    for cohort in cohorts:
+        cohort.next_lesson = cohort.lessons.filter(starts_at__gte=now).first()
+    enrollments = (Enrollment.objects.filter(cohort__teacher=member, status=Enrollment.STATUS_ACTIVE)
+                   .select_related("user", "course", "cohort"))
+    students = []
+    for enrollment in enrollments:
+        attended, total, percent = enrollment.progress()
+        students.append({"enrollment": enrollment, "attended": attended, "total": total, "percent": percent})
+    lessons = Lesson.objects.filter(cohort__teacher=member).select_related("cohort__course")
+    upcoming = list(lessons.filter(starts_at__gte=now)[:8])
+    past_count = lessons.filter(starts_at__lt=now).count()
+
+    slots = CohortSlot.objects.filter(cohort__teacher=member).select_related("cohort__course")
+    windows = list(member.availability.all())
+    week = []
+    for day, label in WEEKDAYS:
+        day_windows = [w for w in windows if w.weekday == day]
+        day_slots = []
+        for slot in slots:
+            if slot.weekday != day:
+                continue
+            end = (datetime.datetime.combine(datetime.date.today(), slot.start_time)
+                   + datetime.timedelta(minutes=slot.duration_minutes)).time()
+            covered = any(w.start_time <= slot.start_time and end <= w.end_time for w in day_windows)
+            day_slots.append({"slot": slot, "end": end, "outside": bool(windows) and not covered})
+        week.append({"label": label, "windows": day_windows, "slots": day_slots})
+
+    rating = member.reviews.aggregate(avg=Avg("rating"), n=Count("id"))
+    ctx = base_context(request, active="team")
+    ctx.update({
+        "member": member, "formset": formset, "cohorts": cohorts, "students": students,
+        "upcoming": upcoming, "past_count": past_count, "week": week,
+        "rating_avg": round(rating["avg"], 1) if rating["avg"] else None, "rating_n": rating["n"],
+        "has_outside": any(s["outside"] for d in week for s in d["slots"]),
+        "specialties": split_list(member.specialties_ar),
+    })
+    return render(request, "dashboard/team_profile.html", ctx)
 
 
 @section_required(SECTION_TEAM, "write")

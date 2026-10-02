@@ -23,6 +23,12 @@ def split_list(text):
     return [p.strip() for p in re.split(r"[,\n،]", text or "") if p.strip()]
 
 
+WEEKDAYS = [
+    (0, "الاثنين"), (1, "الثلاثاء"), (2, "الأربعاء"), (3, "الخميس"),
+    (4, "الجمعة"), (5, "السبت"), (6, "الأحد"),
+]
+
+
 class TeamMember(models.Model):
     slug = models.SlugField(max_length=255, unique=True, blank=True, allow_unicode=True)
     order = models.PositiveIntegerField(default=0)
@@ -117,3 +123,22 @@ class TeamReview(models.Model):
             "video_id": youtube_id(self.youtube_url),
             "video_url": self.video_file.url if self.video_file else "",
         }
+
+
+class TeacherAvailability(models.Model):
+    """A weekly window in which a teacher can take sessions."""
+
+    member = models.ForeignKey(TeamMember, on_delete=models.CASCADE, related_name="availability")
+    weekday = models.PositiveSmallIntegerField(choices=WEEKDAYS)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    class Meta:
+        ordering = ["weekday", "start_time"]
+
+    def __str__(self):
+        return f"{self.member} {self.get_weekday_display()} {self.start_time:%H:%M}-{self.end_time:%H:%M}"
+
+    def clean(self):
+        if self.start_time and self.end_time and self.end_time <= self.start_time:
+            raise ValidationError({"end_time": "وقت النهاية يجب أن يكون بعد وقت البداية."})

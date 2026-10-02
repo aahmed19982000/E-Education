@@ -8,13 +8,9 @@ from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 
-from team.models import TeamMember
+from team.models import WEEKDAYS, TeamMember
 
 RESERVED_SLUGS = {"mine", "checkout", "lesson", "attachment"}
-WEEKDAYS = [
-    (0, "الاثنين"), (1, "الثلاثاء"), (2, "الأربعاء"), (3, "الخميس"),
-    (4, "الجمعة"), (5, "السبت"), (6, "الأحد"),
-]
 ATTACHMENT_EXTENSIONS = ["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "zip", "png", "jpg", "jpeg", "mp3"]
 
 

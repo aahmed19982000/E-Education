@@ -17,6 +17,7 @@ urlpatterns = [
     path("articles/<int:pk>/delete/", views.article_delete, name="article_delete"),
 
     path("team/", views.team_list, name="team_list"),
+    path("team/<int:pk>/", views.team_profile, name="team_profile"),
     path("team/add/", views.team_form, name="team_create"),
     path("team/<int:pk>/edit/", views.team_form, name="team_edit"),
     path("team/<int:pk>/delete/", views.team_delete, name="team_delete"),

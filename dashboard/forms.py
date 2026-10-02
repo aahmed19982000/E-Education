@@ -6,7 +6,7 @@ from django.db import models
 from accounts.models import Profile
 from articles.models import Article
 from courses.models import Attendance, Cohort, CohortSlot, EnrollmentRequest, Course, Enrollment, Lesson, LessonAttachment
-from team.models import VIDEO_MAX_MB, TeamMember, TeamReview
+from team.models import VIDEO_MAX_MB, TeacherAvailability, TeamMember, TeamReview
 from quiz.audio import AudioDecodeError, compress_audio
 from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
 
@@ -559,3 +559,21 @@ class RequestForm(StyledFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._style_fields()
+
+
+class AvailabilityForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = TeacherAvailability
+        fields = ["weekday", "start_time", "end_time"]
+        widgets = {
+            "start_time": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
+            "end_time": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
+        }
+        labels = {"weekday": "اليوم", "start_time": "من", "end_time": "إلى"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
+
+AvailabilityFormSet = forms.inlineformset_factory(TeamMember, TeacherAvailability, form=AvailabilityForm, extra=2, can_delete=True)
