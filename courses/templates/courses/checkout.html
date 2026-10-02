@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ t.courses.checkoutTitle }} · {{ t.brand }}{% endblock %}
+{% block content %}
+<div class="page-narrow page-center">
+  <h1 style="font-size:30px;font-weight:800;color:var(--primary);">{{ t.courses.received }}</h1>
+  {% if course %}<p class="lead" style="margin-inline:auto;">{{ course.title }} — {% if req.mode == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</p>{% endif %}
+  {% if req.price %}<p><strong>{{ t.courses.price }}:</strong> {{ req.price }} {{ t.courses.currency }}</p>{% endif %}
+
+  {% if req.is_paid %}
+    <p><strong>{{ t.courses.paid }}</strong></p>
+  {% elif payments_enabled %}
+    <p><button type="button" class="btn btn-lg btn-primary" disabled>{{ t.courses.pay }}</button></p>
+  {% else %}
+    <p>{{ t.courses.paymentSoon }}</p>
+  {% endif %}
+
+  <p>{{ t.courses.next }}</p>
+  <a class="btn btn-lg btn-accent" href="{% url 'quiz:intro' %}">{{ t.courses.takeTest }}</a>
+</div>
+{% endblock %}

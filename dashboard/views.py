@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
 from django.http import JsonResponse
@@ -9,6 +10,7 @@ from django.views.decorators.http import require_POST
 from accounts.auth_utils import authenticate_by_email
 from articles.models import Article
 from contact_us.models import ContactMessage
+from courses.models import Attendance, Course, Enrollment, EnrollmentRequest, Lesson
 from levels.models import Level
 from team.models import TeamMember, TeamReview
 from quiz.grading import format_marks, question_marks
@@ -18,10 +20,10 @@ from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Questi
 
 from .decorators import dashboard_required, section_required
 from .forms import (
-    ArticleForm, CategoryForm, DashboardLoginForm, LevelForm, PlacementForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
+    ArticleForm, AttachmentFormSet, CategoryForm, CourseForm, EnrollForm, LessonForm, RequestForm, SlotFormSet, DashboardLoginForm, LevelForm, PlacementForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
 )
 from .permissions import (
-    SECTION_ARTICLES, SECTION_LEVELS, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_TEAM, SECTION_USERS,
+    SECTION_ARTICLES, SECTION_COURSES, SECTION_LEVELS, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_TEAM, SECTION_USERS,
     can_access, get_dashboard_role, role_label,
 )
 
@@ -71,6 +73,8 @@ def base_context(request, active=""):
         "can_view_questions": can_access(role, SECTION_QUESTIONS),
         "can_write_messages": can_access(role, SECTION_MESSAGES, "write"),
         "can_view_messages": can_access(role, SECTION_MESSAGES),
+        "can_write_courses": can_access(role, SECTION_COURSES, "write"),
+        "can_view_courses": can_access(role, SECTION_COURSES),
         "can_view_users": can_access(role, SECTION_USERS),
     }
 
@@ -88,6 +92,10 @@ def index(request):
         ctx["questions_count"] = Question.objects.count()
     if ctx["can_view_messages"]:
         ctx["messages_count"] = ContactMessage.objects.count()
+    if ctx["can_view_courses"]:
+        ctx["courses_count"] = Course.objects.count()
+    if ctx["can_view_courses"]:
+        ctx["new_requests_count"] = EnrollmentRequest.objects.filter(status=EnrollmentRequest.STATUS_NEW).count()
     if ctx["can_view_users"]:
         ctx["users_count"] = User.objects.filter(is_staff=True).count()
     return render(request, "dashboard/index.html", ctx)
@@ -488,3 +496,201 @@ def user_edit(request, pk):
     ctx = base_context(request, active="users")
     ctx.update({"form": form, "target": target, "title": f"تعديل صلاحيات {target.get_full_name() or target.email}"})
     return render(request, "dashboard/user_form.html", ctx)
+
+
+# --- Courses ----------------------------------------------------------------
+
+@section_required(SECTION_COURSES)
+def courses_list(request):
+    ctx = base_context(request, active="courses")
+    ctx["courses"] = Course.objects.select_related("teacher").annotate(
+        lessons_count=Count("lessons", distinct=True), students_count=Count("enrollments", distinct=True),
+    )
+    return render(request, "dashboard/courses_list.html", ctx)
+
+
+@section_required(SECTION_COURSES, "write")
+def course_form(request, pk=None):
+    instance = get_object_or_404(Course, pk=pk) if pk else None
+    form = CourseForm(request.POST or None, instance=instance)
+    slots = SlotFormSet(request.POST or None, instance=instance)
+    if request.method == "POST" and form.is_valid() and slots.is_valid():
+        course = form.save()
+        slots.instance = course
+        slots.save()
+        messages.success(request, "تم حفظ الكورس بنجاح.")
+        return redirect("dashboard:course_edit", pk=course.pk)
+    ctx = base_context(request, active="courses")
+    ctx.update({"form": form, "slots": slots, "instance": instance,
+                "title": "تعديل كورس" if instance else "إضافة كورس"})
+    return render(request, "dashboard/course_form.html", ctx)
+
+
+@section_required(SECTION_COURSES, "write")
+def course_delete(request, pk):
+    instance = get_object_or_404(Course, pk=pk)
+    if request.method == "POST":
+        instance.delete()
+        messages.success(request, "تم حذف الكورس.")
+        return redirect("dashboard:courses_list")
+    ctx = base_context(request, active="courses")
+    ctx.update({"object": instance, "title": f"حذف الكورس {instance.title_ar}", "cancel_url": "dashboard:courses_list"})
+    return render(request, "dashboard/confirm_delete.html", ctx)
+
+
+@section_required(SECTION_COURSES)
+def lessons_list(request, course_pk):
+    course = get_object_or_404(Course, pk=course_pk)
+    ctx = base_context(request, active="courses")
+    ctx.update({"course": course, "lessons": course.lessons.all()})
+    return render(request, "dashboard/lessons_list.html", ctx)
+
+
+@section_required(SECTION_COURSES, "write")
+@require_POST
+def lessons_generate(request, course_pk):
+    course = get_object_or_404(Course, pk=course_pk)
+    if not course.start_date or not course.slots.exists():
+        messages.error(request, "حدد تاريخ البداية وموعدًا أسبوعيًا واحدًا على الأقل أولًا.")
+    else:
+        n = course.generate_lessons()
+        messages.success(request, f"تم توليد {n} جلسة." if n else "كل الجلسات موجودة بالفعل.")
+    return redirect("dashboard:lessons_list", course_pk=course.pk)
+
+
+@section_required(SECTION_COURSES, "write")
+def lesson_form(request, course_pk, pk=None):
+    course = get_object_or_404(Course, pk=course_pk)
+    instance = get_object_or_404(Lesson, pk=pk, course=course) if pk else None
+    form = LessonForm(request.POST or None, instance=instance)
+    files = AttachmentFormSet(request.POST or None, request.FILES or None, instance=instance)
+    if request.method == "POST" and form.is_valid() and files.is_valid():
+        lesson = form.save(commit=False)
+        lesson.course = course
+        lesson.save()
+        files.instance = lesson
+        files.save()
+        course._renumber()
+        messages.success(request, "تم حفظ الجلسة بنجاح.")
+        return redirect("dashboard:lessons_list", course_pk=course.pk)
+    ctx = base_context(request, active="courses")
+    ctx.update({"form": form, "files": files, "course": course, "instance": instance,
+                "title": "تعديل جلسة" if instance else "إضافة جلسة"})
+    return render(request, "dashboard/lesson_form.html", ctx)
+
+
+@section_required(SECTION_COURSES, "write")
+def lesson_delete(request, course_pk, pk):
+    instance = get_object_or_404(Lesson, pk=pk, course_id=course_pk)
+    if request.method == "POST":
+        instance.delete()
+        instance.course._renumber()
+        messages.success(request, "تم حذف الجلسة.")
+        return redirect("dashboard:lessons_list", course_pk=course_pk)
+    ctx = base_context(request, active="courses")
+    ctx.update({"object": instance, "title": f"حذف {instance}", "cancel_url": "dashboard:lessons_list",
+                "cancel_args": [course_pk]})
+    return render(request, "dashboard/confirm_delete.html", ctx)
+
+
+@section_required(SECTION_COURSES)
+def enrollments_list(request, course_pk):
+    course = get_object_or_404(Course, pk=course_pk)
+    can_write = can_access(request.dashboard_role, SECTION_COURSES, "write")
+    form = EnrollForm(request.POST or None, course=course)
+    if request.method == "POST":
+        if not can_write:
+            raise PermissionDenied
+        if form.is_valid():
+            _, created = form.save()
+            messages.success(request, "تم تسجيل الطالب." if created else "الطالب مسجل بالفعل (تم تفعيل اشتراكه).")
+            return redirect("dashboard:enrollments_list", course_pk=course.pk)
+    ctx = base_context(request, active="courses")
+    ctx.update({"course": course, "form": form, "enrollments": course.enrollments.select_related("user")})
+    return render(request, "dashboard/enrollments_list.html", ctx)
+
+
+@section_required(SECTION_COURSES, "write")
+@require_POST
+def enrollment_action(request, course_pk, pk, action):
+    enrollment = get_object_or_404(Enrollment, pk=pk, course_id=course_pk)
+    if action == "delete":
+        enrollment.delete()
+        messages.success(request, "تم حذف التسجيل.")
+    elif action == "toggle":
+        enrollment.status = Enrollment.STATUS_CANCELLED if enrollment.is_active else Enrollment.STATUS_ACTIVE
+        enrollment.save(update_fields=["status"])
+        messages.success(request, "تم تحديث حالة الاشتراك.")
+    return redirect("dashboard:enrollments_list", course_pk=course_pk)
+
+
+@section_required(SECTION_COURSES, "write")
+def attendance_form(request, course_pk, pk):
+    lesson = get_object_or_404(Lesson.objects.select_related("course"), pk=pk, course_id=course_pk)
+    enrollments = list(lesson.course.enrollments.filter(status=Enrollment.STATUS_ACTIVE).select_related("user"))
+    if request.method == "POST":
+        present_ids = set(request.POST.getlist("present"))
+        for e in enrollments:
+            status = Attendance.PRESENT if str(e.pk) in present_ids else Attendance.ABSENT
+            Attendance.objects.update_or_create(lesson=lesson, enrollment=e, defaults={"status": status})
+        messages.success(request, "تم حفظ الحضور.")
+        return redirect("dashboard:lessons_list", course_pk=course_pk)
+    marked = {a.enrollment_id: a.status for a in lesson.attendance.all()}
+    rows = [{"enrollment": e, "present": marked.get(e.pk) == Attendance.PRESENT} for e in enrollments]
+    ctx = base_context(request, active="courses")
+    ctx.update({"lesson": lesson, "course": lesson.course, "rows": rows})
+    return render(request, "dashboard/attendance_form.html", ctx)
+
+
+# --- Enrollment requests -----------------------------------------------------
+
+@section_required(SECTION_COURSES)
+def requests_list(request):
+    qs = EnrollmentRequest.objects.select_related("course")
+    status = request.GET.get("status", "")
+    if status in dict(EnrollmentRequest.STATUS_CHOICES):
+        qs = qs.filter(status=status)
+    paid = request.GET.get("paid", "")
+    if paid in dict(EnrollmentRequest.PAYMENT_CHOICES):
+        qs = qs.filter(payment_status=paid)
+    ctx = base_context(request, active="requests")
+    ctx.update({"requests": qs, "status": status, "paid": paid,
+                "status_choices": EnrollmentRequest.STATUS_CHOICES,
+                "payment_choices": EnrollmentRequest.PAYMENT_CHOICES})
+    return render(request, "dashboard/requests_list.html", ctx)
+
+
+@section_required(SECTION_COURSES)
+def request_detail(request, pk):
+    obj = get_object_or_404(EnrollmentRequest.objects.select_related("course", "user"), pk=pk)
+    can_write = can_access(request.dashboard_role, SECTION_COURSES, "write")
+    form = RequestForm(request.POST or None, instance=obj)
+    if request.method == "POST":
+        if not can_write:
+            raise PermissionDenied
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم حفظ الطلب.")
+            return redirect("dashboard:request_detail", pk=obj.pk)
+    ctx = base_context(request, active="requests")
+    ctx.update({"obj": obj, "form": form, "can_enroll": bool(obj.user and obj.course),
+                "enrolled": bool(obj.user and obj.course and Enrollment.objects.filter(user=obj.user, course=obj.course).exists())})
+    return render(request, "dashboard/request_detail.html", ctx)
+
+
+@section_required(SECTION_COURSES, "write")
+@require_POST
+def request_enroll(request, pk):
+    """Once the teacher and times are agreed, put the student into the course."""
+    obj = get_object_or_404(EnrollmentRequest, pk=pk)
+    if not (obj.user and obj.course):
+        messages.error(request, "لا يمكن التسجيل: الطالب لم ينشئ حسابًا بعد.")
+    else:
+        enrollment, _ = Enrollment.objects.get_or_create(user=obj.user, course=obj.course)
+        if not enrollment.is_active:
+            enrollment.status = Enrollment.STATUS_ACTIVE
+            enrollment.save(update_fields=["status"])
+        obj.status = EnrollmentRequest.STATUS_ENROLLED
+        obj.save(update_fields=["status"])
+        messages.success(request, "تم تسجيل الطالب في الكورس.")
+    return redirect("dashboard:request_detail", pk=obj.pk)

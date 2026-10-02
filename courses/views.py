@@ -1,0 +1,136 @@
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.http import FileResponse, Http404
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
+
+from core.translations import get_translations
+from quiz.models import PlacementResult
+
+from .access import can_view_course_material, has_active_enrollment
+from .forms import ApplyForm
+from .models import Attendance, Course, Enrollment, EnrollmentRequest, Lesson, LessonAttachment
+
+
+def course_list(request):
+    courses = Course.objects.filter(is_published=True).select_related("teacher", "level")
+    return render(request, "courses/list.html", {"courses": [c.localized(request.lang) for c in courses]})
+
+
+def course_detail(request, slug):
+    course = get_object_or_404(Course.objects.select_related("teacher", "level"), slug=slug)
+    if not course.is_published and not can_view_course_material(request.user, course):
+        raise Http404
+    lang = request.lang
+    # The public page lists session dates only; Zoom / recordings live on the lesson page.
+    return render(request, "courses/detail.html", {
+        "course": course.localized(lang),
+        "lessons": [l.localized(lang) for l in course.lessons.all()],
+        "enrolled": has_active_enrollment(request.user, course),
+    })
+
+
+@login_required
+def my_courses(request):
+    lang = request.lang
+    now = timezone.now()
+    cards = []
+    enrollments = (Enrollment.objects.filter(user=request.user, status=Enrollment.STATUS_ACTIVE)
+                   .select_related("course__teacher", "course__level"))
+    for enrollment in enrollments:
+        course = enrollment.course
+        attended, total, percent = course.progress_for(enrollment)
+        nxt = course.lessons.filter(starts_at__gte=now).first()
+        cards.append({
+            "course": course.localized(lang), "attended": attended, "total": total, "percent": percent,
+            "attended_label": get_translations(lang)["courses"]["attended"].format(a=attended, t=total),
+            "next": nxt.localized(lang) if nxt else None,
+        })
+    return render(request, "courses/mine.html", {"cards": cards})
+
+
+@login_required
+def lesson_detail(request, pk):
+    lesson = get_object_or_404(Lesson.objects.select_related("course"), pk=pk)
+    course = lesson.course
+    if not can_view_course_material(request.user, course):
+        raise Http404  # private material: don't reveal it exists
+    enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
+    attendance = None
+    placement = None
+    if enrollment:
+        attendance = Attendance.objects.filter(lesson=lesson, enrollment=enrollment).first()
+        # The level-test result is surfaced on the student's first session only.
+        if course.lessons.first() == lesson:
+            placement = PlacementResult.objects.filter(user=request.user).select_related("level").first()
+    lang = request.lang
+    level_name = ""
+    if placement and placement.level:
+        level_name = f"{placement.level.code} — {placement.level.name_en if lang == 'en' else placement.level.name_ar}"
+    return render(request, "courses/lesson.html", {
+        "course": course.localized(lang),
+        "lesson": lesson.localized(lang),
+        "zoom_url": lesson.zoom_url,
+        "recording_url": lesson.recording_url,
+        "files": lesson.attachments.filter(kind=LessonAttachment.KIND_FILE),
+        "homework": lesson.attachments.filter(kind=LessonAttachment.KIND_HOMEWORK),
+        "attendance": attendance,
+        "placement": placement,
+        "placement_level": level_name,
+    })
+
+
+@login_required
+def attachment_download(request, pk):
+    attachment = get_object_or_404(LessonAttachment.objects.select_related("lesson__course"), pk=pk)
+    if not can_view_course_material(request.user, attachment.lesson.course):
+        raise Http404
+    return FileResponse(attachment.file.open("rb"), as_attachment=True, filename=attachment.file.name.rsplit("/", 1)[-1])
+
+
+SESSION_REQUESTS = "enrollment_request_ids"
+
+
+def apply(request, slug):
+    """Step 1: the visitor picks a course and fills in their details."""
+    course = get_object_or_404(Course, slug=slug, is_published=True)
+    lang = request.lang
+    initial = {}
+    if request.user.is_authenticated:
+        initial = {
+            "full_name": request.user.get_full_name(), "email": request.user.email,
+            "phone": getattr(getattr(request.user, "profile", None), "phone", ""),
+        }
+    form = ApplyForm(request.POST or None, initial=initial)
+    if request.method == "POST" and form.is_valid():
+        enrollment_request = form.save(commit=False)
+        enrollment_request.course = course
+        if request.user.is_authenticated:
+            enrollment_request.user = request.user
+        enrollment_request.save()
+        # Remember it so a guest who signs in next can claim it at checkout.
+        request.session[SESSION_REQUESTS] = request.session.get(SESSION_REQUESTS, []) + [enrollment_request.pk]
+        checkout_url = reverse("courses:checkout", args=[enrollment_request.pk])
+        if request.user.is_authenticated:
+            return redirect(checkout_url)
+        messages.info(request, get_translations(lang)["courses"]["loginToPay"])
+        return redirect(f"{reverse('accounts:login')}?mode=register&next={checkout_url}")
+    return render(request, "courses/apply.html", {"course": course.localized(lang), "form": form})
+
+
+@login_required
+def checkout(request, pk):
+    """Step 2 (signed-in only): payment. Paid or not, the request is already with the admin."""
+    enrollment_request = get_object_or_404(EnrollmentRequest.objects.select_related("course__level"), pk=pk)
+    if enrollment_request.user_id is None and pk in request.session.get(SESSION_REQUESTS, []):
+        enrollment_request.user = request.user
+        enrollment_request.save(update_fields=["user"])
+    if enrollment_request.user_id != request.user.pk:
+        raise Http404
+    return render(request, "courses/checkout.html", {
+        "req": enrollment_request,
+        "course": enrollment_request.course.localized(request.lang) if enrollment_request.course else None,
+        "payments_enabled": settings.PAYMENTS_ENABLED,
+    })

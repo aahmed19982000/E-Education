@@ -1,0 +1,30 @@
+{% extends "dashboard/base.html" %}
+{% block title %}طلب {{ obj.full_name }}{% endblock %}
+{% block page_title %}طلب اشتراك: {{ obj.full_name }}{% endblock %}
+{% block content %}
+<div class="dash-card" style="margin-bottom:18px;">
+  <p><strong>الكورس:</strong> {{ obj.course.title_ar|default:"—" }} — {{ obj.get_mode_display }}{% if obj.price %} — {{ obj.price }} ج.م{% endif %}</p>
+  <p><strong>الهاتف:</strong> <a href="tel:{{ obj.phone }}">{{ obj.phone }}</a> · <strong>البريد:</strong> <a href="mailto:{{ obj.email }}">{{ obj.email }}</a></p>
+  <p><strong>الحساب:</strong> {% if obj.user %}مسجّل ({{ obj.user.email }}){% else %}لم ينشئ حسابًا (لم يكمل الدفع){% endif %}</p>
+  {% if obj.preferred_times %}<p><strong>المواعيد المناسبة له:</strong> {{ obj.preferred_times|linebreaksbr }}</p>{% endif %}
+  {% if obj.notes %}<p><strong>ملاحظاته:</strong> {{ obj.notes|linebreaksbr }}</p>{% endif %}
+  <p><strong>وصل في:</strong> {{ obj.created_at|date:"Y-m-d H:i" }}</p>
+</div>
+<div class="dash-card">
+  <form method="post">
+    {% csrf_token %}
+    <div class="dash-form-grid">
+      <div class="dash-field"><label>{{ form.status.label }}</label>{{ form.status }}</div>
+      <div class="dash-field"><label>{{ form.payment_status.label }}</label>{{ form.payment_status }}</div>
+      <div class="dash-field"><label>{{ form.assigned_teacher.label }}</label>{{ form.assigned_teacher }}</div>
+    </div>
+    <div class="dash-form-grid full"><div class="dash-field"><label>{{ form.admin_notes.label }}</label>{{ form.admin_notes }}</div></div>
+    {% if can_write_courses %}<div class="dash-form-actions"><button type="submit" class="btn btn-primary">حفظ</button>
+      <a class="btn btn-outline" href="{% url 'dashboard:requests_list' %}">رجوع</a></div>{% endif %}
+  </form>
+  {% if can_write_courses and can_enroll %}
+    <form method="post" action="{% url 'dashboard:request_enroll' obj.pk %}" style="margin-top:16px;">{% csrf_token %}
+      <button type="submit" class="btn btn-accent">{% if enrolled %}إعادة تفعيل التسجيل في الكورس{% else %}تسجيل الطالب في الكورس{% endif %}</button></form>
+  {% endif %}
+</div>
+{% endblock %}

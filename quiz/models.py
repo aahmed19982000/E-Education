@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.db import models
 
@@ -146,3 +147,18 @@ class QuizSettings(models.Model):
         """Seconds allowed for `question`, or None for no limit."""
         seconds = question.time_limit_seconds if question.time_limit_seconds is not None else self.question_time_seconds
         return seconds or None
+
+
+class PlacementResult(models.Model):
+    """A signed-in student's level-test result, shown on their first course session."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="placement_results")
+    level = models.ForeignKey("levels.Level", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    percent = models.PositiveSmallIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} {self.percent}%"

@@ -8,7 +8,7 @@ from core.translations import LEVEL_NAMES, count_phrase, get_translations
 
 from .attempt import Attempt
 from .grading import format_marks, grade, level_index, place_level
-from .models import Question, QuizSettings
+from .models import PlacementResult, Question, QuizSettings
 
 
 def intro(request):
@@ -144,6 +144,12 @@ def result(request):
         # No level takes part in the test yet: fall back to equal bands over the built-in names.
         names = LEVEL_NAMES.get(lang, LEVEL_NAMES["ar"])
         result_level_name = names[level_index(score["ratio"], len(names))]
+
+    # Remember a signed-in student's result (once per attempt) for their course pages.
+    if request.user.is_authenticated and not attempt.data.get("recorded"):
+        PlacementResult.objects.create(user=request.user, level=level, percent=score["percent"])
+        attempt.data["recorded"] = True
+        attempt.save()
 
     return render(request, "quiz/result.html", {
         "result_level": level,

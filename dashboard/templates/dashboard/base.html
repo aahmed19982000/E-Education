@@ -37,6 +37,10 @@
         {% if can_view_team %}
           <a href="{% url 'dashboard:team_list' %}" class="{% if active == 'team' %}active{% endif %}">فريق العمل</a>
         {% endif %}
+        {% if can_view_courses %}
+          <a href="{% url 'dashboard:courses_list' %}" class="{% if active == 'courses' %}active{% endif %}">الكورسات والجلسات</a>
+          <a href="{% url 'dashboard:requests_list' %}" class="{% if active == 'requests' %}active{% endif %}">طلبات الاشتراك</a>
+        {% endif %}
         {% if can_view_questions %}
           <a href="{% url 'dashboard:questions_list' %}" class="{% if active == 'questions' %}active{% endif %}">أسئلة اختبار المستوى</a>
           {% if can_write_questions %}

@@ -1,0 +1,41 @@
+{% extends "dashboard/base.html" %}
+{% block title %}جلسات {{ course.title_ar }}{% endblock %}
+{% block page_title %}جلسات: {{ course.title_ar }}{% endblock %}
+{% block content %}
+<div class="dash-toolbar">
+  <h2>{{ lessons|length }} جلسة</h2>
+  <div class="dash-table-actions">
+    <a class="btn btn-outline" href="{% url 'dashboard:enrollments_list' course.pk %}">الطلاب</a>
+    {% if can_write_courses %}
+      <form method="post" action="{% url 'dashboard:lessons_generate' course.pk %}" style="display:inline;">{% csrf_token %}
+        <button type="submit" class="btn btn-outline">توليد الجلسات من الجدول الأسبوعي</button></form>
+      <a class="btn btn-primary" href="{% url 'dashboard:lesson_create' course.pk %}">+ إضافة جلسة</a>
+    {% endif %}
+  </div>
+</div>
+<div class="dash-table-wrap">
+  {% if lessons %}
+  <table class="dash-table">
+    <thead><tr><th>#</th><th>العنوان</th><th>الموعد</th><th>Zoom</th><th>تسجيل</th><th></th></tr></thead>
+    <tbody>
+    {% for l in lessons %}
+      <tr>
+        <td>{{ l.number }}</td>
+        <td class="wrap">{{ l.title_ar|default:"—" }}</td>
+        <td>{{ l.starts_at|date:"Y-m-d H:i" }}</td>
+        <td>{% if l.zoom_url %}✓{% else %}—{% endif %}</td>
+        <td>{% if l.recording_url %}✓{% else %}—{% endif %}</td>
+        <td><div class="dash-table-actions">
+          {% if can_write_courses %}
+            <a href="{% url 'dashboard:attendance_form' course.pk l.pk %}">الحضور</a>
+            <a href="{% url 'dashboard:lesson_edit' course.pk l.pk %}">تعديل</a>
+            <a class="danger" href="{% url 'dashboard:lesson_delete' course.pk l.pk %}">حذف</a>
+          {% endif %}
+        </div></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="dash-empty">لا توجد جلسات بعد.</div>{% endif %}
+</div>
+{% endblock %}

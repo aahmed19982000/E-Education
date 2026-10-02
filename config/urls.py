@@ -9,6 +9,7 @@ urlpatterns = [
     path('levels/', include('levels.urls')),
     path('articles/', include('articles.urls')),
     path('team/', include('team.urls')),
+    path('courses/', include('courses.urls')),
     path('test/', include('quiz.urls')),
     path('accounts/', include('accounts.urls')),
     path('contact/', include('contact_us.urls')),

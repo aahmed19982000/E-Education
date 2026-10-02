@@ -5,6 +5,7 @@ from django.db import models
 
 from accounts.models import Profile
 from articles.models import Article
+from courses.models import Attendance, EnrollmentRequest, Course, CourseSlot, Enrollment, Lesson, LessonAttachment
 from levels.models import Level
 from team.models import VIDEO_MAX_MB, TeamMember, TeamReview
 from quiz.audio import AudioDecodeError, compress_audio
@@ -501,3 +502,114 @@ class StaffUserEditForm(StyledFormMixin, forms.Form):
         self.user.profile.role = self.cleaned_data["role"]
         self.user.profile.save(update_fields=["role"])
         return self.user
+
+
+class CourseForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Course
+        fields = ["title_ar", "title_en", "description_ar", "description_en", "teacher", "level",
+                  "start_date", "weeks", "is_published"]
+        widgets = {
+            "description_ar": forms.Textarea(attrs={"rows": 4}),
+            "description_en": forms.Textarea(attrs={"rows": 4}),
+            "start_date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        }
+        labels = {
+            "title_ar": "اسم الكورس (عربي)", "title_en": "اسم الكورس (إنجليزي — اختياري)",
+            "description_ar": "الوصف (عربي)", "description_en": "الوصف (إنجليزي — اختياري)",
+            "teacher": "المدرس", "level": "المستوى", "start_date": "تاريخ بداية الجلسات",
+            "weeks": "عدد الأسابيع", "is_published": "منشور على الموقع",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
+
+class SlotForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = CourseSlot
+        fields = ["weekday", "start_time", "duration_minutes"]
+        widgets = {"start_time": forms.TimeInput(attrs={"type": "time"}, format="%H:%M")}
+        labels = {"weekday": "اليوم", "start_time": "الوقت", "duration_minutes": "المدة (دقيقة)"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
+
+SlotFormSet = forms.inlineformset_factory(Course, CourseSlot, form=SlotForm, extra=2, can_delete=True)
+
+
+class LessonForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Lesson
+        fields = ["title_ar", "title_en", "starts_at", "duration_minutes", "zoom_url", "recording_url",
+                  "notes_ar", "notes_en"]
+        widgets = {
+            "starts_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+            "notes_ar": forms.Textarea(attrs={"rows": 3}),
+            "notes_en": forms.Textarea(attrs={"rows": 3}),
+        }
+        labels = {
+            "title_ar": "عنوان الجلسة (عربي)", "title_en": "عنوان الجلسة (إنجليزي)",
+            "starts_at": "موعد الجلسة", "duration_minutes": "المدة (دقيقة)",
+            "zoom_url": "رابط Zoom", "recording_url": "رابط التسجيل",
+            "notes_ar": "ملاحظات (عربي)", "notes_en": "ملاحظات (إنجليزي)",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["starts_at"].input_formats = ["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"]
+        self._style_fields()
+
+
+class AttachmentForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = LessonAttachment
+        fields = ["kind", "title", "file"]
+        labels = {"kind": "النوع", "title": "العنوان", "file": "الملف"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
+
+AttachmentFormSet = forms.inlineformset_factory(Lesson, LessonAttachment, form=AttachmentForm, extra=1, can_delete=True)
+
+
+class EnrollForm(StyledFormMixin, forms.Form):
+    email = forms.EmailField(label="البريد الإلكتروني للطالب")
+
+    def __init__(self, *args, course=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.course = course
+        self._style_fields()
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].lower().strip()
+        user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            raise forms.ValidationError("لا يوجد طالب مسجل بهذا البريد.")
+        self.user = user
+        return email
+
+    def save(self):
+        enrollment, created = Enrollment.objects.get_or_create(user=self.user, course=self.course)
+        if not created and not enrollment.is_active:
+            enrollment.status = Enrollment.STATUS_ACTIVE
+            enrollment.save(update_fields=["status"])
+        return enrollment, created
+
+
+class RequestForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = EnrollmentRequest
+        fields = ["status", "payment_status", "assigned_teacher", "admin_notes"]
+        widgets = {"admin_notes": forms.Textarea(attrs={"rows": 4})}
+        labels = {"status": "الحالة", "payment_status": "الدفع", "assigned_teacher": "المدرس المختار",
+                  "admin_notes": "ملاحظات الإدارة"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()

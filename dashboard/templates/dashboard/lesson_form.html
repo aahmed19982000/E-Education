@@ -1,0 +1,38 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }} — {{ course.title_ar }}{% endblock %}
+{% block content %}
+<div class="dash-card">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="dash-form-grid">
+      {% for f in form.visible_fields %}
+        {% if f.name != "notes_ar" and f.name != "notes_en" %}
+        <div class="dash-field"><label>{{ f.label }}</label>{{ f }}{{ f.errors }}</div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <div class="dash-form-grid full">
+      <div class="dash-field"><label>{{ form.notes_ar.label }}</label>{{ form.notes_ar }}</div>
+      <div class="dash-field"><label>{{ form.notes_en.label }}</label>{{ form.notes_en }}</div>
+    </div>
+
+    <h3 style="margin:24px 0 8px;">الملفات والواجبات</h3>
+    {{ files.management_form }}{{ files.non_form_errors }}
+    {% for ff in files %}
+      <div class="dash-form-grid">
+        {{ ff.id }}
+        <div class="dash-field"><label>{{ ff.kind.label }}</label>{{ ff.kind }}</div>
+        <div class="dash-field"><label>{{ ff.title.label }}</label>{{ ff.title }}{{ ff.title.errors }}</div>
+        <div class="dash-field"><label>{{ ff.file.label }}</label>{{ ff.file }}{{ ff.file.errors }}</div>
+        {% if ff.instance.pk %}<div class="dash-field"><label>حذف</label>{{ ff.DELETE }}</div>{% endif %}
+      </div>
+    {% endfor %}
+
+    <div class="dash-form-actions">
+      <button type="submit" class="btn btn-primary">حفظ</button>
+      <a class="btn btn-outline" href="{% url 'dashboard:lessons_list' course.pk %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "dashboard/base.html" %}
+{% block title %}طلبات الاشتراك{% endblock %}
+{% block page_title %}طلبات الاشتراك{% endblock %}
+{% block content %}
+<form method="get" class="dash-toolbar">
+  <h2>{{ requests|length }} طلب</h2>
+  <div style="display:flex;gap:8px;">
+    <select name="status" class="field" onchange="this.form.submit()">
+      <option value="">كل الحالات</option>
+      {% for v, l in status_choices %}<option value="{{ v }}" {% if v == status %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select>
+    <select name="paid" class="field" onchange="this.form.submit()">
+      <option value="">الدفع: الكل</option>
+      {% for v, l in payment_choices %}<option value="{{ v }}" {% if v == paid %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select>
+  </div>
+</form>
+<div class="dash-table-wrap">
+  {% if requests %}
+  <table class="dash-table">
+    <thead><tr><th>الاسم</th><th>الهاتف</th><th>الكورس</th><th>النوع</th><th>الدفع</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+    <tbody>
+    {% for r in requests %}
+      <tr>
+        <td>{{ r.full_name }}</td><td>{{ r.phone }}</td><td class="wrap">{{ r.course.title_ar|default:"—" }}</td>
+        <td>{{ r.get_mode_display }}</td><td>{{ r.get_payment_status_display }}</td><td>{{ r.get_status_display }}</td>
+        <td>{{ r.created_at|date:"Y-m-d H:i" }}</td>
+        <td><div class="dash-table-actions"><a href="{% url 'dashboard:request_detail' r.pk %}">فتح</a></div></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="dash-empty">لا توجد طلبات.</div>{% endif %}
+</div>
+{% endblock %}

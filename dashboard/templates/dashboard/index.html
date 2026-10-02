@@ -22,6 +22,16 @@
       <div class="label">فريق العمل</div>
     </div>
   {% endif %}
+  {% if can_view_courses %}
+    <div class="dash-stat">
+      <div class="value">{{ courses_count }}</div>
+      <div class="label">الكورسات</div>
+    </div>
+    <a class="dash-stat" href="{% url 'dashboard:requests_list' %}?status=new">
+      <div class="value">{{ new_requests_count }}</div>
+      <div class="label">طلبات اشتراك جديدة</div>
+    </a>
+  {% endif %}
   {% if can_view_questions %}
     <div class="dash-stat">
       <div class="value">{{ questions_count }}</div>

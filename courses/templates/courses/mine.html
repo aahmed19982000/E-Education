@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ t.courses.mine }} · {{ t.brand }}{% endblock %}
+{% block content %}
+<div class="page">
+  <h1>{{ t.courses.mine }}</h1>
+  {% if cards %}
+  <div class="team-grid">
+    {% for c in cards %}
+    <div class="team-card">
+      <div class="team-name"><a href="{% url 'courses:detail' slug=c.course.slug %}">{{ c.course.title }}</a></div>
+      {% if c.course.teacher %}<div class="team-role">{{ c.course.teacher.name }}</div>{% endif %}
+      <div style="margin:12px 0;">
+        <div style="background:var(--cream);border-radius:999px;height:10px;overflow:hidden;">
+          <div style="width:{{ c.percent }}%;height:100%;background:var(--accent);"></div>
+        </div>
+        <small>{{ t.courses.progress }}: {{ c.percent }}% — {{ c.attended_label }}</small>
+      </div>
+      {% if c.next %}
+        <div><strong>{{ t.courses.nextSession }}:</strong>
+          <a href="{% url 'courses:lesson' pk=c.next.pk %}">{{ c.next.title }}</a> — {{ c.next.starts_at|date:"Y-m-d H:i" }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <p>{{ t.courses.mineEmpty }}</p>
+    <a class="btn btn-primary" href="{% url 'courses:list' %}">{{ t.courses.browse }}</a>
+  {% endif %}
+</div>
+{% endblock %}

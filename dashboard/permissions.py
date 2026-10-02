@@ -15,6 +15,7 @@ SECTION_ARTICLES = "articles"
 SECTION_TEAM = "team"
 SECTION_QUESTIONS = "questions"
 SECTION_MESSAGES = "messages"
+SECTION_COURSES = "courses"
 SECTION_USERS = "users"
 
 # None = no access, "read" = view only, "write" = full CRUD.
@@ -25,6 +26,7 @@ ROLE_PERMISSIONS = {
         SECTION_TEAM: "write",
         SECTION_QUESTIONS: "write",
         SECTION_MESSAGES: "write",
+        SECTION_COURSES: "write",
         SECTION_USERS: "write",
     },
     ROLE_CONTENT_STAFF: {
@@ -33,6 +35,7 @@ ROLE_PERMISSIONS = {
         SECTION_TEAM: "write",
         SECTION_QUESTIONS: "write",
         SECTION_MESSAGES: "write",
+        SECTION_COURSES: "write",
         SECTION_USERS: None,
     },
     ROLE_TEACHER: {
@@ -41,6 +44,7 @@ ROLE_PERMISSIONS = {
         SECTION_TEAM: None,
         SECTION_QUESTIONS: "read",
         SECTION_MESSAGES: "read",
+        SECTION_COURSES: "read",
         SECTION_USERS: None,
     },
 }

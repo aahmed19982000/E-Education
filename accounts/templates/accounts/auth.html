@@ -5,8 +5,8 @@
 {% block content %}
   <div class="page-auth">
     <div class="auth-tabs">
-      <a class="{% if mode == 'login' %}active{% endif %}" href="?mode=login">{{ t.auth.login }}</a>
-      <a class="{% if mode == 'register' %}active{% endif %}" href="?mode=register">{{ t.auth.register }}</a>
+      <a class="{% if mode == 'login' %}active{% endif %}" href="?mode=login{{ next_qs }}">{{ t.auth.login }}</a>
+      <a class="{% if mode == 'register' %}active{% endif %}" href="?mode=register{{ next_qs }}">{{ t.auth.register }}</a>
     </div>
 
     {% if mode == 'register' %}

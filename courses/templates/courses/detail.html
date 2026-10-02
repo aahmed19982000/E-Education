@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ course.title }} · {{ t.brand }}{% endblock %}
+{% block content %}
+<div class="page-narrow">
+  <h1 style="font-size:34px;font-weight:800;color:var(--primary);">{{ course.title }}</h1>
+  {% if course.description %}<p class="lead">{{ course.description|linebreaksbr }}</p>{% endif %}
+  <ul style="line-height:2;">
+    {% if course.teacher %}<li><strong>{{ t.courses.teacher }}:</strong> <a href="{% url 'team:detail' slug=course.teacher.slug %}">{{ course.teacher.name }}</a></li>{% endif %}
+    {% if course.level %}<li><strong>{{ t.courses.level }}:</strong> {{ course.level.code }}</li>{% endif %}
+    {% if course.start_date %}<li><strong>{{ t.courses.startsOn }}:</strong> {{ course.start_date|date:"Y-m-d" }}</li>{% endif %}
+    {% if course.schedule %}
+      <li><strong>{{ t.courses.schedule }}:</strong>
+        {% for s in course.schedule %}{{ s.get_weekday_display }} {{ s.start_time|time:"H:i" }} ({{ s.duration_minutes }} {{ t.courses.minutes }}){% if not forloop.last %}، {% endif %}{% endfor %}
+      </li>
+    {% endif %}
+  </ul>
+
+  <p style="margin:24px 0;">
+    {% if enrolled %}
+      <span class="team-badge">{{ t.courses.enrolled }}</span>
+      <a class="btn btn-primary" href="{% url 'courses:mine' %}">{{ t.courses.goToMine }}</a>
+    {% else %}
+      <a class="btn btn-lg btn-primary" href="{% url 'courses:apply' slug=course.slug %}">{{ t.courses.subscribe }}</a>
+      <br><small style="color:var(--muted);">{{ t.courses.noAccess }}</small>
+    {% endif %}
+  </p>
+
+  <h2 class="team-section-title">{{ t.courses.sessions }}</h2>
+  {% if lessons %}
+  <ol style="line-height:2;">
+    {% for l in lessons %}
+      <li>
+        {% if enrolled %}<a href="{% url 'courses:lesson' pk=l.pk %}">{{ l.title }}</a>{% else %}{{ l.title }}{% endif %}
+        — {{ l.starts_at|date:"Y-m-d H:i" }}
+      </li>
+    {% endfor %}
+  </ol>
+  {% else %}<p>{{ t.courses.noSessions }}</p>{% endif %}
+</div>
+{% endblock %}

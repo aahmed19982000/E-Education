@@ -1,0 +1,18 @@
+{% extends "dashboard/base.html" %}
+{% block title %}حضور الجلسة{% endblock %}
+{% block page_title %}حضور: {{ lesson }} ({{ lesson.starts_at|date:"Y-m-d H:i" }}){% endblock %}
+{% block content %}
+<div class="dash-card">
+  <form method="post">
+    {% csrf_token %}
+    {% for r in rows %}
+      <label style="display:block;padding:8px 0;"><input type="checkbox" name="present" value="{{ r.enrollment.pk }}" {% if r.present %}checked{% endif %}>
+        {{ r.enrollment.user.get_full_name|default:r.enrollment.user.username }} — {{ r.enrollment.user.email }}</label>
+    {% empty %}<p>لا يوجد طلاب نشطون.</p>{% endfor %}
+    <div class="dash-form-actions">
+      <button type="submit" class="btn btn-primary">حفظ الحضور</button>
+      <a class="btn btn-outline" href="{% url 'dashboard:lessons_list' course.pk %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

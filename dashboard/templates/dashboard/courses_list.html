@@ -1,0 +1,35 @@
+{% extends "dashboard/base.html" %}
+{% block title %}الكورسات{% endblock %}
+{% block page_title %}الكورسات والجلسات{% endblock %}
+{% block content %}
+<div class="dash-toolbar">
+  <h2>كل الكورسات ({{ courses|length }})</h2>
+  {% if can_write_courses %}<a class="btn btn-primary" href="{% url 'dashboard:course_create' %}">+ إضافة كورس</a>{% endif %}
+</div>
+<div class="dash-table-wrap">
+  {% if courses %}
+  <table class="dash-table">
+    <thead><tr><th>الكورس</th><th>المدرس</th><th>الجلسات</th><th>الطلاب</th><th>الحالة</th><th></th></tr></thead>
+    <tbody>
+    {% for c in courses %}
+      <tr>
+        <td class="wrap">{{ c.title_ar }}</td>
+        <td>{{ c.teacher.name_ar|default:"—" }}</td>
+        <td>{{ c.lessons_count }}</td>
+        <td>{{ c.students_count }}</td>
+        <td>{% if c.is_published %}منشور{% else %}مسودة{% endif %}</td>
+        <td><div class="dash-table-actions">
+          <a href="{% url 'dashboard:lessons_list' c.pk %}">الجلسات</a>
+          <a href="{% url 'dashboard:enrollments_list' c.pk %}">الطلاب</a>
+          {% if can_write_courses %}
+            <a href="{% url 'dashboard:course_edit' c.pk %}">تعديل</a>
+            <a class="danger" href="{% url 'dashboard:course_delete' c.pk %}">حذف</a>
+          {% endif %}
+        </div></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="dash-empty">لا توجد كورسات بعد.</div>{% endif %}
+</div>
+{% endblock %}

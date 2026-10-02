@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'articles',
     'team',
     'quiz',
+    'courses',
     'accounts',
     'contact_us',
     'dashboard',
@@ -137,6 +138,8 @@ STORAGES = {
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+# Files only enrolled students may download (never served via MEDIA_URL).
+PRIVATE_MEDIA_ROOT = BASE_DIR / 'private_media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -148,3 +151,6 @@ LOGOUT_REDIRECT_URL = 'core:home'
 # original design without hard-coding hex values in more than one place).
 BRAND_PRIMARY_COLOR = '#14275B'
 BRAND_ACCENT_COLOR = '#D9A429'
+
+# Flip to True once a payment gateway (Daftar Cash / Binance Pay) is wired into the checkout.
+PAYMENTS_ENABLED = os.environ.get('PAYMENTS_ENABLED', 'False').lower() == 'true'

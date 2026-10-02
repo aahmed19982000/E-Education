@@ -6,3 +6,4 @@ media/
 staticfiles/
 .DS_Store
 _import/
+private_media/

@@ -1,0 +1,37 @@
+{% extends "dashboard/base.html" %}
+{% block title %}طلاب {{ course.title_ar }}{% endblock %}
+{% block page_title %}طلاب: {{ course.title_ar }}{% endblock %}
+{% block content %}
+{% if can_write_courses %}
+<div class="dash-card" style="margin-bottom:18px;">
+  <form method="post" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+    {% csrf_token %}
+    <div class="dash-field" style="flex:1;min-width:240px;"><label>{{ form.email.label }}</label>{{ form.email }}{{ form.email.errors }}</div>
+    <button type="submit" class="btn btn-primary">تسجيل الطالب</button>
+  </form>
+</div>
+{% endif %}
+<div class="dash-table-wrap">
+  {% if enrollments %}
+  <table class="dash-table">
+    <thead><tr><th>الطالب</th><th>البريد</th><th>الحالة</th><th>التقدم</th>{% if can_write_courses %}<th></th>{% endif %}</tr></thead>
+    <tbody>
+    {% for e in enrollments %}
+      <tr>
+        <td>{{ e.user.get_full_name|default:e.user.username }}</td>
+        <td>{{ e.user.email }}</td>
+        <td>{{ e.get_status_display }}</td>
+        <td>{{ e.attendance.all|length }} سجل حضور</td>
+        {% if can_write_courses %}
+        <td><div class="dash-table-actions">
+          <form method="post" action="{% url 'dashboard:enrollment_action' course.pk e.pk 'toggle' %}">{% csrf_token %}<button type="submit" class="btn btn-outline">{% if e.is_active %}إلغاء الاشتراك{% else %}تفعيل{% endif %}</button></form>
+          <form method="post" action="{% url 'dashboard:enrollment_action' course.pk e.pk 'delete' %}">{% csrf_token %}<button type="submit" class="btn btn-outline danger">حذف</button></form>
+        </div></td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="dash-empty">لا يوجد طلاب مسجلون.</div>{% endif %}
+</div>
+{% endblock %}
