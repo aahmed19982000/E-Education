@@ -7,6 +7,7 @@
   <ul style="line-height:2;">
     {% if course.teacher %}<li><strong>{{ t.courses.teacher }}:</strong> <a href="{% url 'team:detail' slug=course.teacher.slug %}">{{ course.teacher.name }}</a></li>{% endif %}
     {% if course.level %}<li><strong>{{ t.courses.level }}:</strong> {{ course.level.code }}</li>{% endif %}
+    {% for mode, price in prices.items %}<li><strong>{% if mode == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}:</strong> {% if price %}{{ price }} {{ t.courses.currency }}{% else %}—{% endif %}</li>{% endfor %}
     {% if course.start_date %}<li><strong>{{ t.courses.startsOn }}:</strong> {{ course.start_date|date:"Y-m-d" }}</li>{% endif %}
     {% if course.schedule %}
       <li><strong>{{ t.courses.schedule }}:</strong>

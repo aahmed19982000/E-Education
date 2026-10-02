@@ -507,7 +507,8 @@ class StaffUserEditForm(StyledFormMixin, forms.Form):
 class CourseForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Course
-        fields = ["title_ar", "title_en", "description_ar", "description_en", "teacher", "level",
+        fields = ["title_ar", "title_en", "description_ar", "description_en", "audience",
+                  "offers_group", "offers_private", "price_group", "price_private", "teacher", "level",
                   "start_date", "weeks", "is_published"]
         widgets = {
             "description_ar": forms.Textarea(attrs={"rows": 4}),
@@ -517,6 +518,8 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
         labels = {
             "title_ar": "اسم الكورس (عربي)", "title_en": "اسم الكورس (إنجليزي — اختياري)",
             "description_ar": "الوصف (عربي)", "description_en": "الوصف (إنجليزي — اختياري)",
+            "audience": "نوع الكورس", "offers_group": "متاح جروب", "offers_private": "متاح خصوصي",
+            "price_group": "سعر الجروب (ج.م — فارغ = سعر المستوى)", "price_private": "سعر الخصوصي (ج.م — فارغ = سعر المستوى)",
             "teacher": "المدرس", "level": "المستوى", "start_date": "تاريخ بداية الجلسات",
             "weeks": "عدد الأسابيع", "is_published": "منشور على الموقع",
         }
@@ -524,6 +527,12 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._style_fields()
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get("offers_group") and not cleaned.get("offers_private"):
+            raise forms.ValidationError("اختر جروب أو خصوصي على الأقل.")
+        return cleaned
 
 
 class SlotForm(StyledFormMixin, forms.ModelForm):

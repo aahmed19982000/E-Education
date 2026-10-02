@@ -183,7 +183,7 @@ class DashboardCourseTests(TestCase):
     def test_admin_creates_course_with_slots_and_generates(self):
         self.client.force_login(self.admin)
         resp = self.client.post(reverse("dashboard:course_create"), {
-            "title_ar": "كورس جديد", "weeks": 2, "start_date": "2030-01-07", "is_published": "on",
+            "title_ar": "كورس جديد", "audience": "students", "offers_group": "on", "weeks": 2, "start_date": "2030-01-07", "is_published": "on",
             "slots-TOTAL_FORMS": 2, "slots-INITIAL_FORMS": 0, "slots-MIN_NUM_FORMS": 0, "slots-MAX_NUM_FORMS": 1000,
             "slots-0-weekday": 0, "slots-0-start_time": "18:00", "slots-0-duration_minutes": 60,
             "slots-1-weekday": "", "slots-1-start_time": "", "slots-1-duration_minutes": 60,
@@ -322,3 +322,51 @@ class DashboardRequestTests(TestCase):
         self.client.force_login(self.admin)
         self.client.post(reverse("dashboard:request_enroll", args=[self.req.pk]))
         self.assertFalse(Enrollment.objects.exists())
+
+
+class AudienceAndModeTests(TestCase):
+    def setUp(self):
+        self.students = make_course(title_ar="كورس طلاب", audience=Course.AUDIENCE_STUDENTS)
+        self.teachers = make_course(title_ar="كورس مدرسين", audience=Course.AUDIENCE_TEACHERS,
+                                    offers_private=False, price_group=900)
+
+    def test_list_filters_by_audience(self):
+        url = reverse("courses:list")
+        resp = self.client.get(url + "?for=teachers")
+        self.assertContains(resp, "كورس مدرسين")
+        self.assertNotContains(resp, "كورس طلاب")
+        resp = self.client.get(url + "?for=students")
+        self.assertContains(resp, "كورس طلاب")
+        self.assertNotContains(resp, "كورس مدرسين")
+        self.assertContains(self.client.get(url + "?for=bogus"), "كورس طلاب")
+
+    def test_apply_rejects_mode_the_course_does_not_offer(self):
+        resp = self.client.post(reverse("courses:apply", args=[self.teachers.slug]), {**APPLY, "mode": "private"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(EnrollmentRequest.objects.exists())
+        resp = self.client.post(reverse("courses:apply", args=[self.teachers.slug]), {**APPLY, "mode": "group"})
+        self.assertEqual(resp.status_code, 302)
+
+    def test_course_price_overrides_level_price(self):
+        level = Level.objects.create(code="C1", order=1, name_ar="a", name_en="a", description_ar="d",
+                                     description_en="d", duration_ar="1", duration_en="1",
+                                     price_group=100, price_private=200)
+        self.teachers.level = level
+        self.teachers.save()
+        self.assertEqual(self.teachers.price_for("group"), 900)
+        self.assertEqual(self.teachers.price_for("private"), 200)  # no own price -> level's
+
+    def test_detail_shows_only_offered_modes(self):
+        resp = self.client.get(reverse("courses:detail", args=[self.teachers.slug]))
+        self.assertContains(resp, "900")
+        self.assertNotContains(resp, "خصوصي")
+
+    def test_dashboard_requires_at_least_one_mode(self):
+        admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
+        self.client.force_login(admin)
+        resp = self.client.post(reverse("dashboard:course_create"), {
+            "title_ar": "x", "audience": "students", "weeks": 1,
+            "slots-TOTAL_FORMS": 0, "slots-INITIAL_FORMS": 0, "slots-MIN_NUM_FORMS": 0, "slots-MAX_NUM_FORMS": 1000,
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "جروب أو خصوصي")

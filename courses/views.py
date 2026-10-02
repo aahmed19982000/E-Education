@@ -15,8 +15,15 @@ from .models import Attendance, Course, Enrollment, EnrollmentRequest, Lesson, L
 
 
 def course_list(request):
+    audience = request.GET.get("for", "")
     courses = Course.objects.filter(is_published=True).select_related("teacher", "level")
-    return render(request, "courses/list.html", {"courses": [c.localized(request.lang) for c in courses]})
+    if audience in dict(Course.AUDIENCE_CHOICES):
+        courses = courses.filter(audience=audience)
+    else:
+        audience = ""
+    return render(request, "courses/list.html", {
+        "courses": [c.localized(request.lang) for c in courses], "audience": audience,
+    })
 
 
 def course_detail(request, slug):
@@ -27,6 +34,7 @@ def course_detail(request, slug):
     # The public page lists session dates only; Zoom / recordings live on the lesson page.
     return render(request, "courses/detail.html", {
         "course": course.localized(lang),
+        "prices": {m: course.price_for(m) for m in course.allowed_modes()},
         "lessons": [l.localized(lang) for l in course.lessons.all()],
         "enrolled": has_active_enrollment(request.user, course),
     })
@@ -103,7 +111,7 @@ def apply(request, slug):
             "full_name": request.user.get_full_name(), "email": request.user.email,
             "phone": getattr(getattr(request.user, "profile", None), "phone", ""),
         }
-    form = ApplyForm(request.POST or None, initial=initial)
+    form = ApplyForm(request.POST or None, initial=initial, course=course)
     if request.method == "POST" and form.is_valid():
         enrollment_request = form.save(commit=False)
         enrollment_request.course = course

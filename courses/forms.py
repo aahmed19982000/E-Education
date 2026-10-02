@@ -13,8 +13,12 @@ class ApplyForm(forms.ModelForm):
             "notes": forms.Textarea(attrs={"rows": 3}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, course=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if course is not None:
+            allowed = course.allowed_modes()
+            self.fields["mode"].choices = [c for c in EnrollmentRequest.MODE_CHOICES if c[0] in allowed]
+            self.fields["mode"].initial = allowed[0] if allowed else None
         for field in self.fields.values():
             if not isinstance(field.widget, forms.RadioSelect):
                 field.widget.attrs["class"] = "field"

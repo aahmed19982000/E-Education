@@ -4,12 +4,18 @@
 <div class="page page-center">
   <h1>{{ t.courses.title }}</h1>
   <p class="lead" style="margin-inline:auto;">{{ t.courses.subtitle }}</p>
+  <div class="team-tags" style="justify-content:center;margin-bottom:24px;">
+    <a href="{% url 'courses:list' %}"><span {% if not audience %}style="background:var(--accent);"{% endif %}>{{ t.courses.all }}</span></a>
+    <a href="?for=students"><span {% if audience == "students" %}style="background:var(--accent);"{% endif %}>{{ t.courses.students }}</span></a>
+    <a href="?for=teachers"><span {% if audience == "teachers" %}style="background:var(--accent);"{% endif %}>{{ t.courses.teachers }}</span></a>
+  </div>
   {% if courses %}
   <div class="team-grid">
     {% for c in courses %}
     <a class="team-card" href="{% url 'courses:detail' slug=c.slug %}">
       <div class="team-name">{{ c.title }}</div>
       {% if c.teacher %}<div class="team-role">{{ t.courses.teacher }}: {{ c.teacher.name }}</div>{% endif %}
+      <div class="team-tags"><span>{% if c.audience == "teachers" %}{{ t.courses.teachers }}{% else %}{{ t.courses.students }}{% endif %}</span></div>
       {% if c.level %}<div class="team-tags"><span>{{ c.level.code }}</span></div>{% endif %}
       {% if c.schedule %}<div class="team-tags">{% for s in c.schedule %}<span>{{ s.get_weekday_display }} {{ s.start_time|time:"H:i" }}</span>{% endfor %}</div>{% endif %}
     </a>

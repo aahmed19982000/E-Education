@@ -9,11 +9,12 @@
 <div class="dash-table-wrap">
   {% if courses %}
   <table class="dash-table">
-    <thead><tr><th>الكورس</th><th>المدرس</th><th>الجلسات</th><th>الطلاب</th><th>الحالة</th><th></th></tr></thead>
+    <thead><tr><th>الكورس</th><th>النوع</th><th>المدرس</th><th>الجلسات</th><th>الطلاب</th><th>الحالة</th><th></th></tr></thead>
     <tbody>
     {% for c in courses %}
       <tr>
         <td class="wrap">{{ c.title_ar }}</td>
+        <td>{{ c.get_audience_display }}</td>
         <td>{{ c.teacher.name_ar|default:"—" }}</td>
         <td>{{ c.lessons_count }}</td>
         <td>{{ c.students_count }}</td>

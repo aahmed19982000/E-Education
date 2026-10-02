@@ -31,7 +31,7 @@ AR = {
         "paymentSoon": "الدفع الإلكتروني قيد التفعيل، وسيتواصل معك فريقنا لإتمام الدفع.",
         "received": "وصلنا طلبك",
         "next": "الخطوات القادمة: سيتواصل معك فريق الأكاديمية لاختيار المدرس المناسب لك وتحديد المواعيد، وننصحك بعمل اختبار تحديد المستوى الآن.",
-        "takeTest": "ابدأ اختبار تحديد المستوى", "paid": "تم الدفع",
+        "takeTest": "ابدأ اختبار تحديد المستوى", "all": "الكل", "students": "للطلاب", "teachers": "للمدرسين", "paid": "تم الدفع",
     },
     "nav": {
         "home": "الرئيسية", "about": "عن الأكاديمية", "levels": "المستويات والأسعار",
@@ -157,7 +157,7 @@ EN = {
         "paymentSoon": "Online payment is being activated; our team will contact you to complete payment.",
         "received": "We received your request",
         "next": "Next: our team will contact you to pick the right teacher and agree session times. We recommend taking the level test now.",
-        "takeTest": "Take the level test", "paid": "Paid",
+        "takeTest": "Take the level test", "all": "All", "students": "For students", "teachers": "For teachers", "paid": "Paid",
     },
     "nav": {
         "home": "Home", "about": "About", "levels": "Levels & Pricing",

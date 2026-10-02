@@ -23,11 +23,21 @@ def private_storage():
 
 
 class Course(models.Model):
+    AUDIENCE_STUDENTS = "students"
+    AUDIENCE_TEACHERS = "teachers"
+    AUDIENCE_CHOICES = [(AUDIENCE_STUDENTS, "طلاب / أشخاص عاديون"), (AUDIENCE_TEACHERS, "مدرّسون")]
+
     slug = models.SlugField(max_length=255, unique=True, blank=True, allow_unicode=True)
     title_ar = models.CharField(max_length=200)
     title_en = models.CharField(max_length=200, blank=True)
     description_ar = models.TextField(blank=True)
     description_en = models.TextField(blank=True)
+
+    audience = models.CharField(max_length=10, choices=AUDIENCE_CHOICES, default=AUDIENCE_STUDENTS)
+    offers_group = models.BooleanField(default=True)
+    offers_private = models.BooleanField(default=True)
+    price_group = models.PositiveIntegerField(null=True, blank=True, help_text="EGP; empty = use the level's price")
+    price_private = models.PositiveIntegerField(null=True, blank=True, help_text="EGP; empty = use the level's price")
 
     teacher = models.ForeignKey(TeamMember, null=True, blank=True, on_delete=models.SET_NULL, related_name="courses")
     level = models.ForeignKey(Level, null=True, blank=True, on_delete=models.SET_NULL, related_name="courses")
@@ -58,7 +68,7 @@ class Course(models.Model):
             return en if lang == "en" and en else ar
         teacher = self.teacher.localized(lang) if self.teacher else None
         return {
-            "slug": self.slug,
+            "slug": self.slug, "audience": self.audience,
             "title": pick(self.title_ar, self.title_en),
             "description": pick(self.description_ar, self.description_en),
             "teacher": teacher,
@@ -66,6 +76,23 @@ class Course(models.Model):
             "start_date": self.start_date,
             "schedule": list(self.slots.all()),
         }
+
+    def allowed_modes(self):
+        modes = []
+        if self.offers_group:
+            modes.append("group")
+        if self.offers_private:
+            modes.append("private")
+        return modes
+
+    def price_for(self, mode):
+        """Course price for a mode, falling back to the level's price."""
+        own = self.price_private if mode == "private" else self.price_group
+        if own is not None:
+            return own
+        if self.level:
+            return self.level.price_private if mode == "private" else self.level.price_group
+        return None
 
     def generate_lessons(self):
         """Create the sessions for every weekly slot; returns how many were new.
@@ -277,7 +304,4 @@ class EnrollmentRequest(models.Model):
 
     @property
     def price(self):
-        level = self.course.level if self.course else None
-        if not level:
-            return None
-        return level.price_private if self.mode == self.MODE_PRIVATE else level.price_group
+        return self.course.price_for(self.mode) if self.course else None
