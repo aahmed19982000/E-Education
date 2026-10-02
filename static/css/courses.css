@@ -127,3 +127,14 @@
   .c-hero { padding: 40px 0 60px; }
   .c-hero h1 { font-size: 30px; }
 }
+
+/* ---- offers (price ribbon cards) ---- */
+.c-offer { position: relative; background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 56px 24px 24px; display: flex; flex-direction: column; box-shadow: 0 6px 20px rgba(20,39,91,.06); }
+.c-offer-price { position: absolute; top: 0; inset-inline-start: 0; background: var(--accent); color: var(--primary); padding: 10px 22px; border-radius: 18px 0 18px 0; font-weight: 800; font-size: 15px; }
+[dir="rtl"] .c-offer-price { border-radius: 0 18px 0 18px; }
+.c-offer-price strong { font-size: 22px; }
+.c-offer-body { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+.c-offer h3 { font-size: 20px; font-weight: 800; color: var(--primary); margin: 0; line-height: 1.4; }
+.c-offer p { color: var(--muted); font-size: 14.5px; line-height: 1.8; margin: 0; flex: 1; }
+.c-offer-hint { font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 14px; }
+.c-offer-actions { display: grid; gap: 10px; }

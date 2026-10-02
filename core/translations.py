@@ -12,7 +12,7 @@ AR = {
     "imgAboutAlt": "صورة فريق الأكاديمية",
     "imgTeachersAlt": "صورة ورشة تدريب معلمين",
     "courses": {
-        "title": "الكورسات", "subtitle": "كورسات لايف مع مدرسين متخصصين، ومواعيد تناسبك.",
+        "title": "عروض الكورسات", "subtitle": "كورسات لايف مع مدرسين متخصصين، ومواعيد تناسبك. اختر بين نظام الجروب أو الخصوصي وقارن بين العروض.", "bookNow": "احجز الآن", "pickMode": "اختر نظام الدراسة",
         "empty": "لا توجد كورسات متاحة حالياً.", "teacher": "المدرس", "level": "المستوى",
         "schedule": "المواعيد الأسبوعية", "startsOn": "يبدأ في", "minutes": "دقيقة",
         "details": "تفاصيل الكورس", "subscribe": "طلب اشتراك", "enrolled": "أنت مسجل في هذا الكورس",
@@ -145,7 +145,7 @@ EN = {
     "imgAboutAlt": "academy team",
     "imgTeachersAlt": "teacher training workshop",
     "courses": {
-        "title": "Courses", "subtitle": "Live courses with specialist teachers, at times that suit you.",
+        "title": "Course offers", "subtitle": "Live courses with specialist teachers, at times that suit you. Choose group or private and compare the offers.", "bookNow": "Book now", "pickMode": "Choose how you study",
         "empty": "No courses available right now.", "teacher": "Teacher", "level": "Level",
         "schedule": "Weekly schedule", "startsOn": "Starts on", "minutes": "min",
         "details": "Course details", "subscribe": "Request enrollment", "enrolled": "You are enrolled in this course",

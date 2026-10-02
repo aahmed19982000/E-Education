@@ -9,23 +9,27 @@
   </div>
 </section>
 <div class="c-wrap c-body">
-  {% if courses %}
+  <nav class="c-filters" aria-label="{{ t.courses.pickMode }}">
+    <a href="?mode=group" class="{% if mode == 'group' %}active{% endif %}">{{ t.courses.group }}</a>
+    <a href="?mode=private" class="{% if mode == 'private' %}active{% endif %}">{{ t.courses.private }}</a>
+  </nav>
+
+  {% if offers %}
   <div class="c-grid">
-    {% for c in courses %}
-    <a class="c-card" href="{% url 'courses:detail' slug=c.slug %}">
-      <div class="c-card-top"></div>
-      <div class="c-card-body">
-        <div class="c-badges">
-          {% for m in c.modes %}<span class="c-badge">{% if m == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</span>{% endfor %}
-        </div>
+    {% for c in offers %}
+    <article class="c-offer">
+      {% if c.price %}<div class="c-offer-price"><strong>{{ c.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
+      <div class="c-offer-body">
+        <div class="c-badges"><span class="c-badge">{% if mode == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</span></div>
         <h3>{{ c.title }}</h3>
-        <p>{{ c.description|truncatechars:120 }}</p>
-        <div class="c-card-foot">
-          {% if c.from_price %}<div class="c-price">{{ t.courses.from }}<strong>{{ c.from_price }} {{ t.courses.currency }}</strong></div><span></span>{% else %}<span></span>{% endif %}
-          <span class="c-more">{{ t.courses.viewCourse }}</span>
+        <p>{{ c.description|truncatechars:140 }}</p>
+        <div class="c-offer-hint">{% if mode == "private" %}{{ t.courses.planPrivateHint }}{% else %}{{ t.courses.planGroupHint }}{% endif %}</div>
+        <div class="c-offer-actions">
+          <a class="c-btn" href="{% url 'courses:apply' slug=c.slug %}?mode={{ mode }}">{{ t.courses.bookNow }}</a>
+          <a class="c-btn ghost" href="{% url 'courses:detail' slug=c.slug %}">{{ t.courses.viewCourse }}</a>
         </div>
       </div>
-    </a>
+    </article>
     {% endfor %}
   </div>
   {% else %}<div class="c-empty">{{ t.courses.noCourses }}</div>{% endif %}

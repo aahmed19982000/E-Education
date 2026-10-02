@@ -15,8 +15,15 @@ from .models import Attendance, Course, Enrollment, EnrollmentRequest, Lesson, L
 
 
 def course_list(request):
+    mode = request.GET.get("mode", "group")
+    if mode not in ("group", "private"):
+        mode = "group"
     courses = Course.objects.filter(is_published=True, audience=Course.AUDIENCE_STUDENTS)
-    return render(request, "courses/list.html", {"courses": [c.localized(request.lang) for c in courses]})
+    offers = []
+    for course in courses:
+        if mode in course.allowed_modes():
+            offers.append({**course.localized(request.lang), "price": course.price_for(mode)})
+    return render(request, "courses/list.html", {"offers": offers, "mode": mode})
 
 
 def course_detail(request, slug):
@@ -109,7 +116,10 @@ def apply(request, slug):
             "full_name": request.user.get_full_name(), "email": request.user.email,
             "phone": getattr(getattr(request.user, "profile", None), "phone", ""),
         }
+    mode = request.GET.get("mode")
     form = ApplyForm(request.POST or None, initial=initial, course=course)
+    if mode in course.allowed_modes():
+        form.fields["mode"].initial = mode
     for name, label in get_translations(lang)["courses"]["f"].items():
         form.fields[name].label = label
     if request.method == "POST" and form.is_valid():
