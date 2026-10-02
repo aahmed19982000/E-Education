@@ -78,3 +78,13 @@ main > .hm-section:last-of-type { padding-bottom: 72px; }
   .hm-vcard.v2, .hm-vcard.v3 { margin-inline: 0; }
   .hm-aud { padding: 28px; }
 }
+
+/* About page */
+.hm-hero-sm { padding: 64px 0 88px; }
+.hm-hero-sm h1 { max-width: 760px; }
+.hm-hero-sm .hm-lead { max-width: 760px; margin-bottom: 0; }
+.hm-bottom { padding-bottom: 72px; }
+.hm-quality { display: flex; justify-content: space-between; align-items: center; gap: 32px; background: var(--cream); border: 1px solid var(--cream-border); border-radius: 22px; padding: 40px; }
+.hm-quality h2 { margin: 0 0 12px; font-size: 24px; font-weight: 800; color: var(--primary); }
+.hm-quality p { margin: 0; font-size: 16px; line-height: 1.95; color: #3A4258; max-width: 720px; }
+@media (max-width: 900px) { .hm-quality { flex-direction: column; align-items: flex-start; padding: 26px; } }

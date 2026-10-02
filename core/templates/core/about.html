@@ -1,24 +1,54 @@
 {% extends "base.html" %}
-
+{% load static %}
 {% block title %}{{ t.about.title }} · {{ t.brand }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/home.css' %}">{% endblock %}
 
 {% block content %}
-  <div class="page">
-    <h1>{{ t.about.title }}</h1>
-    <p class="lead">{{ t.about.story }}</p>
+  <section class="hm-hero hm-hero-sm">
+    <div class="hm-wrap">
+      <div class="hm-eyebrow">{{ t.brand }}</div>
+      <h1>{{ t.about.title }}</h1>
+      <p class="hm-lead">{{ t.about.story }}</p>
+    </div>
+  </section>
 
-    <div class="values-grid">
+  <section class="hm-wrap hm-why">
+    <div class="hm-why-grid">
       {% for v in t.about.values %}
-        <div class="value-card">
-          <h4>{{ v.title }}</h4>
-          <p>{{ v.desc }}</p>
-        </div>
+        <div class="hm-why-card"><span class="n">{{ forloop.counter }}</span><h4>{{ v.title }}</h4><p>{{ v.desc }}</p></div>
       {% endfor %}
     </div>
+  </section>
 
-    <div class="about-quality">
-      <p>{{ t.about.teacherQuality }}</p>
-      <div class="art-box square"><span>[ {{ t.imgAboutAlt }} ]</span></div>
+  <section class="hm-wrap hm-section">
+    <h2 class="hm-title">{{ t.about.audTitle }}</h2>
+    <div class="hm-audiences" style="padding-top:0;">
+      <div class="hm-aud dark">
+        <h3>{{ t.home.students.title }}</h3>
+        <p>{{ t.home.students.desc }}</p>
+        <a class="hm-btn accent" href="{% url 'courses:list' %}">{{ t.home.students.cta }}</a>
+      </div>
+      <div class="hm-aud light">
+        <h3>{{ t.home.teachers.title }}</h3>
+        <p>{{ t.home.teachers.desc }}</p>
+        <a class="hm-btn primary" href="{% url 'core:teachers' %}">{{ t.home.teachers.cta }}</a>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <section class="hm-wrap hm-section hm-bottom">
+    <div class="hm-quality">
+      <div>
+        <h2>{{ t.about.teacherQualityTitle }}</h2>
+        <p>{{ t.about.teacherQuality }}</p>
+      </div>
+      <a class="hm-btn primary" href="{% url 'team:list' %}">{{ t.about.teamCta }}</a>
+    </div>
+  </section>
+
+  <section class="banner">
+    <h2>{{ t.home.bannerTitle }}</h2>
+    <p>{{ t.home.bannerSubtitle }}</p>
+    <a class="hm-btn accent" href="{% url 'quiz:intro' %}">{{ t.home.cta1 }}</a>
+  </section>
 {% endblock %}

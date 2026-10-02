@@ -77,10 +77,11 @@ AR = {
         "story": "أسسنا الأكاديمية لتقديم تعليم إنجليزي عملي وموجه بالنتائج، لفئتين مختلفتين من المتعلمين: طلاب يريدون تحسين لغتهم للعمل والدراسة، ومدرسين يريدون الانتقال إلى بيئة تدريس دولية. نؤمن أن كل متعلم يحتاج مسارًا مختلفًا، لذلك صممنا برامجنا حول اختبار تحديد مستوى دقيق ومتابعة فردية.",
         "values": [
             {"title": "جودة التدريس", "desc": "مدرسون مؤهلون يخضعون لتدريب داخلي مستمر."},
-            {"title": "مسار واضح", "desc": "مستويات متتالية بأهداف محددة لكل مرحلة."},
+            {"title": "مسار واضح", "desc": "تبدأ باختبار تحديد مستوى مجاني، ثم تختار الكورس الأنسب لهدفك."},
             {"title": "مرونة", "desc": "اختيار بين الجروب والخصوصي وبين المواعيد المناسبة."},
             {"title": "محتوى داعم", "desc": "مقالات ومصادر مجانية لدعم التعلم بين الجلسات."},
         ],
+        "audTitle": "نخدم فئتين من المتعلمين", "valuesTitle": "ما نؤمن به", "teamCta": "تعرّف على فريق العمل", "teacherQualityTitle": "جودة المدرسين",
         "teacherQuality": "نختار مدرسينا وفق معايير تدريس دولية، ويحصلون على تدريب دوري لتطوير أدائهم. هذا ينعكس مباشرة على جودة الجلسات وسرعة تقدم الطلاب.",
     },
     "teachers": {
@@ -221,10 +222,11 @@ EN = {
         "story": "We built this academy to deliver practical, results-driven English education to two kinds of learners: students improving their English for work and study, and teachers moving into international teaching environments. Every learner needs a different path, so our programs start with an accurate level test and individual follow-up.",
         "values": [
             {"title": "Teaching quality", "desc": "Qualified teachers with continuous internal training."},
-            {"title": "A clear path", "desc": "Sequential levels with a defined goal at each stage."},
+            {"title": "A clear path", "desc": "Start with a free level test, then pick the course that fits your goal."},
             {"title": "Flexibility", "desc": "Choose group or private, and the schedule that fits you."},
             {"title": "Supporting content", "desc": "Free articles and resources between sessions."},
         ],
+        "audTitle": "We serve two kinds of learners", "valuesTitle": "What we believe in", "teamCta": "Meet the team", "teacherQualityTitle": "Teacher quality",
         "teacherQuality": "Our teachers are selected against international teaching standards and receive regular training. This shows directly in session quality and how fast students progress.",
     },
     "teachers": {
