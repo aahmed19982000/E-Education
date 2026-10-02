@@ -10,6 +10,20 @@ def has_active_enrollment(user, course):
     return Enrollment.objects.filter(user=user, course=course, status=Enrollment.STATUS_ACTIVE).exists()
 
 
-def can_view_course_material(user, course):
-    """Active students, plus dashboard staff (who manage the course)."""
-    return has_active_enrollment(user, course) or get_dashboard_role(user) is not None
+def is_staff_user(user):
+    return get_dashboard_role(user) is not None
+
+
+def can_view_lesson_material(user, lesson):
+    """Only students placed in the lesson's own cohort, plus dashboard staff.
+
+    Times differ per group/student, so enrolling in the course alone does not
+    open another cohort's Zoom link, recordings or files.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if is_staff_user(user):
+        return True
+    return Enrollment.objects.filter(
+        user=user, cohort_id=lesson.cohort_id, status=Enrollment.STATUS_ACTIVE,
+    ).exists()

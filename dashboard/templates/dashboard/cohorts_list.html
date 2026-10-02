@@ -1,0 +1,39 @@
+{% extends "dashboard/base.html" %}
+{% block title %}مجموعات {{ course.title_ar }}{% endblock %}
+{% block page_title %}مجموعات: {{ course.title_ar }}{% endblock %}
+{% block content %}
+<div class="dash-toolbar">
+  <h2>{{ cohorts|length }} مجموعة</h2>
+  <div class="dash-table-actions">
+    <a class="btn btn-outline" href="{% url 'dashboard:enrollments_list' course.pk %}">الطلاب</a>
+    {% if can_write_courses %}<a class="btn btn-primary" href="{% url 'dashboard:cohort_create' course.pk %}">+ إضافة مجموعة</a>{% endif %}
+  </div>
+</div>
+<p style="color:var(--muted);font-size:13px;">المواعيد غير ثابتة للكورس: لكل جروب أو طالب خصوصي مجموعة بمدرسه ومواعيده.</p>
+<div class="dash-table-wrap">
+  {% if cohorts %}
+  <table class="dash-table">
+    <thead><tr><th>المجموعة</th><th>النوع</th><th>المدرس</th><th>البداية</th><th>الطلاب</th><th>الجلسات</th><th></th></tr></thead>
+    <tbody>
+    {% for c in cohorts %}
+      <tr>
+        <td class="wrap">{{ c.name|default:"—" }} #{{ c.pk }}</td>
+        <td>{{ c.get_mode_display }}</td>
+        <td>{{ c.teacher.name_ar|default:"—" }}</td>
+        <td>{{ c.start_date|date:"Y-m-d"|default:"—" }}</td>
+        <td>{{ c.students_count }}</td>
+        <td>{{ c.lessons_count }}</td>
+        <td><div class="dash-table-actions">
+          <a href="{% url 'dashboard:lessons_list' c.pk %}">الجلسات</a>
+          {% if can_write_courses %}
+            <a href="{% url 'dashboard:cohort_edit' course.pk c.pk %}">تعديل</a>
+            <a class="danger" href="{% url 'dashboard:cohort_delete' course.pk c.pk %}">حذف</a>
+          {% endif %}
+        </div></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="dash-empty">لا توجد مجموعات بعد.</div>{% endif %}
+</div>
+{% endblock %}

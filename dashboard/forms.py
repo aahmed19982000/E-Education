@@ -5,7 +5,7 @@ from django.db import models
 
 from accounts.models import Profile
 from articles.models import Article
-from courses.models import Attendance, EnrollmentRequest, Course, CourseSlot, Enrollment, Lesson, LessonAttachment
+from courses.models import Attendance, Cohort, CohortSlot, EnrollmentRequest, Course, Enrollment, Lesson, LessonAttachment
 from levels.models import Level
 from team.models import VIDEO_MAX_MB, TeamMember, TeamReview
 from quiz.audio import AudioDecodeError, compress_audio
@@ -508,20 +508,17 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Course
         fields = ["title_ar", "title_en", "description_ar", "description_en", "audience",
-                  "offers_group", "offers_private", "price_group", "price_private", "teacher", "level",
-                  "start_date", "weeks", "is_published"]
+                  "offers_group", "offers_private", "price_group", "price_private", "is_published"]
         widgets = {
             "description_ar": forms.Textarea(attrs={"rows": 4}),
             "description_en": forms.Textarea(attrs={"rows": 4}),
-            "start_date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
         }
         labels = {
             "title_ar": "اسم الكورس (عربي)", "title_en": "اسم الكورس (إنجليزي — اختياري)",
             "description_ar": "الوصف (عربي)", "description_en": "الوصف (إنجليزي — اختياري)",
             "audience": "نوع الكورس", "offers_group": "متاح جروب", "offers_private": "متاح خصوصي",
-            "price_group": "سعر الجروب (ج.م — فارغ = سعر المستوى)", "price_private": "سعر الخصوصي (ج.م — فارغ = سعر المستوى)",
-            "teacher": "المدرس", "level": "المستوى", "start_date": "تاريخ بداية الجلسات",
-            "weeks": "عدد الأسابيع", "is_published": "منشور على الموقع",
+            "price_group": "سعر الجروب (ج.م)", "price_private": "سعر الخصوصي (ج.م)",
+            "is_published": "منشور على الموقع",
         }
 
     def __init__(self, *args, **kwargs):
@@ -535,9 +532,22 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
         return cleaned
 
 
+class CohortForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Cohort
+        fields = ["name", "mode", "teacher", "start_date", "weeks"]
+        widgets = {"start_date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
+        labels = {"name": "اسم المجموعة (اختياري)", "mode": "النوع", "teacher": "المدرس",
+                  "start_date": "تاريخ بداية الجلسات", "weeks": "عدد الأسابيع"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
+
 class SlotForm(StyledFormMixin, forms.ModelForm):
     class Meta:
-        model = CourseSlot
+        model = CohortSlot
         fields = ["weekday", "start_time", "duration_minutes"]
         widgets = {"start_time": forms.TimeInput(attrs={"type": "time"}, format="%H:%M")}
         labels = {"weekday": "اليوم", "start_time": "الوقت", "duration_minutes": "المدة (دقيقة)"}
@@ -547,7 +557,7 @@ class SlotForm(StyledFormMixin, forms.ModelForm):
         self._style_fields()
 
 
-SlotFormSet = forms.inlineformset_factory(Course, CourseSlot, form=SlotForm, extra=2, can_delete=True)
+SlotFormSet = forms.inlineformset_factory(Cohort, CohortSlot, form=SlotForm, extra=2, can_delete=True)
 
 
 class LessonForm(StyledFormMixin, forms.ModelForm):

@@ -11,52 +11,58 @@ from django.utils import timezone
 from levels.models import Level
 from quiz.models import PlacementResult
 
-from .models import Attendance, Course, CourseSlot, Enrollment, Lesson, LessonAttachment
+from .models import Attendance, Cohort, CohortSlot, Course, Enrollment, Lesson, LessonAttachment
 
 PRIVATE = tempfile.mkdtemp()
 
 
 def make_course(**kw):
-    defaults = dict(title_ar="كورس تجريبي", title_en="Demo", is_published=True,
-                    start_date=datetime.date(2030, 1, 7), weeks=3)  # 2030-01-07 is a Monday
+    defaults = dict(title_ar="كورس تجريبي", title_en="Demo", is_published=True)
     defaults.update(kw)
     return Course.objects.create(**defaults)
 
 
+def make_cohort(course=None, **kw):
+    # 2030-01-07 is a Monday
+    defaults = dict(course=course or make_course(), start_date=datetime.date(2030, 1, 7), weeks=3)
+    defaults.update(kw)
+    return Cohort.objects.create(**defaults)
+
+
 class GenerateLessonsTests(TestCase):
     def test_generates_one_lesson_per_slot_per_week(self):
-        course = make_course()
-        CourseSlot.objects.create(course=course, weekday=0, start_time=datetime.time(18, 0))
-        CourseSlot.objects.create(course=course, weekday=3, start_time=datetime.time(20, 0), duration_minutes=90)
-        self.assertEqual(course.generate_lessons(), 6)
-        lessons = list(course.lessons.all())
+        cohort = make_cohort()
+        CohortSlot.objects.create(cohort=cohort, weekday=0, start_time=datetime.time(18, 0))
+        CohortSlot.objects.create(cohort=cohort, weekday=3, start_time=datetime.time(20, 0), duration_minutes=90)
+        self.assertEqual(cohort.generate_lessons(), 6)
+        lessons = list(cohort.lessons.all())
         self.assertEqual([l.number for l in lessons], [1, 2, 3, 4, 5, 6])
         self.assertEqual(lessons[0].starts_at.weekday(), 0)
         self.assertEqual(lessons[1].starts_at.weekday(), 3)
         self.assertEqual(lessons[1].duration_minutes, 90)
 
     def test_rerun_is_idempotent_and_keeps_edits(self):
-        course = make_course()
-        CourseSlot.objects.create(course=course, weekday=0, start_time=datetime.time(18, 0))
-        course.generate_lessons()
-        lesson = course.lessons.first()
+        cohort = make_cohort()
+        CohortSlot.objects.create(cohort=cohort, weekday=0, start_time=datetime.time(18, 0))
+        cohort.generate_lessons()
+        lesson = cohort.lessons.first()
         lesson.zoom_url = "https://zoom.us/j/1"
         lesson.save()
-        self.assertEqual(course.generate_lessons(), 0)
-        self.assertEqual(course.lessons.count(), 3)
+        self.assertEqual(cohort.generate_lessons(), 0)
+        self.assertEqual(cohort.lessons.count(), 3)
         lesson.refresh_from_db()
         self.assertEqual(lesson.zoom_url, "https://zoom.us/j/1")
 
     def test_start_date_midweek_begins_on_next_matching_day(self):
-        course = make_course(start_date=datetime.date(2030, 1, 9), weeks=1)  # Wednesday
-        CourseSlot.objects.create(course=course, weekday=0, start_time=datetime.time(18, 0))
-        self.assertEqual(course.generate_lessons(), 1)
-        self.assertEqual(timezone.localtime(course.lessons.get().starts_at).date(), datetime.date(2030, 1, 14))
+        cohort = make_cohort(start_date=datetime.date(2030, 1, 9), weeks=1)  # Wednesday
+        CohortSlot.objects.create(cohort=cohort, weekday=0, start_time=datetime.time(18, 0))
+        self.assertEqual(cohort.generate_lessons(), 1)
+        self.assertEqual(timezone.localtime(cohort.lessons.get().starts_at).date(), datetime.date(2030, 1, 14))
 
     def test_no_start_date_generates_nothing(self):
-        course = make_course(start_date=None)
-        CourseSlot.objects.create(course=course, weekday=0, start_time=datetime.time(18, 0))
-        self.assertEqual(course.generate_lessons(), 0)
+        cohort = make_cohort(start_date=None)
+        CohortSlot.objects.create(cohort=cohort, weekday=0, start_time=datetime.time(18, 0))
+        self.assertEqual(cohort.generate_lessons(), 0)
 
 
 class ModelTests(TestCase):
@@ -75,13 +81,13 @@ class ModelTests(TestCase):
 
     def test_progress_counts_present_only(self):
         user = User.objects.create_user("u", "u@x.com", "pw")
-        course = make_course()
-        enrollment = Enrollment.objects.create(user=user, course=course)
-        lessons = [Lesson.objects.create(course=course, starts_at=timezone.now() + datetime.timedelta(days=i), number=i + 1)
+        cohort = make_cohort()
+        enrollment = Enrollment.objects.create(user=user, course=cohort.course, cohort=cohort)
+        lessons = [Lesson.objects.create(cohort=cohort, starts_at=timezone.now() + datetime.timedelta(days=i), number=i + 1)
                    for i in range(4)]
         Attendance.objects.create(lesson=lessons[0], enrollment=enrollment, status=Attendance.PRESENT)
         Attendance.objects.create(lesson=lessons[1], enrollment=enrollment, status=Attendance.ABSENT)
-        self.assertEqual(course.progress_for(enrollment), (1, 4, 25))
+        self.assertEqual(enrollment.progress(), (1, 4, 25))
 
 
 @override_settings(PRIVATE_MEDIA_ROOT=PRIVATE)
@@ -92,9 +98,10 @@ class AccessTests(TestCase):
         super().tearDownClass()
 
     def setUp(self):
-        self.course = make_course()
+        self.cohort = make_cohort()
+        self.course = self.cohort.course
         self.lesson = Lesson.objects.create(
-            course=self.course, number=1, starts_at=timezone.now() + datetime.timedelta(days=1),
+            cohort=self.cohort, number=1, starts_at=timezone.now() + datetime.timedelta(days=1),
             zoom_url="https://zoom.us/j/secret", recording_url="https://youtu.be/secret",
         )
         self.attachment = LessonAttachment.objects.create(
@@ -102,7 +109,7 @@ class AccessTests(TestCase):
         )
         self.student = User.objects.create_user("s", "s@x.com", "pw")
         self.outsider = User.objects.create_user("o", "o@x.com", "pw")
-        Enrollment.objects.create(user=self.student, course=self.course)
+        Enrollment.objects.create(user=self.student, course=self.course, cohort=self.cohort)
 
     def test_public_course_page_hides_private_links(self):
         resp = self.client.get(reverse("courses:detail", args=[self.course.slug]))
@@ -151,7 +158,7 @@ class AccessTests(TestCase):
                                      description_ar="d", description_en="d", duration_ar="1", duration_en="1",
                                      price_group=1, price_private=2)
         PlacementResult.objects.create(user=self.student, level=level, percent=64)
-        second = Lesson.objects.create(course=self.course, number=2, starts_at=self.lesson.starts_at + datetime.timedelta(days=7))
+        second = Lesson.objects.create(cohort=self.cohort, number=2, starts_at=self.lesson.starts_at + datetime.timedelta(days=7))
         self.client.force_login(self.student)
         first_resp = self.client.get(reverse("courses:lesson", args=[self.lesson.pk]))
         self.assertContains(first_resp, "B1")
@@ -180,19 +187,25 @@ class DashboardCourseTests(TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertFalse(Enrollment.objects.exists())
 
-    def test_admin_creates_course_with_slots_and_generates(self):
+    def test_admin_creates_cohort_with_own_slots_and_generates(self):
         self.client.force_login(self.admin)
-        resp = self.client.post(reverse("dashboard:course_create"), {
-            "title_ar": "كورس جديد", "audience": "students", "offers_group": "on", "weeks": 2, "start_date": "2030-01-07", "is_published": "on",
+        resp = self.client.post(reverse("dashboard:cohort_create", args=[self.course.pk]), {
+            "name": "مجموعة السبت", "mode": "group", "weeks": 2, "start_date": "2030-01-07",
             "slots-TOTAL_FORMS": 2, "slots-INITIAL_FORMS": 0, "slots-MIN_NUM_FORMS": 0, "slots-MAX_NUM_FORMS": 1000,
             "slots-0-weekday": 0, "slots-0-start_time": "18:00", "slots-0-duration_minutes": 60,
             "slots-1-weekday": "", "slots-1-start_time": "", "slots-1-duration_minutes": 60,
         })
         self.assertEqual(resp.status_code, 302, getattr(resp, "context", None) and resp.context["form"].errors)
-        course = Course.objects.get(title_ar="كورس جديد")
-        self.assertEqual(course.slots.count(), 1)
-        self.client.post(reverse("dashboard:lessons_generate", args=[course.pk]))
-        self.assertEqual(course.lessons.count(), 2)
+        cohort = Cohort.objects.get(name="مجموعة السبت")
+        self.assertEqual(cohort.slots.count(), 1)
+        self.client.post(reverse("dashboard:lessons_generate", args=[cohort.pk]))
+        self.assertEqual(cohort.lessons.count(), 2)
+
+    def test_admin_creates_course_without_any_schedule(self):
+        self.client.force_login(self.admin)
+        resp = self.client.post(reverse("dashboard:course_create"), {
+            "title_ar": "كورس جديد", "audience": "students", "offers_group": "on", "is_published": "on"})
+        self.assertEqual(resp.status_code, 302)
 
     def test_enroll_by_email_and_toggle(self):
         self.client.force_login(self.admin)
@@ -207,10 +220,11 @@ class DashboardCourseTests(TestCase):
         self.assertContains(resp, "لا يوجد طالب")
 
     def test_attendance_marking(self):
-        enrollment = Enrollment.objects.create(user=self.student, course=self.course)
-        lesson = Lesson.objects.create(course=self.course, number=1, starts_at=timezone.now())
+        cohort = make_cohort(self.course)
+        enrollment = Enrollment.objects.create(user=self.student, course=self.course, cohort=cohort)
+        lesson = Lesson.objects.create(cohort=cohort, number=1, starts_at=timezone.now())
         self.client.force_login(self.admin)
-        url = reverse("dashboard:attendance_form", args=[self.course.pk, lesson.pk])
+        url = reverse("dashboard:attendance_form", args=[cohort.pk, lesson.pk])
         self.client.post(url, {"present": [enrollment.pk]})
         self.assertEqual(Attendance.objects.get().status, Attendance.PRESENT)
         self.client.post(url, {})
@@ -347,14 +361,14 @@ class AudienceAndModeTests(TestCase):
         resp = self.client.post(reverse("courses:apply", args=[self.teachers.slug]), {**APPLY, "mode": "group"})
         self.assertEqual(resp.status_code, 302)
 
-    def test_course_price_overrides_level_price(self):
-        level = Level.objects.create(code="C1", order=1, name_ar="a", name_en="a", description_ar="d",
-                                     description_en="d", duration_ar="1", duration_en="1",
-                                     price_group=100, price_private=200)
-        self.teachers.level = level
-        self.teachers.save()
+    def test_price_is_the_courses_own_per_mode(self):
         self.assertEqual(self.teachers.price_for("group"), 900)
-        self.assertEqual(self.teachers.price_for("private"), 200)  # no own price -> level's
+        self.assertIsNone(self.teachers.price_for("private"))
+
+    def test_public_pages_show_no_level_or_schedule(self):
+        resp = self.client.get(reverse("courses:detail", args=[self.students.slug]))
+        self.assertFalse(hasattr(Course, "level"))
+        self.assertNotContains(resp, "المواعيد الأسبوعية")
 
     def test_detail_shows_only_offered_modes(self):
         resp = self.client.get(reverse("courses:detail", args=[self.teachers.slug]))
@@ -365,8 +379,81 @@ class AudienceAndModeTests(TestCase):
         admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
         self.client.force_login(admin)
         resp = self.client.post(reverse("dashboard:course_create"), {
-            "title_ar": "x", "audience": "students", "weeks": 1,
+            "title_ar": "x", "audience": "students",
             "slots-TOTAL_FORMS": 0, "slots-INITIAL_FORMS": 0, "slots-MIN_NUM_FORMS": 0, "slots-MAX_NUM_FORMS": 1000,
         })
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "جروب أو خصوصي")
+
+
+class PerStudentTimesTests(TestCase):
+    """Times differ per group/student: each cohort has its own teacher, slots and sessions."""
+
+    def setUp(self):
+        self.course = make_course()
+        self.cohort_a = make_cohort(self.course)
+        self.cohort_b = make_cohort(self.course, start_date=datetime.date(2030, 2, 4))
+        CohortSlot.objects.create(cohort=self.cohort_a, weekday=0, start_time=datetime.time(18, 0))
+        CohortSlot.objects.create(cohort=self.cohort_b, weekday=2, start_time=datetime.time(21, 0))
+        self.cohort_a.generate_lessons()
+        self.cohort_b.generate_lessons()
+        self.ann = User.objects.create_user("ann", "ann@x.com", "pw")
+        self.bob = User.objects.create_user("bob", "bob@x.com", "pw")
+        self.cara = User.objects.create_user("cara", "cara@x.com", "pw")
+        Enrollment.objects.create(user=self.ann, course=self.course, cohort=self.cohort_a)
+        Enrollment.objects.create(user=self.bob, course=self.course, cohort=self.cohort_b)
+        Enrollment.objects.create(user=self.cara, course=self.course)  # not placed yet
+
+    def test_cohorts_have_independent_schedules(self):
+        self.assertEqual(self.cohort_a.lessons.first().starts_at.weekday(), 0)
+        self.assertEqual(self.cohort_b.lessons.first().starts_at.weekday(), 2)
+
+    def test_student_cannot_open_another_cohorts_lesson(self):
+        mine, theirs = self.cohort_a.lessons.first(), self.cohort_b.lessons.first()
+        self.client.force_login(self.ann)
+        self.assertEqual(self.client.get(reverse("courses:lesson", args=[mine.pk])).status_code, 200)
+        self.assertEqual(self.client.get(reverse("courses:lesson", args=[theirs.pk])).status_code, 404)
+
+    def test_unplaced_student_sees_waiting_message_and_no_lessons(self):
+        self.client.force_login(self.cara)
+        resp = self.client.get(reverse("courses:detail", args=[self.course.slug]))
+        self.assertContains(resp, "سيتواصل معك فريقنا")
+        self.assertEqual(self.client.get(reverse("courses:lesson", args=[self.cohort_a.lessons.first().pk])).status_code, 404)
+        self.assertContains(self.client.get(reverse("courses:mine")), "سيتواصل معك فريقنا")
+
+    def test_course_page_shows_only_own_sessions(self):
+        self.client.force_login(self.ann)
+        resp = self.client.get(reverse("courses:detail", args=[self.course.slug]))
+        self.assertEqual(len(resp.context["lessons"]), self.cohort_a.lessons.count())
+        self.assertNotContains(resp, self.cohort_b.lessons.first().starts_at.strftime("%Y-%m-%d"))
+
+    def test_admin_assigns_student_to_cohort_of_the_same_course_only(self):
+        admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
+        self.client.force_login(admin)
+        enrollment = Enrollment.objects.get(user=self.cara)
+        url = reverse("dashboard:enrollment_action", args=[self.course.pk, enrollment.pk, "assign"])
+        self.client.post(url, {"cohort": self.cohort_b.pk})
+        enrollment.refresh_from_db()
+        self.assertEqual(enrollment.cohort, self.cohort_b)
+        other = make_cohort(make_course(title_ar="غيره"))
+        resp = self.client.post(url, {"cohort": other.pk})
+        self.assertEqual(resp.status_code, 404)
+
+    def test_enroll_from_request_with_cohort(self):
+        admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
+        req = EnrollmentRequest.objects.create(course=self.course, user=User.objects.create_user("n", "n@x.com", "pw"),
+                                               full_name="N", email="n@x.com", phone="1")
+        self.client.force_login(admin)
+        self.client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": self.cohort_a.pk})
+        self.assertEqual(Enrollment.objects.get(user=req.user).cohort, self.cohort_a)
+
+
+class ArabicSlugTests(TestCase):
+    def test_arabic_titled_course_pages_resolve(self):
+        course = make_course(title_ar="إنجليزي للمبتدئين", title_en="")
+        self.assertEqual(self.client.get(reverse("courses:detail", args=[course.slug])).status_code, 200)
+        self.assertEqual(self.client.get(reverse("courses:apply", args=[course.slug])).status_code, 200)
+        self.assertContains(self.client.get(reverse("courses:list")), course.title_ar)
+
+    def test_reserved_words_are_not_used_as_slugs(self):
+        self.assertNotEqual(make_course(title_ar="mine", title_en="").slug, "mine")

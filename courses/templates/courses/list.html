@@ -14,10 +14,7 @@
     {% for c in courses %}
     <a class="team-card" href="{% url 'courses:detail' slug=c.slug %}">
       <div class="team-name">{{ c.title }}</div>
-      {% if c.teacher %}<div class="team-role">{{ t.courses.teacher }}: {{ c.teacher.name }}</div>{% endif %}
       <div class="team-tags"><span>{% if c.audience == "teachers" %}{{ t.courses.teachers }}{% else %}{{ t.courses.students }}{% endif %}</span></div>
-      {% if c.level %}<div class="team-tags"><span>{{ c.level.code }}</span></div>{% endif %}
-      {% if c.schedule %}<div class="team-tags">{% for s in c.schedule %}<span>{{ s.get_weekday_display }} {{ s.start_time|time:"H:i" }}</span>{% endfor %}</div>{% endif %}
     </a>
     {% endfor %}
   </div>

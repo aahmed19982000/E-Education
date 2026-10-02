@@ -18,23 +18,10 @@
       <div class="dash-field"><label>{{ form.description_en.label }}</label>{{ form.description_en }}</div>
     </div>
 
-    <h3 style="margin:24px 0 8px;">المواعيد الأسبوعية المتكررة</h3>
-    {{ slots.management_form }}{{ slots.non_form_errors }}
-    {% for sf in slots %}
-      <div class="dash-form-grid">
-        {{ sf.id }}
-        <div class="dash-field"><label>{{ sf.weekday.label }}</label>{{ sf.weekday }}{{ sf.weekday.errors }}</div>
-        <div class="dash-field"><label>{{ sf.start_time.label }}</label>{{ sf.start_time }}{{ sf.start_time.errors }}</div>
-        <div class="dash-field"><label>{{ sf.duration_minutes.label }}</label>{{ sf.duration_minutes }}{{ sf.duration_minutes.errors }}</div>
-        {% if sf.instance.pk %}<div class="dash-field"><label>حذف</label>{{ sf.DELETE }}</div>{% endif %}
-      </div>
-    {% endfor %}
-    <p style="color:var(--muted);font-size:13px;">اترك الصف فارغًا لتجاهله. بعد الحفظ استخدم «توليد الجلسات» من صفحة الجلسات.</p>
-
     <div class="dash-form-actions">
       <button type="submit" class="btn btn-primary">حفظ</button>
       <a class="btn btn-outline" href="{% url 'dashboard:courses_list' %}">إلغاء</a>
-      {% if instance %}<a class="btn btn-outline" href="{% url 'dashboard:lessons_list' instance.pk %}">الجلسات</a>{% endif %}
+      {% if instance %}<a class="btn btn-outline" href="{% url 'dashboard:cohorts_list' instance.pk %}">المجموعات والمواعيد</a>{% endif %}
     </div>
   </form>
 </div>

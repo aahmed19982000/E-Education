@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 from accounts.auth_utils import authenticate_by_email
 from articles.models import Article
 from contact_us.models import ContactMessage
-from courses.models import Attendance, Course, Enrollment, EnrollmentRequest, Lesson
+from courses.models import Attendance, Cohort, Course, Enrollment, EnrollmentRequest, Lesson
 from levels.models import Level
 from team.models import TeamMember, TeamReview
 from quiz.grading import format_marks, question_marks
@@ -20,7 +20,7 @@ from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Questi
 
 from .decorators import dashboard_required, section_required
 from .forms import (
-    ArticleForm, AttachmentFormSet, CategoryForm, CourseForm, EnrollForm, LessonForm, RequestForm, SlotFormSet, DashboardLoginForm, LevelForm, PlacementForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
+    ArticleForm, AttachmentFormSet, CategoryForm, CohortForm, CourseForm, EnrollForm, LessonForm, RequestForm, SlotFormSet, DashboardLoginForm, LevelForm, PlacementForm, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
 )
 from .permissions import (
     SECTION_ARTICLES, SECTION_COURSES, SECTION_LEVELS, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_TEAM, SECTION_USERS,
@@ -503,8 +503,8 @@ def user_edit(request, pk):
 @section_required(SECTION_COURSES)
 def courses_list(request):
     ctx = base_context(request, active="courses")
-    ctx["courses"] = Course.objects.select_related("teacher").annotate(
-        lessons_count=Count("lessons", distinct=True), students_count=Count("enrollments", distinct=True),
+    ctx["courses"] = Course.objects.annotate(
+        cohorts_count=Count("cohorts", distinct=True), students_count=Count("enrollments", distinct=True),
     )
     return render(request, "dashboard/courses_list.html", ctx)
 
@@ -513,16 +513,12 @@ def courses_list(request):
 def course_form(request, pk=None):
     instance = get_object_or_404(Course, pk=pk) if pk else None
     form = CourseForm(request.POST or None, instance=instance)
-    slots = SlotFormSet(request.POST or None, instance=instance)
-    if request.method == "POST" and form.is_valid() and slots.is_valid():
+    if request.method == "POST" and form.is_valid():
         course = form.save()
-        slots.instance = course
-        slots.save()
         messages.success(request, "تم حفظ الكورس بنجاح.")
         return redirect("dashboard:course_edit", pk=course.pk)
     ctx = base_context(request, active="courses")
-    ctx.update({"form": form, "slots": slots, "instance": instance,
-                "title": "تعديل كورس" if instance else "إضافة كورس"})
+    ctx.update({"form": form, "instance": instance, "title": "تعديل كورس" if instance else "إضافة كورس"})
     return render(request, "dashboard/course_form.html", ctx)
 
 
@@ -538,58 +534,103 @@ def course_delete(request, pk):
     return render(request, "dashboard/confirm_delete.html", ctx)
 
 
+# --- Cohorts (a group or private student: teacher + own weekly times) ----------
+
 @section_required(SECTION_COURSES)
-def lessons_list(request, course_pk):
+def cohorts_list(request, course_pk):
     course = get_object_or_404(Course, pk=course_pk)
     ctx = base_context(request, active="courses")
-    ctx.update({"course": course, "lessons": course.lessons.all()})
+    ctx.update({"course": course, "cohorts": course.cohorts.select_related("teacher").annotate(
+        lessons_count=Count("lessons", distinct=True), students_count=Count("enrollments", distinct=True))})
+    return render(request, "dashboard/cohorts_list.html", ctx)
+
+
+@section_required(SECTION_COURSES, "write")
+def cohort_form(request, course_pk, pk=None):
+    course = get_object_or_404(Course, pk=course_pk)
+    instance = get_object_or_404(Cohort, pk=pk, course=course) if pk else None
+    form = CohortForm(request.POST or None, instance=instance)
+    slots = SlotFormSet(request.POST or None, instance=instance)
+    if request.method == "POST" and form.is_valid() and slots.is_valid():
+        cohort = form.save(commit=False)
+        cohort.course = course
+        cohort.save()
+        slots.instance = cohort
+        slots.save()
+        messages.success(request, "تم حفظ المجموعة بنجاح.")
+        return redirect("dashboard:cohort_edit", course_pk=course.pk, pk=cohort.pk)
+    ctx = base_context(request, active="courses")
+    ctx.update({"form": form, "slots": slots, "course": course, "instance": instance,
+                "title": "تعديل مجموعة" if instance else "إضافة مجموعة"})
+    return render(request, "dashboard/cohort_form.html", ctx)
+
+
+@section_required(SECTION_COURSES, "write")
+def cohort_delete(request, course_pk, pk):
+    instance = get_object_or_404(Cohort, pk=pk, course_id=course_pk)
+    if request.method == "POST":
+        instance.delete()
+        messages.success(request, "تم حذف المجموعة.")
+        return redirect("dashboard:cohorts_list", course_pk=course_pk)
+    ctx = base_context(request, active="courses")
+    ctx.update({"object": instance, "title": f"حذف {instance}", "cancel_url": "dashboard:cohorts_list",
+                "cancel_args": [course_pk]})
+    return render(request, "dashboard/confirm_delete.html", ctx)
+
+
+@section_required(SECTION_COURSES)
+def lessons_list(request, cohort_pk):
+    cohort = get_object_or_404(Cohort.objects.select_related("course"), pk=cohort_pk)
+    ctx = base_context(request, active="courses")
+    ctx.update({"cohort": cohort, "course": cohort.course, "lessons": cohort.lessons.all()})
     return render(request, "dashboard/lessons_list.html", ctx)
 
 
 @section_required(SECTION_COURSES, "write")
 @require_POST
-def lessons_generate(request, course_pk):
-    course = get_object_or_404(Course, pk=course_pk)
-    if not course.start_date or not course.slots.exists():
+def lessons_generate(request, cohort_pk):
+    cohort = get_object_or_404(Cohort, pk=cohort_pk)
+    if not cohort.start_date or not cohort.slots.exists():
         messages.error(request, "حدد تاريخ البداية وموعدًا أسبوعيًا واحدًا على الأقل أولًا.")
     else:
-        n = course.generate_lessons()
+        n = cohort.generate_lessons()
         messages.success(request, f"تم توليد {n} جلسة." if n else "كل الجلسات موجودة بالفعل.")
-    return redirect("dashboard:lessons_list", course_pk=course.pk)
+    return redirect("dashboard:lessons_list", cohort_pk=cohort.pk)
 
 
 @section_required(SECTION_COURSES, "write")
-def lesson_form(request, course_pk, pk=None):
-    course = get_object_or_404(Course, pk=course_pk)
-    instance = get_object_or_404(Lesson, pk=pk, course=course) if pk else None
+def lesson_form(request, cohort_pk, pk=None):
+    cohort = get_object_or_404(Cohort.objects.select_related("course"), pk=cohort_pk)
+    instance = get_object_or_404(Lesson, pk=pk, cohort=cohort) if pk else None
     form = LessonForm(request.POST or None, instance=instance)
     files = AttachmentFormSet(request.POST or None, request.FILES or None, instance=instance)
     if request.method == "POST" and form.is_valid() and files.is_valid():
         lesson = form.save(commit=False)
-        lesson.course = course
+        lesson.cohort = cohort
         lesson.save()
         files.instance = lesson
         files.save()
-        course._renumber()
+        cohort._renumber()
         messages.success(request, "تم حفظ الجلسة بنجاح.")
-        return redirect("dashboard:lessons_list", course_pk=course.pk)
+        return redirect("dashboard:lessons_list", cohort_pk=cohort.pk)
     ctx = base_context(request, active="courses")
-    ctx.update({"form": form, "files": files, "course": course, "instance": instance,
+    ctx.update({"form": form, "files": files, "cohort": cohort, "course": cohort.course, "instance": instance,
                 "title": "تعديل جلسة" if instance else "إضافة جلسة"})
     return render(request, "dashboard/lesson_form.html", ctx)
 
 
 @section_required(SECTION_COURSES, "write")
-def lesson_delete(request, course_pk, pk):
-    instance = get_object_or_404(Lesson, pk=pk, course_id=course_pk)
+def lesson_delete(request, cohort_pk, pk):
+    instance = get_object_or_404(Lesson.objects.select_related("cohort"), pk=pk, cohort_id=cohort_pk)
     if request.method == "POST":
+        cohort = instance.cohort
         instance.delete()
-        instance.course._renumber()
+        cohort._renumber()
         messages.success(request, "تم حذف الجلسة.")
-        return redirect("dashboard:lessons_list", course_pk=course_pk)
+        return redirect("dashboard:lessons_list", cohort_pk=cohort_pk)
     ctx = base_context(request, active="courses")
     ctx.update({"object": instance, "title": f"حذف {instance}", "cancel_url": "dashboard:lessons_list",
-                "cancel_args": [course_pk]})
+                "cancel_args": [cohort_pk]})
     return render(request, "dashboard/confirm_delete.html", ctx)
 
 
@@ -606,7 +647,8 @@ def enrollments_list(request, course_pk):
             messages.success(request, "تم تسجيل الطالب." if created else "الطالب مسجل بالفعل (تم تفعيل اشتراكه).")
             return redirect("dashboard:enrollments_list", course_pk=course.pk)
     ctx = base_context(request, active="courses")
-    ctx.update({"course": course, "form": form, "enrollments": course.enrollments.select_related("user")})
+    ctx.update({"course": course, "form": form, "cohorts": course.cohorts.all(),
+                "enrollments": course.enrollments.select_related("user", "cohort")})
     return render(request, "dashboard/enrollments_list.html", ctx)
 
 
@@ -621,24 +663,31 @@ def enrollment_action(request, course_pk, pk, action):
         enrollment.status = Enrollment.STATUS_CANCELLED if enrollment.is_active else Enrollment.STATUS_ACTIVE
         enrollment.save(update_fields=["status"])
         messages.success(request, "تم تحديث حالة الاشتراك.")
+    elif action == "assign":
+        # Put the student in a group (teacher + times); empty = unassigned.
+        cohort_id = request.POST.get("cohort") or None
+        cohort = get_object_or_404(Cohort, pk=cohort_id, course_id=course_pk) if cohort_id else None
+        enrollment.cohort = cohort
+        enrollment.save(update_fields=["cohort"])
+        messages.success(request, "تم تحديث مجموعة الطالب.")
     return redirect("dashboard:enrollments_list", course_pk=course_pk)
 
 
 @section_required(SECTION_COURSES, "write")
-def attendance_form(request, course_pk, pk):
-    lesson = get_object_or_404(Lesson.objects.select_related("course"), pk=pk, course_id=course_pk)
-    enrollments = list(lesson.course.enrollments.filter(status=Enrollment.STATUS_ACTIVE).select_related("user"))
+def attendance_form(request, cohort_pk, pk):
+    lesson = get_object_or_404(Lesson.objects.select_related("cohort__course"), pk=pk, cohort_id=cohort_pk)
+    enrollments = list(lesson.cohort.enrollments.filter(status=Enrollment.STATUS_ACTIVE).select_related("user"))
     if request.method == "POST":
         present_ids = set(request.POST.getlist("present"))
         for e in enrollments:
             status = Attendance.PRESENT if str(e.pk) in present_ids else Attendance.ABSENT
             Attendance.objects.update_or_create(lesson=lesson, enrollment=e, defaults={"status": status})
         messages.success(request, "تم حفظ الحضور.")
-        return redirect("dashboard:lessons_list", course_pk=course_pk)
+        return redirect("dashboard:lessons_list", cohort_pk=cohort_pk)
     marked = {a.enrollment_id: a.status for a in lesson.attendance.all()}
     rows = [{"enrollment": e, "present": marked.get(e.pk) == Attendance.PRESENT} for e in enrollments]
     ctx = base_context(request, active="courses")
-    ctx.update({"lesson": lesson, "course": lesson.course, "rows": rows})
+    ctx.update({"lesson": lesson, "cohort": lesson.cohort, "course": lesson.cohort.course, "rows": rows})
     return render(request, "dashboard/attendance_form.html", ctx)
 
 
@@ -673,7 +722,7 @@ def request_detail(request, pk):
             messages.success(request, "تم حفظ الطلب.")
             return redirect("dashboard:request_detail", pk=obj.pk)
     ctx = base_context(request, active="requests")
-    ctx.update({"obj": obj, "form": form, "can_enroll": bool(obj.user and obj.course),
+    ctx.update({"obj": obj, "form": form, "cohorts": obj.course.cohorts.all() if obj.course else [], "can_enroll": bool(obj.user and obj.course),
                 "enrolled": bool(obj.user and obj.course and Enrollment.objects.filter(user=obj.user, course=obj.course).exists())})
     return render(request, "dashboard/request_detail.html", ctx)
 
@@ -689,7 +738,10 @@ def request_enroll(request, pk):
         enrollment, _ = Enrollment.objects.get_or_create(user=obj.user, course=obj.course)
         if not enrollment.is_active:
             enrollment.status = Enrollment.STATUS_ACTIVE
-            enrollment.save(update_fields=["status"])
+        cohort_id = request.POST.get("cohort")
+        if cohort_id:
+            enrollment.cohort = get_object_or_404(Cohort, pk=cohort_id, course=obj.course)
+        enrollment.save()
         obj.status = EnrollmentRequest.STATUS_ENROLLED
         obj.save(update_fields=["status"])
         messages.success(request, "تم تسجيل الطالب في الكورس.")

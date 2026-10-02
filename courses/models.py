@@ -1,15 +1,16 @@
 import datetime
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.files.storage import FileSystemStorage
 from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 
-from levels.models import Level
 from team.models import TeamMember
 
+RESERVED_SLUGS = {"mine", "checkout", "lesson", "attachment"}
 WEEKDAYS = [
     (0, "الاثنين"), (1, "الثلاثاء"), (2, "الأربعاء"), (3, "الخميس"),
     (4, "الجمعة"), (5, "السبت"), (6, "الأحد"),
@@ -36,15 +37,9 @@ class Course(models.Model):
     audience = models.CharField(max_length=10, choices=AUDIENCE_CHOICES, default=AUDIENCE_STUDENTS)
     offers_group = models.BooleanField(default=True)
     offers_private = models.BooleanField(default=True)
-    price_group = models.PositiveIntegerField(null=True, blank=True, help_text="EGP; empty = use the level's price")
-    price_private = models.PositiveIntegerField(null=True, blank=True, help_text="EGP; empty = use the level's price")
+    price_group = models.PositiveIntegerField(null=True, blank=True, help_text="EGP")
+    price_private = models.PositiveIntegerField(null=True, blank=True, help_text="EGP")
 
-    teacher = models.ForeignKey(TeamMember, null=True, blank=True, on_delete=models.SET_NULL, related_name="courses")
-    level = models.ForeignKey(Level, null=True, blank=True, on_delete=models.SET_NULL, related_name="courses")
-
-    start_date = models.DateField(null=True, blank=True, help_text="First day sessions are generated from")
-    weeks = models.PositiveSmallIntegerField(default=8, validators=[MinValueValidator(1)],
-                                             help_text="How many weeks of sessions to generate")
     is_published = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -58,7 +53,8 @@ class Course(models.Model):
         if not self.slug:
             base = slugify(self.title_en or self.title_ar, allow_unicode=True) or "course"
             slug, n = base, 2
-            while Course.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            # "mine" / "checkout" / "lesson" / "attachment" are fixed URLs, not courses.
+            while slug in RESERVED_SLUGS or Course.objects.filter(slug=slug).exclude(pk=self.pk).exists():
                 slug, n = f"{base}-{n}", n + 1
             self.slug = slug
         super().save(*args, **kwargs)
@@ -66,15 +62,10 @@ class Course(models.Model):
     def localized(self, lang):
         def pick(ar, en):
             return en if lang == "en" and en else ar
-        teacher = self.teacher.localized(lang) if self.teacher else None
         return {
             "slug": self.slug, "audience": self.audience,
             "title": pick(self.title_ar, self.title_en),
             "description": pick(self.description_ar, self.description_en),
-            "teacher": teacher,
-            "level": self.level,
-            "start_date": self.start_date,
-            "schedule": list(self.slots.all()),
         }
 
     def allowed_modes(self):
@@ -86,13 +77,31 @@ class Course(models.Model):
         return modes
 
     def price_for(self, mode):
-        """Course price for a mode, falling back to the level's price."""
-        own = self.price_private if mode == "private" else self.price_group
-        if own is not None:
-            return own
-        if self.level:
-            return self.level.price_private if mode == "private" else self.level.price_group
-        return None
+        """The course's own price for a mode (courses are not tied to a level)."""
+        return self.price_private if mode == "private" else self.price_group
+
+
+class Cohort(models.Model):
+    """A teacher + schedule + students for one course.
+
+    Times are not fixed per course: each group (or private student, a cohort of
+    one) has its own teacher and weekly times agreed with the admin.
+    """
+
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="cohorts")
+    name = models.CharField(max_length=150, blank=True, help_text="e.g. مجموعة السبت والثلاثاء")
+    mode = models.CharField(max_length=10, choices=[("group", "جروب"), ("private", "خصوصي")], default="group")
+    teacher = models.ForeignKey(TeamMember, null=True, blank=True, on_delete=models.SET_NULL, related_name="cohorts")
+    start_date = models.DateField(null=True, blank=True, help_text="First day sessions are generated from")
+    weeks = models.PositiveSmallIntegerField(default=8, validators=[MinValueValidator(1)],
+                                             help_text="How many weeks of sessions to generate")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.course} — {self.name or self.get_mode_display()} #{self.pk}"
 
     def generate_lessons(self):
         """Create the sessions for every weekly slot; returns how many were new.
@@ -113,7 +122,7 @@ class Course(models.Model):
                 starts_at = timezone.make_aware(datetime.datetime.combine(day, slot.start_time), tz)
                 if starts_at not in existing:
                     Lesson.objects.create(
-                        course=self, slot=slot, starts_at=starts_at,
+                        cohort=self, slot=slot, starts_at=starts_at,
                         duration_minutes=slot.duration_minutes, title_ar="", title_en="",
                     )
                     existing.add(starts_at)
@@ -127,35 +136,26 @@ class Course(models.Model):
             if lesson.number != i:
                 Lesson.objects.filter(pk=lesson.pk).update(number=i)
 
-    def progress_for(self, enrollment):
-        """(attended, total past-or-held sessions, percent) for a student."""
-        total = self.lessons.count()
-        attended = Attendance.objects.filter(
-            enrollment=enrollment, status=Attendance.PRESENT, lesson__course=self,
-        ).count()
-        percent = round(attended / total * 100) if total else 0
-        return attended, total, percent
 
+class CohortSlot(models.Model):
+    """One recurring weekly session time of a cohort."""
 
-class CourseSlot(models.Model):
-    """One recurring weekly session time of a course."""
-
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="slots")
+    cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE, related_name="slots")
     weekday = models.PositiveSmallIntegerField(choices=WEEKDAYS)
     start_time = models.TimeField()
     duration_minutes = models.PositiveSmallIntegerField(default=60, validators=[MinValueValidator(5)])
 
     class Meta:
         ordering = ["weekday", "start_time"]
-        unique_together = [("course", "weekday", "start_time")]
+        unique_together = [("cohort", "weekday", "start_time")]
 
     def __str__(self):
         return f"{self.get_weekday_display()} {self.start_time:%H:%M}"
 
 
 class Lesson(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="lessons")
-    slot = models.ForeignKey(CourseSlot, null=True, blank=True, on_delete=models.SET_NULL, related_name="lessons")
+    cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE, related_name="lessons")
+    slot = models.ForeignKey(CohortSlot, null=True, blank=True, on_delete=models.SET_NULL, related_name="lessons")
     number = models.PositiveIntegerField(default=0)
     title_ar = models.CharField(max_length=200, blank=True)
     title_en = models.CharField(max_length=200, blank=True)
@@ -169,10 +169,14 @@ class Lesson(models.Model):
 
     class Meta:
         ordering = ["starts_at", "pk"]
-        unique_together = [("course", "starts_at")]
+        unique_together = [("cohort", "starts_at")]
 
     def __str__(self):
-        return f"{self.course} #{self.number}"
+        return f"{self.cohort.course} #{self.number}"
+
+    @property
+    def course(self):
+        return self.cohort.course
 
     @property
     def display_title_ar(self):
@@ -219,6 +223,8 @@ class Enrollment(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="enrollments")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
+    # Empty until the admin places the student in a group (teacher + times).
+    cohort = models.ForeignKey(Cohort, null=True, blank=True, on_delete=models.SET_NULL, related_name="enrollments")
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -232,6 +238,18 @@ class Enrollment(models.Model):
     @property
     def is_active(self):
         return self.status == self.STATUS_ACTIVE
+
+    def clean(self):
+        if self.cohort_id and self.cohort.course_id != self.course_id:
+            raise ValidationError({"cohort": "المجموعة تابعة لكورس آخر."})
+
+    def progress(self):
+        """(attended, total sessions, percent) over the student's own cohort."""
+        if not self.cohort_id:
+            return 0, 0, 0
+        total = self.cohort.lessons.count()
+        attended = self.attendance.filter(status=Attendance.PRESENT).count()
+        return attended, total, round(attended / total * 100) if total else 0
 
 
 class Attendance(models.Model):

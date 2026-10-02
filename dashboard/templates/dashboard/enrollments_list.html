@@ -14,14 +14,19 @@
 <div class="dash-table-wrap">
   {% if enrollments %}
   <table class="dash-table">
-    <thead><tr><th>الطالب</th><th>البريد</th><th>الحالة</th><th>التقدم</th>{% if can_write_courses %}<th></th>{% endif %}</tr></thead>
+    <thead><tr><th>الطالب</th><th>البريد</th><th>الحالة</th><th>المجموعة</th>{% if can_write_courses %}<th></th>{% endif %}</tr></thead>
     <tbody>
     {% for e in enrollments %}
       <tr>
         <td>{{ e.user.get_full_name|default:e.user.username }}</td>
         <td>{{ e.user.email }}</td>
         <td>{{ e.get_status_display }}</td>
-        <td>{{ e.attendance.all|length }} سجل حضور</td>
+        <td>{% if can_write_courses %}
+          <form method="post" action="{% url 'dashboard:enrollment_action' course.pk e.pk 'assign' %}" style="display:flex;gap:6px;">{% csrf_token %}
+            <select name="cohort" class="field"><option value="">— غير محدد —</option>
+              {% for c in cohorts %}<option value="{{ c.pk }}" {% if c.pk == e.cohort_id %}selected{% endif %}>{{ c.name|default:c.get_mode_display }} #{{ c.pk }}</option>{% endfor %}
+            </select><button type="submit" class="btn btn-outline">حفظ</button></form>
+          {% else %}{{ e.cohort|default:"—" }}{% endif %}</td>
         {% if can_write_courses %}
         <td><div class="dash-table-actions">
           <form method="post" action="{% url 'dashboard:enrollment_action' course.pk e.pk 'toggle' %}">{% csrf_token %}<button type="submit" class="btn btn-outline">{% if e.is_active %}إلغاء الاشتراك{% else %}تفعيل{% endif %}</button></form>

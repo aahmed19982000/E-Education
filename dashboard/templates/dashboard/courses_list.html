@@ -9,18 +9,17 @@
 <div class="dash-table-wrap">
   {% if courses %}
   <table class="dash-table">
-    <thead><tr><th>الكورس</th><th>النوع</th><th>المدرس</th><th>الجلسات</th><th>الطلاب</th><th>الحالة</th><th></th></tr></thead>
+    <thead><tr><th>الكورس</th><th>النوع</th><th>المجموعات</th><th>الطلاب</th><th>الحالة</th><th></th></tr></thead>
     <tbody>
     {% for c in courses %}
       <tr>
         <td class="wrap">{{ c.title_ar }}</td>
         <td>{{ c.get_audience_display }}</td>
-        <td>{{ c.teacher.name_ar|default:"—" }}</td>
-        <td>{{ c.lessons_count }}</td>
+        <td>{{ c.cohorts_count }}</td>
         <td>{{ c.students_count }}</td>
         <td>{% if c.is_published %}منشور{% else %}مسودة{% endif %}</td>
         <td><div class="dash-table-actions">
-          <a href="{% url 'dashboard:lessons_list' c.pk %}">الجلسات</a>
+          <a href="{% url 'dashboard:cohorts_list' c.pk %}">المجموعات والمواعيد</a>
           <a href="{% url 'dashboard:enrollments_list' c.pk %}">الطلاب</a>
           {% if can_write_courses %}
             <a href="{% url 'dashboard:course_edit' c.pk %}">تعديل</a>

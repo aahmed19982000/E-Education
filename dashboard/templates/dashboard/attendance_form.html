@@ -11,7 +11,7 @@
     {% empty %}<p>لا يوجد طلاب نشطون.</p>{% endfor %}
     <div class="dash-form-actions">
       <button type="submit" class="btn btn-primary">حفظ الحضور</button>
-      <a class="btn btn-outline" href="{% url 'dashboard:lessons_list' course.pk %}">إلغاء</a>
+      <a class="btn btn-outline" href="{% url 'dashboard:lessons_list' cohort.pk %}">إلغاء</a>
     </div>
   </form>
 </div>

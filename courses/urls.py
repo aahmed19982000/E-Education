@@ -10,6 +10,6 @@ urlpatterns = [
     path("lesson/<int:pk>/", views.lesson_detail, name="lesson"),
     path("attachment/<int:pk>/", views.attachment_download, name="attachment"),
     path("checkout/<int:pk>/", views.checkout, name="checkout"),
-    path("<slug:slug>/apply/", views.apply, name="apply"),
-    path("<slug:slug>/", views.course_detail, name="detail"),
+    path("<str:slug>/apply/", views.apply, name="apply"),
+    path("<str:slug>/", views.course_detail, name="detail"),
 ]

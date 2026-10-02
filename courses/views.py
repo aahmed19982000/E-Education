@@ -9,14 +9,14 @@ from django.utils import timezone
 from core.translations import get_translations
 from quiz.models import PlacementResult
 
-from .access import can_view_course_material, has_active_enrollment
+from .access import can_view_lesson_material, has_active_enrollment, is_staff_user
 from .forms import ApplyForm
 from .models import Attendance, Course, Enrollment, EnrollmentRequest, Lesson, LessonAttachment
 
 
 def course_list(request):
     audience = request.GET.get("for", "")
-    courses = Course.objects.filter(is_published=True).select_related("teacher", "level")
+    courses = Course.objects.filter(is_published=True)
     if audience in dict(Course.AUDIENCE_CHOICES):
         courses = courses.filter(audience=audience)
     else:
@@ -27,15 +27,22 @@ def course_list(request):
 
 
 def course_detail(request, slug):
-    course = get_object_or_404(Course.objects.select_related("teacher", "level"), slug=slug)
-    if not course.is_published and not can_view_course_material(request.user, course):
+    course = get_object_or_404(Course, slug=slug)
+    if not course.is_published and not is_staff_user(request.user):
         raise Http404
     lang = request.lang
-    # The public page lists session dates only; Zoom / recordings live on the lesson page.
+    # Times differ per group/student, so the page shows only the viewer's own sessions
+    # (dates only; Zoom / recordings live on the lesson page).
+    enrollment = None
+    if request.user.is_authenticated:
+        enrollment = Enrollment.objects.filter(
+            user=request.user, course=course, status=Enrollment.STATUS_ACTIVE).select_related("cohort").first()
+    my_lessons = enrollment.cohort.lessons.all() if enrollment and enrollment.cohort_id else []
     return render(request, "courses/detail.html", {
         "course": course.localized(lang),
         "prices": {m: course.price_for(m) for m in course.allowed_modes()},
-        "lessons": [l.localized(lang) for l in course.lessons.all()],
+        "lessons": [l.localized(lang) for l in my_lessons],
+        "placed": bool(enrollment and enrollment.cohort_id),
         "enrolled": has_active_enrollment(request.user, course),
     })
 
@@ -46,13 +53,15 @@ def my_courses(request):
     now = timezone.now()
     cards = []
     enrollments = (Enrollment.objects.filter(user=request.user, status=Enrollment.STATUS_ACTIVE)
-                   .select_related("course__teacher", "course__level"))
+                   .select_related("course", "cohort__teacher"))
     for enrollment in enrollments:
         course = enrollment.course
-        attended, total, percent = course.progress_for(enrollment)
-        nxt = course.lessons.filter(starts_at__gte=now).first()
+        attended, total, percent = enrollment.progress()
+        cohort = enrollment.cohort
+        nxt = cohort.lessons.filter(starts_at__gte=now).first() if cohort else None
         cards.append({
-            "course": course.localized(lang), "attended": attended, "total": total, "percent": percent,
+            "course": course.localized(lang), "teacher": cohort.teacher.localized(lang) if cohort and cohort.teacher else None,
+            "placed": cohort is not None, "attended": attended, "total": total, "percent": percent,
             "attended_label": get_translations(lang)["courses"]["attended"].format(a=attended, t=total),
             "next": nxt.localized(lang) if nxt else None,
         })
@@ -61,17 +70,17 @@ def my_courses(request):
 
 @login_required
 def lesson_detail(request, pk):
-    lesson = get_object_or_404(Lesson.objects.select_related("course"), pk=pk)
-    course = lesson.course
-    if not can_view_course_material(request.user, course):
+    lesson = get_object_or_404(Lesson.objects.select_related("cohort__course"), pk=pk)
+    course = lesson.cohort.course
+    if not can_view_lesson_material(request.user, lesson):
         raise Http404  # private material: don't reveal it exists
-    enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
+    enrollment = Enrollment.objects.filter(user=request.user, cohort=lesson.cohort).first()
     attendance = None
     placement = None
     if enrollment:
         attendance = Attendance.objects.filter(lesson=lesson, enrollment=enrollment).first()
         # The level-test result is surfaced on the student's first session only.
-        if course.lessons.first() == lesson:
+        if lesson.cohort.lessons.first() == lesson:
             placement = PlacementResult.objects.filter(user=request.user).select_related("level").first()
     lang = request.lang
     level_name = ""
@@ -92,8 +101,8 @@ def lesson_detail(request, pk):
 
 @login_required
 def attachment_download(request, pk):
-    attachment = get_object_or_404(LessonAttachment.objects.select_related("lesson__course"), pk=pk)
-    if not can_view_course_material(request.user, attachment.lesson.course):
+    attachment = get_object_or_404(LessonAttachment.objects.select_related("lesson__cohort"), pk=pk)
+    if not can_view_lesson_material(request.user, attachment.lesson):
         raise Http404
     return FileResponse(attachment.file.open("rb"), as_attachment=True, filename=attachment.file.name.rsplit("/", 1)[-1])
 
@@ -131,7 +140,7 @@ def apply(request, slug):
 @login_required
 def checkout(request, pk):
     """Step 2 (signed-in only): payment. Paid or not, the request is already with the admin."""
-    enrollment_request = get_object_or_404(EnrollmentRequest.objects.select_related("course__level"), pk=pk)
+    enrollment_request = get_object_or_404(EnrollmentRequest.objects.select_related("course"), pk=pk)
     if enrollment_request.user_id is None and pk in request.session.get(SESSION_REQUESTS, []):
         enrollment_request.user = request.user
         enrollment_request.save(update_fields=["user"])

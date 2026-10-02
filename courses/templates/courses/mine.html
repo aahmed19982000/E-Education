@@ -8,7 +8,8 @@
     {% for c in cards %}
     <div class="team-card">
       <div class="team-name"><a href="{% url 'courses:detail' slug=c.course.slug %}">{{ c.course.title }}</a></div>
-      {% if c.course.teacher %}<div class="team-role">{{ c.course.teacher.name }}</div>{% endif %}
+      {% if c.teacher %}<div class="team-role">{{ c.teacher.name }}</div>{% endif %}
+      {% if not c.placed %}<div>{{ t.courses.waitingPlacement }}</div>{% endif %}
       <div style="margin:12px 0;">
         <div style="background:var(--cream);border-radius:999px;height:10px;overflow:hidden;">
           <div style="width:{{ c.percent }}%;height:100%;background:var(--accent);"></div>
