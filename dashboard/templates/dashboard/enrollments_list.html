@@ -18,7 +18,7 @@
     <tbody>
     {% for e in enrollments %}
       <tr>
-        <td>{{ e.user.get_full_name|default:e.user.username }}</td>
+        <td><a href="{% url 'dashboard:student_detail' e.user.pk %}"><b>{{ e.user.get_full_name|default:e.user.username }}</b></a></td>
         <td>{{ e.user.email }}</td>
         <td>{{ e.get_status_display }}</td>
         <td>{% if can_write_courses %}

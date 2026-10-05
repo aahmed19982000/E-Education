@@ -1,0 +1,102 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ cohort.name|default:"مجموعة" }} #{{ cohort.pk }}{% endblock %}
+{% block page_title %}تفاصيل المجموعة{% endblock %}
+{% block content %}
+<div class="ch-hero">
+  <div class="ch-hero-top">
+    <div>
+      <div class="ch-crumb"><a href="{% url 'dashboard:all_cohorts' %}">المجموعات</a> / {{ course.title_ar }}</div>
+      <h2>{{ cohort.name|default:"مجموعة" }} <small style="color:var(--muted);font-size:14px;">#{{ cohort.pk }}</small></h2>
+      <span class="ch-pill {{ stage }}">{% if cohort.is_locked %}🔒 {% endif %}{{ stage_label }}</span>
+      <span class="ch-pill muted">{{ cohort.get_mode_display }}</span>
+    </div>
+    <div class="ch-hero-actions">
+      <a class="btn btn-outline" href="{% url 'dashboard:lessons_list' cohort.pk %}">الجلسات ({{ lessons_count }})</a>
+      {% if can_write_courses %}
+        <a class="btn btn-outline" href="{% url 'dashboard:cohort_edit' course.pk cohort.pk %}">تعديل</a>
+        {% if cohort.is_forming %}
+          <form method="post" action="{% url 'dashboard:cohort_confirm' course.pk cohort.pk %}" style="display:inline">{% csrf_token %}
+            {% if cohort.is_ready_to_confirm %}
+              <button class="btn btn-accent" type="submit">إطلاق المجموعة</button>
+            {% else %}
+              <input type="hidden" name="force" value="1">
+              <button class="btn btn-outline" type="submit" onclick="return confirm('العدد لم يكتمل ({{ taken }} / {{ cohort.min_students }}). إطلاق المجموعة الآن سيقفلها أمام أي إدخال أو إخراج. متابعة؟')">إطلاق قبل اكتمال العدد</button>
+            {% endif %}
+          </form>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  <dl class="ch-meta">
+    <div><dt>المدرس</dt><dd>{% if cohort.teacher %}{{ cohort.teacher.name_ar }}{% else %}<span style="color:#a33333">لم يُسند بعد</span>{% endif %}</dd></div>
+    <div><dt>بداية الجلسات</dt><dd>{{ cohort.start_date|date:"Y-m-d"|default:"—" }} · {{ cohort.weeks }} أسبوع</dd></div>
+    <div><dt>المواعيد</dt><dd>{% for sl in cohort.slots.all %}{{ sl.get_weekday_display }} {{ sl.start_time|time:"H:i" }}{% if not forloop.last %}، {% endif %}{% empty %}—{% endfor %}</dd></div>
+    {% if cohort.mode == 'group' %}
+    <div><dt>الطلاب (الحد الأدنى / الأقصى)</dt>
+      <dd>{{ taken }} / {{ cohort.min_students }} · حتى {{ cohort.max_students }}
+        <div class="ch-progress {% if taken >= cohort.min_students %}full{% endif %}" style="margin-top:7px;"><i style="width:{{ percent }}%"></i></div></dd></div>
+    {% endif %}
+    <div><dt>أنهوا اختبار المستوى</dt><dd>{{ tested }} من {{ students_total }}</dd></div>
+    <div><dt>أتمّوا الدفع</dt><dd>{{ paid_count }} من {{ students_total }}</dd></div>
+  </dl>
+</div>
+
+{% if cohort.is_locked %}
+  <div class="ch-lock">🔒 المجموعة مُطلقة ومُسندة لمدرس: لا يمكن إدخال طلاب إليها ولا إخراجهم منها.</div>
+{% elif cohort.is_forming and not cohort.teacher %}
+  <div class="ch-hint">أسند مدرسًا للمجموعة (من «تعديل») ليمكن إطلاقها. بعد الإطلاق تُقفل قائمة الطلاب.</div>
+{% endif %}
+
+<div class="ch-sec"><h3>طلاب المجموعة ({{ students_total }})</h3></div>
+<div class="dash-table-wrap">
+  {% if rows %}
+  <table class="dash-table">
+    <thead><tr><th>الطالب</th><th>الحالة</th><th>اختبار المستوى</th><th>الدفع</th>{% if can_write_courses and not cohort.is_locked %}<th>إجراءات</th>{% endif %}</tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><div class="ch-person"><span class="ch-avatar">{{ r.name|slice:":1" }}</span>
+          <div><a href="{% url 'dashboard:student_detail' r.user.pk %}">{{ r.name }}</a><small>{{ r.user.email }}{% if r.user.profile.phone %} · {{ r.user.profile.phone }}{% endif %}</small></div></div></td>
+        <td>{% if r.waiting %}<span class="ch-pill forming">بانتظار الإطلاق</span>{% elif r.active %}<span class="ch-pill launched">مسجّل</span>{% else %}<span class="ch-pill muted">اشتراك ملغي</span>{% endif %}</td>
+        <td>{% if r.result %}<span class="ch-score {% if r.result.percent >= 70 %}high{% elif r.result.percent >= 40 %}mid{% else %}low{% endif %}">{{ r.result.percent }}%</span> <small style="color:var(--muted)">{{ r.result.created_at|date:"Y-m-d" }}</small>{% else %}<span class="ch-pill muted">لم يُنهِه</span>{% endif %}</td>
+        <td>{% if r.paid %}<span class="ch-pill paid">دفع</span>{% else %}<span class="ch-pill unpaid">لم يدفع</span>{% endif %}</td>
+        {% if can_write_courses and not cohort.is_locked %}
+        <td><div class="ch-row-actions">
+          {% if others %}
+          <form method="post" action="{% url 'dashboard:student_action' %}" class="ch-row-actions">{% csrf_token %}
+            <input type="hidden" name="kind" value="{{ r.kind }}"><input type="hidden" name="id" value="{{ r.obj.pk }}">
+            <input type="hidden" name="action" value="move"><input type="hidden" name="next" value="{{ request.path }}">
+            <select name="cohort" required><option value="">نقل إلى…</option>
+              {% for o in others %}<option value="{{ o.pk }}">{{ o.name|default:"مجموعة" }} #{{ o.pk }}{% if o.mode == 'group' %} ({{ o.seats_taken }}/{{ o.max_students }}){% endif %}</option>{% endfor %}</select>
+            <button class="btn btn-outline" type="submit">نقل</button>
+          </form>
+          {% endif %}
+          <form method="post" action="{% url 'dashboard:student_action' %}" onsubmit="return confirm('إخراج {{ r.name|escapejs }} من المجموعة؟')">{% csrf_token %}
+            <input type="hidden" name="kind" value="{{ r.kind }}"><input type="hidden" name="id" value="{{ r.obj.pk }}">
+            <input type="hidden" name="action" value="remove"><input type="hidden" name="next" value="{{ request.path }}">
+            <button class="btn danger-outline" type="submit">إخراج</button>
+          </form>
+        </div></td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="dash-empty">لا يوجد طلاب في هذه المجموعة بعد.</div>{% endif %}
+</div>
+
+{% if can_write_courses and not cohort.is_locked %}
+<div class="ch-sec"><h3>إضافة طالب</h3></div>
+{% if addable %}
+<form class="ch-add" method="post" action="{% url 'dashboard:student_action' %}">{% csrf_token %}
+  <input type="hidden" name="cohort" value="{{ cohort.pk }}"><input type="hidden" name="action" value="move"><input type="hidden" name="next" value="{{ request.path }}">
+  <select name="target" required onchange="var p=this.value.split(':');this.form.kind.value=p[0];this.form.id.value=p[1];">
+    <option value="">اختر طالبًا من طلاب الكورس غير الموزّعين…</option>
+    {% for kind, pk, name in addable %}<option value="{{ kind }}:{{ pk }}">{{ name }}{% if kind == 'request' %} (طلب اشتراك){% endif %}</option>{% endfor %}
+  </select>
+  <input type="hidden" name="kind" value=""><input type="hidden" name="id" value="">
+  <button class="btn btn-primary" type="submit">إضافة للمجموعة</button>
+</form>
+{% else %}<div class="ch-empty" style="padding:22px;">لا يوجد طلاب غير موزّعين في هذا الكورس. يمكنك أيضًا توجيه أي طالب من صفحته أو من صفحة طلب الاشتراك.</div>{% endif %}
+{% endif %}
+{% endblock %}

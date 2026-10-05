@@ -3,8 +3,9 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
 from django.db import models
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
@@ -19,6 +20,8 @@ from django.db.models import Avg, Count
 import datetime
 from django.utils import timezone
 from courses.models import CohortSlot
+from courses import placement
+from quiz.models import PlacementResult
 
 from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
 
@@ -557,27 +560,169 @@ def cohorts_list(request, course_pk):
     return render(request, "dashboard/cohorts_list.html", ctx)
 
 
+def _student_facts(user_ids, course_ids=None):
+    """Level-test result and payment per student, fetched in two queries.
+
+    Returns ({user_id: latest PlacementResult}, {(user_id, course_id): True when a request is paid}).
+    """
+    results = {}
+    for r in PlacementResult.objects.filter(user_id__in=user_ids).order_by("created_at"):
+        results[r.user_id] = r  # ascending, so the latest wins
+    paid = {}
+    reqs = EnrollmentRequest.objects.filter(user_id__in=user_ids, payment_status=EnrollmentRequest.PAYMENT_PAID)
+    for user_id, course_id in reqs.values_list("user_id", "course_id"):
+        paid[(user_id, course_id)] = True
+    return results, paid
+
+
+def _cohort_stage(c):
+    """(key, label) of where a cohort is in its life, used for the pill and the filters."""
+    if c.mode == "private":
+        return "private", "خصوصي"
+    if c.is_locked:
+        return "launched", "مُطلقة"
+    if c.confirmed_at:
+        return "launched", "مُطلقة (بلا مدرس)"
+    if c.is_ready_to_confirm:
+        return "ready", "اكتمل العدد"
+    return "forming", "قيد التكوين"
+
+
 @section_required(SECTION_COURSES)
 def all_cohorts(request):
     """Every group of every course in one place, filterable by where it is in its life."""
     current = request.GET.get("status", "all")
-    qs = Cohort.objects.select_related("course", "teacher").annotate(
-        lessons_count=Count("lessons", distinct=True), students_count=Count("enrollments", distinct=True),
-    ).prefetch_related("requests", "enrollments__user")
-    if current == "private":
-        qs = qs.filter(mode="private")
-    elif current in ("forming", "ready", "confirmed"):
-        qs = qs.filter(mode="group", confirmed_at__isnull=current != "confirmed")
+    query = request.GET.get("q", "").strip()
+    qs = Cohort.objects.select_related("course", "teacher").prefetch_related("requests", "enrollments", "slots").annotate(
+        lessons_count=Count("lessons", distinct=True))
+    if query:
+        qs = qs.filter(models.Q(name__icontains=query) | models.Q(course__title_ar__icontains=query)
+                       | models.Q(teacher__name_ar__icontains=query))
     cohorts = list(qs)
-    if current == "ready":
-        cohorts = [c for c in cohorts if c.is_ready_to_confirm]
-    elif current == "forming":
-        cohorts = [c for c in cohorts if not c.is_ready_to_confirm]
+    for c in cohorts:
+        c.stage, c.stage_label = _cohort_stage(c)
+        c.taken = c.seats_taken()
+        c.percent = min(round(c.taken / c.min_students * 100), 100) if c.mode == "group" and c.min_students else 100
+    counts = {key: sum(1 for c in cohorts if c.stage == key) for key in ("forming", "ready", "launched", "private")}
+    counts["all"] = len(cohorts)
+    if current in counts and current != "all":
+        cohorts = [c for c in cohorts if c.stage == current]
     ctx = base_context(request, active="cohorts")
-    ctx.update({"cohorts": cohorts, "course": None, "current": current, "filters": [
+    ctx.update({"cohorts": cohorts, "current": current, "query": query, "counts": counts, "filters": [
         ("all", "الكل"), ("forming", "قيد التكوين"), ("ready", "اكتمل العدد"),
-        ("confirmed", "مؤكدة"), ("private", "خصوصي")]})
-    return render(request, "dashboard/cohorts_list.html", ctx)
+        ("launched", "مُطلقة"), ("private", "خصوصي")]})
+    return render(request, "dashboard/cohorts_all.html", ctx)
+
+
+@section_required(SECTION_COURSES)
+def cohort_detail(request, pk):
+    cohort = get_object_or_404(Cohort.objects.select_related("course", "teacher"), pk=pk)
+    course = cohort.course
+    enrollments = list(cohort.enrollments.select_related("user", "user__profile"))
+    waiting = list(cohort.waiting_requests().select_related("user", "user__profile"))
+    results, paid = _student_facts([e.user_id for e in enrollments] + [r.user_id for r in waiting])
+    rows = []
+    for e in enrollments:
+        rows.append({"kind": "enrollment", "obj": e, "user": e.user, "name": e.user.get_full_name() or e.user.email,
+                     "active": e.is_active, "result": results.get(e.user_id),
+                     "paid": paid.get((e.user_id, course.pk), False), "since": e.created_at})
+    for r in waiting:
+        rows.append({"kind": "request", "obj": r, "user": r.user, "name": r.full_name, "active": True, "waiting": True,
+                     "result": results.get(r.user_id), "paid": r.is_paid or paid.get((r.user_id, course.pk), False),
+                     "since": r.created_at})
+    others = [c for c in course.cohorts.exclude(pk=cohort.pk) if not c.is_locked and (c.mode == "private" or c.seats_left)]
+    # Students of this course not in any group yet, who can be added here.
+    placed = set(course.enrollments.exclude(cohort=None).values_list("user_id", flat=True))
+    placed |= set(course.requests.filter(status=EnrollmentRequest.STATUS_WAITING).values_list("user_id", flat=True))
+    addable = []
+    for e in course.enrollments.filter(cohort=None, status=Enrollment.STATUS_ACTIVE).select_related("user"):
+        addable.append(("enrollment", e.pk, e.user.get_full_name() or e.user.email))
+    for r in course.requests.filter(user__isnull=False, kind=EnrollmentRequest.KIND_STUDENT,
+                                    status__in=[EnrollmentRequest.STATUS_NEW, EnrollmentRequest.STATUS_CONTACTED,
+                                                EnrollmentRequest.STATUS_TEACHER_ASSIGNED]).select_related("user"):
+        if r.user_id not in placed and not course.enrollments.filter(user_id=r.user_id).exists():
+            addable.append(("request", r.pk, r.full_name))
+    stage, stage_label = _cohort_stage(cohort)
+    taken = cohort.seats_taken()
+    ctx = base_context(request, active="cohorts")
+    ctx.update({"cohort": cohort, "course": course, "rows": rows, "others": others, "addable": addable,
+                "stage": stage, "stage_label": stage_label, "taken": taken,
+                "percent": min(round(taken / cohort.min_students * 100), 100) if cohort.min_students else 100,
+                "lessons_count": cohort.lessons.count(), "students_total": len(rows),
+                "tested": sum(1 for r in rows if r["result"]), "paid_count": sum(1 for r in rows if r["paid"])})
+    return render(request, "dashboard/cohort_detail.html", ctx)
+
+
+def _safe_next(request, default):
+    target = request.POST.get("next") or ""
+    return target if target and url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}) else default
+
+
+@section_required(SECTION_COURSES, "write")
+@require_POST
+def student_action(request, pk=None):
+    """Move a student to another group, take them out, or add them to one (cohort page and student page).
+
+    `kind` is the enrollment (already in the course) or the request (waiting / not yet placed).
+    All rules, including the freeze on launched groups, live in `courses.placement`.
+    """
+    kind, obj_pk, action = request.POST.get("kind"), request.POST.get("id"), request.POST.get("action")
+    target = None
+    if request.POST.get("cohort"):
+        target = get_object_or_404(Cohort, pk=request.POST["cohort"])
+    if kind == "enrollment":
+        obj = get_object_or_404(Enrollment.objects.select_related("cohort", "course"), pk=obj_pk)
+    elif kind == "request":
+        obj = get_object_or_404(EnrollmentRequest.objects.select_related("cohort", "course", "user"), pk=obj_pk)
+    else:
+        raise Http404
+    course_id = obj.course_id
+    if action == "remove":
+        error = placement.remove_enrollment(obj) if kind == "enrollment" else placement.remove_waiting(obj)
+    elif target is None or target.course_id != course_id:
+        error = "اختر مجموعة تابعة لنفس الكورس."
+    elif kind == "enrollment":
+        error = placement.move_enrollment(obj, target)
+    else:
+        error = placement.place_request(obj, target)
+    if error:
+        messages.error(request, error)
+    else:
+        messages.success(request, "تم إخراج الطالب من المجموعة." if action == "remove" else "تم نقل الطالب إلى المجموعة.")
+    return redirect(_safe_next(request, reverse("dashboard:all_cohorts")))
+
+
+@section_required(SECTION_COURSES)
+def student_detail(request, user_pk):
+    student = get_object_or_404(User.objects.select_related("profile"), pk=user_pk)
+    enrollments = list(student.enrollments.select_related("course", "cohort", "cohort__teacher"))
+    requests_ = list(student.enrollment_requests.select_related("course", "cohort"))
+    results, paid = _student_facts([student.pk])
+    if not (enrollments or requests_ or PlacementResult.objects.filter(user=student).exists()):
+        raise Http404
+    items = []
+    seen = set()
+    for e in enrollments:
+        seen.add(e.course_id)
+        attended, total, pct = e.progress()
+        items.append({"kind": "enrollment", "obj": e, "course": e.course, "cohort": e.cohort,
+                      "paid": paid.get((student.pk, e.course_id), False),
+                      "attended": attended, "total": total, "percent": pct})
+    for r in requests_:
+        if r.course_id in seen or not r.course_id or r.kind != EnrollmentRequest.KIND_STUDENT:
+            continue
+        items.append({"kind": "request", "obj": r, "course": r.course, "cohort": r.cohort, "paid": r.is_paid})
+    for item in items:
+        locked = item["cohort"] is not None and item["cohort"].is_locked
+        item["locked"] = locked
+        item["options"] = [] if locked else [
+            c for c in item["course"].cohorts.all()
+            if c.pk != (item["cohort"].pk if item["cohort"] else None) and not c.is_locked
+            and (c.mode == "private" or c.seats_left)]
+    ctx = base_context(request, active="cohorts")
+    ctx.update({"student": student, "phone": getattr(getattr(student, "profile", None), "phone", ""),
+                "items": items, "placements": student.placement_results.all(), "latest": results.get(student.pk)})
+    return render(request, "dashboard/student_detail.html", ctx)
 
 
 @section_required(SECTION_COURSES, "write")
@@ -690,8 +835,10 @@ def enrollments_list(request, course_pk):
 @section_required(SECTION_COURSES, "write")
 @require_POST
 def enrollment_action(request, course_pk, pk, action):
-    enrollment = get_object_or_404(Enrollment, pk=pk, course_id=course_pk)
-    if action == "delete":
+    enrollment = get_object_or_404(Enrollment.objects.select_related("cohort"), pk=pk, course_id=course_pk)
+    if action in ("delete", "toggle") and enrollment.cohort_id and enrollment.cohort.is_locked and enrollment.is_active:
+        messages.error(request, placement.LOCKED)
+    elif action == "delete":
         enrollment.delete()
         messages.success(request, "تم حذف التسجيل.")
     elif action == "toggle":
@@ -702,9 +849,11 @@ def enrollment_action(request, course_pk, pk, action):
         # Put the student in a group (teacher + times); empty = unassigned.
         cohort_id = request.POST.get("cohort") or None
         cohort = get_object_or_404(Cohort, pk=cohort_id, course_id=course_pk) if cohort_id else None
-        enrollment.cohort = cohort
-        enrollment.save(update_fields=["cohort"])
-        messages.success(request, "تم تحديث مجموعة الطالب.")
+        error = placement.move_enrollment(enrollment, cohort) if cohort else placement.remove_enrollment(enrollment)
+        if error:
+            messages.error(request, error)
+        else:
+            messages.success(request, "تم تحديث مجموعة الطالب.")
     return redirect("dashboard:enrollments_list", course_pk=course_pk)
 
 
@@ -777,39 +926,31 @@ def request_detail(request, pk):
     return render(request, "dashboard/request_detail.html", ctx)
 
 
-def _already_in(req, cohort):
-    """True when the request's student already holds a seat in this cohort (waiting or enrolled)."""
-    return (req.cohort_id == cohort.pk and req.status == EnrollmentRequest.STATUS_WAITING) or \
-        Enrollment.objects.filter(user=req.user, course=req.course, cohort=cohort).exists()
-
-
 @section_required(SECTION_REQUESTS, "write")
 @require_POST
 def request_enroll(request, pk):
     """Once the teacher and times are agreed, place the student.
 
     A forming group only collects the student on its waiting list (staff-only);
-    they are enrolled, and see the course, when the group is confirmed.
+    they are enrolled, and see the course, when the group is launched.
     """
-    obj = get_object_or_404(EnrollmentRequest, pk=pk)
+    obj = get_object_or_404(EnrollmentRequest.objects.select_related("user", "course", "cohort"), pk=pk)
     cohort = None
     if request.POST.get("cohort"):
         cohort = get_object_or_404(Cohort, pk=request.POST["cohort"], course=obj.course)
     if not (obj.user and obj.course):
         messages.error(request, "لا يمكن التسجيل: الطالب لم ينشئ حسابًا بعد.")
-    elif cohort and cohort.mode == "group" and cohort.seats_left == 0 and not _already_in(obj, cohort):
-        messages.error(request, "المجموعة مكتملة العدد.")
-    elif cohort and cohort.is_forming:
-        obj.cohort = cohort
-        obj.status = EnrollmentRequest.STATUS_WAITING
-        obj.save(update_fields=["cohort", "status"])
-        messages.success(request, f"أُضيف الطالب إلى قائمة انتظار المجموعة ({cohort.seats_taken()} / {cohort.min_students}).")
+    elif cohort:
+        error = placement.place_request(obj, cohort)
+        if error:
+            messages.error(request, error)
+        elif obj.status == EnrollmentRequest.STATUS_WAITING:
+            messages.success(request, f"أُضيف الطالب إلى قائمة انتظار المجموعة ({cohort.seats_taken()} / {cohort.min_students}).")
+        else:
+            messages.success(request, "تم تسجيل الطالب في الكورس.")
     else:
         enrollment, _ = Enrollment.objects.get_or_create(user=obj.user, course=obj.course)
-        if not enrollment.is_active:
-            enrollment.status = Enrollment.STATUS_ACTIVE
-        if cohort:
-            enrollment.cohort = cohort
+        enrollment.status = Enrollment.STATUS_ACTIVE
         enrollment.save()
         obj.status = EnrollmentRequest.STATUS_ENROLLED
         obj.save(update_fields=["status"])
@@ -820,13 +961,19 @@ def request_enroll(request, pk):
 @section_required(SECTION_COURSES, "write")
 @require_POST
 def cohort_confirm(request, course_pk, pk):
-    """Staff start a group whose waiting list reached the minimum: enrol everyone and make the sessions."""
+    """Launch a group: enrol everyone waiting and make the sessions. Needs a teacher.
+
+    Normally waits for the minimum; staff can launch earlier on purpose (`force`).
+    After this the group is frozen (see `Cohort.is_locked`).
+    """
     cohort = get_object_or_404(Cohort, pk=pk, course_id=course_pk)
     if not cohort.is_forming:
-        messages.error(request, "هذه المجموعة مؤكدة بالفعل.")
+        messages.error(request, "هذه المجموعة مُطلقة بالفعل.")
+    elif not cohort.teacher_id:
+        messages.error(request, "عيّن مدرسًا للمجموعة أولًا قبل إطلاقها.")
     elif not cohort.is_ready_to_confirm and not request.POST.get("force"):
         messages.error(request, f"العدد لم يكتمل بعد ({cohort.seats_taken()} / {cohort.min_students}).")
     else:
         count = cohort.confirm()
-        messages.success(request, f"تم تأكيد المجموعة وتسجيل {count} طالب.")
-    return redirect("dashboard:cohorts_list", course_pk=course_pk)
+        messages.success(request, f"تم إطلاق المجموعة وتسجيل {count} طالب. لم يعد ممكنًا إدخال طلاب أو إخراجهم.")
+    return redirect("dashboard:cohort_detail", pk=cohort.pk)

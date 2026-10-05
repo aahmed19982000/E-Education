@@ -1,0 +1,61 @@
+{% extends "dashboard/base.html" %}
+{% block title %}إدارة المجموعات{% endblock %}
+{% block page_title %}إدارة المجموعات{% endblock %}
+{% block content %}
+<div class="ch-stats">
+  <div class="ch-stat"><div class="ico">▦</div><div><b>{{ counts.all }}</b><span>كل المجموعات</span></div></div>
+  <div class="ch-stat info"><div class="ico">⏳</div><div><b>{{ counts.forming }}</b><span>قيد التكوين</span></div></div>
+  <div class="ch-stat warn"><div class="ico">!</div><div><b>{{ counts.ready }}</b><span>اكتمل العدد — تحتاج إطلاق</span></div></div>
+  <div class="ch-stat ok"><div class="ico">✓</div><div><b>{{ counts.launched }}</b><span>مُطلقة</span></div></div>
+</div>
+
+<div class="ch-bar">
+  <nav class="ch-tabs">
+    {% for key, label in filters %}<a href="?status={{ key }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="{% if key == current %}on{% endif %}">{{ label }}<em>{% if key == 'all' %}{{ counts.all }}{% elif key == 'forming' %}{{ counts.forming }}{% elif key == 'ready' %}{{ counts.ready }}{% elif key == 'launched' %}{{ counts.launched }}{% else %}{{ counts.private }}{% endif %}</em></a>{% endfor %}
+  </nav>
+  <form class="ch-search" method="get">
+    <input type="hidden" name="status" value="{{ current }}">
+    <input type="search" name="q" value="{{ query }}" placeholder="ابحث باسم المجموعة أو الكورس أو المدرس">
+    <button class="btn btn-primary" type="submit">بحث</button>
+  </form>
+</div>
+
+{% if cohorts %}
+<div class="ch-grid">
+  {% for c in cohorts %}
+  <a class="ch-card st-{{ c.stage }}" href="{% url 'dashboard:cohort_detail' c.pk %}">
+    <div class="ch-card-top">
+      <div>
+        <div class="ch-course">{{ c.course.title_ar }}</div>
+        <h3>{{ c.name|default:"مجموعة" }} <small style="color:var(--muted);font-weight:600;">#{{ c.pk }}</small></h3>
+      </div>
+      <span class="ch-pill {{ c.stage }}">{% if c.is_locked %}🔒 {% endif %}{{ c.stage_label }}</span>
+    </div>
+
+    <div class="ch-teacher {% if not c.teacher %}none{% endif %}">
+      <span class="ch-avatar">{% if c.teacher %}{{ c.teacher.name_ar|slice:":1" }}{% else %}?{% endif %}</span>
+      {{ c.teacher.name_ar|default:"لم يُسند مدرس بعد" }}
+    </div>
+
+    {% if c.slots.all %}<div class="ch-slots">{% for sl in c.slots.all %}<span class="ch-slot">{{ sl.get_weekday_display }} {{ sl.start_time|time:"H:i" }}</span>{% endfor %}</div>{% endif %}
+
+    <div>
+      {% if c.mode == 'group' %}
+        <div class="ch-seats-head"><span>الطلاب</span><span><b>{{ c.taken }}</b> / {{ c.min_students }} للبدء · حتى {{ c.max_students }}</span></div>
+        <div class="ch-progress {% if c.taken >= c.min_students %}full{% endif %}"><i style="width:{{ c.percent }}%"></i></div>
+      {% else %}
+        <div class="ch-seats-head"><span>طالب خصوصي</span><span><b>{{ c.taken }}</b> مسجّل</span></div>
+      {% endif %}
+    </div>
+
+    <div class="ch-foot">
+      <span>{% if c.start_date %}تبدأ {{ c.start_date|date:"Y-m-d" }}{% else %}بلا تاريخ بداية{% endif %} · {{ c.lessons_count }} جلسة</span>
+      <span class="go">فتح ←</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="ch-empty">لا توجد مجموعات مطابقة.</div>
+{% endif %}
+{% endblock %}

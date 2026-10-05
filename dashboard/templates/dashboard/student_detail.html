@@ -1,0 +1,73 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ student.get_full_name|default:student.email }}{% endblock %}
+{% block page_title %}صفحة الطالب{% endblock %}
+{% block content %}
+<div class="ch-hero">
+  <div class="ch-hero-top">
+    <div class="ch-person" style="gap:16px;">
+      <span class="ch-avatar" style="width:56px;height:56px;font-size:22px;">{{ student.get_full_name|default:student.email|slice:":1" }}</span>
+      <div>
+        <h2 style="margin:0 0 4px;">{{ student.get_full_name|default:student.email }}</h2>
+        <div style="color:var(--muted);font-size:13.5px;"><a href="mailto:{{ student.email }}">{{ student.email }}</a>{% if phone %} · <a href="tel:{{ phone }}">{{ phone }}</a>{% endif %}</div>
+      </div>
+    </div>
+    <div class="ch-hero-actions"><a class="btn btn-outline" href="{% url 'dashboard:all_cohorts' %}">كل المجموعات</a></div>
+  </div>
+  <dl class="ch-meta">
+    <div><dt>اختبار المستوى</dt><dd>{% if latest %}<span class="ch-score {% if latest.percent >= 70 %}high{% elif latest.percent >= 40 %}mid{% else %}low{% endif %}">{{ latest.percent }}%</span> <small style="color:var(--muted)">({{ latest.created_at|date:"Y-m-d" }})</small>{% else %}<span class="ch-pill muted">لم يُنهِه</span>{% endif %}</dd></div>
+    <div><dt>انضم في</dt><dd>{{ student.date_joined|date:"Y-m-d" }}</dd></div>
+  </dl>
+</div>
+
+<div class="ch-sec"><h3>الكورسات والمجموعات</h3></div>
+<div class="ch-items">
+  {% for it in items %}
+  <div class="ch-item">
+    <div class="ch-item-head">
+      <h4>{{ it.course.title_ar }}</h4>
+      <div>
+        {% if it.kind == 'enrollment' %}{% if it.obj.is_active %}<span class="ch-pill launched">مسجّل</span>{% else %}<span class="ch-pill muted">اشتراك ملغي</span>{% endif %}
+        {% else %}<span class="ch-pill forming">{{ it.obj.get_status_display }}</span>{% endif %}
+        {% if it.paid %}<span class="ch-pill paid">دفع</span>{% else %}<span class="ch-pill unpaid">لم يدفع</span>{% endif %}
+      </div>
+    </div>
+    <div class="ch-facts">
+      <span>المجموعة: {% if it.cohort %}<b><a href="{% url 'dashboard:cohort_detail' it.cohort.pk %}">{{ it.cohort.name|default:"مجموعة" }} #{{ it.cohort.pk }}</a></b>{% if it.locked %} 🔒{% endif %}{% else %}<b style="color:#a33333">غير موزّع</b>{% endif %}</span>
+      {% if it.cohort %}<span>المدرس: <b>{{ it.cohort.teacher.name_ar|default:"—" }}</b></span>{% endif %}
+      {% if it.total %}<span>الحضور: <b>{{ it.attended }} / {{ it.total }}</b> ({{ it.percent }}%)</span>{% endif %}
+    </div>
+    {% if can_write_courses %}
+      {% if it.locked %}
+        <div class="ch-lock" style="margin:0;">🔒 مجموعته مُطلقة ومُسندة لمدرس، لا يمكن نقله أو إخراجه منها.</div>
+      {% else %}
+      <div class="ch-row-actions">
+        {% if it.options %}
+        <form method="post" action="{% url 'dashboard:student_action' %}" class="ch-row-actions">{% csrf_token %}
+          <input type="hidden" name="kind" value="{{ it.kind }}"><input type="hidden" name="id" value="{{ it.obj.pk }}">
+          <input type="hidden" name="action" value="move"><input type="hidden" name="next" value="{{ request.path }}">
+          <select name="cohort" required><option value="">{% if it.cohort %}نقل إلى مجموعة…{% else %}توجيه إلى مجموعة…{% endif %}</option>
+            {% for o in it.options %}<option value="{{ o.pk }}">{{ o.name|default:"مجموعة" }} #{{ o.pk }}{% if o.mode == 'group' %} ({{ o.seats_taken }}/{{ o.max_students }}){% endif %}</option>{% endfor %}</select>
+          <button class="btn btn-primary" type="submit">{% if it.cohort %}نقل{% else %}توجيه{% endif %}</button>
+        </form>
+        {% elif not it.cohort %}<span style="color:var(--muted);font-size:13px;">لا توجد مجموعات متاحة لهذا الكورس.</span>{% endif %}
+        {% if it.cohort %}
+        <form method="post" action="{% url 'dashboard:student_action' %}" onsubmit="return confirm('إخراج الطالب من المجموعة؟')">{% csrf_token %}
+          <input type="hidden" name="kind" value="{{ it.kind }}"><input type="hidden" name="id" value="{{ it.obj.pk }}">
+          <input type="hidden" name="action" value="remove"><input type="hidden" name="next" value="{{ request.path }}">
+          <button class="btn danger-outline" type="submit">إخراج من المجموعة</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% empty %}<div class="ch-empty">لا توجد كورسات لهذا الطالب بعد.</div>{% endfor %}
+</div>
+
+{% if placements %}
+<div class="ch-sec"><h3>نتائج اختبار المستوى</h3></div>
+<div class="dash-table-wrap"><table class="dash-table"><thead><tr><th>التاريخ</th><th>النتيجة</th></tr></thead><tbody>
+  {% for p in placements %}<tr><td>{{ p.created_at|date:"Y-m-d H:i" }}</td><td><span class="ch-score">{{ p.percent }}%</span></td></tr>{% endfor %}
+</tbody></table></div>
+{% endif %}
+{% endblock %}

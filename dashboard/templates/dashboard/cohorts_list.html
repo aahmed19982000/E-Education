@@ -20,7 +20,7 @@
     {% for c in cohorts %}
       <tr>
         {% if not course %}<td class="wrap">{{ c.course.title_ar }}</td>{% endif %}
-        <td class="wrap">{{ c.name|default:"—" }} #{{ c.pk }}</td>
+        <td class="wrap"><a href="{% url 'dashboard:cohort_detail' c.pk %}"><b>{{ c.name|default:"—" }} #{{ c.pk }}</b></a></td>
         <td>{{ c.get_mode_display }}</td>
         <td>{{ c.teacher.name_ar|default:"—" }}</td>
         <td>{{ c.start_date|date:"Y-m-d"|default:"—" }}</td>

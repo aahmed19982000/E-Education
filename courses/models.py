@@ -130,6 +130,11 @@ class Cohort(models.Model):
         return max(self.max_students - self.seats_taken(), 0)
 
     @property
+    def is_locked(self):
+        """Launched (confirmed + given a teacher): students can no longer be added or taken out."""
+        return self.mode == "group" and self.confirmed_at is not None and self.teacher_id is not None
+
+    @property
     def is_ready_to_confirm(self):
         return self.is_forming and self.seats_taken() >= self.min_students
 

@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from quiz.models import PlacementResult
+from team.models import TeamMember
 
 from .models import Attendance, Cohort, CohortSlot, Course, Enrollment, Lesson, LessonAttachment
 
@@ -448,7 +449,8 @@ class WaitingGroupTests(TestCase):
 
     def setUp(self):
         self.admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
-        self.cohort = make_cohort(mode="group", min_students=2, max_students=3)
+        self.teacher = TeamMember.objects.create(name_ar="أ. منى", role_ar="مدرسة", specialties_ar="IELTS")
+        self.cohort = make_cohort(mode="group", min_students=2, max_students=3, teacher=self.teacher)
         self.course = self.cohort.course
         CohortSlot.objects.create(cohort=self.cohort, weekday=0, start_time=datetime.time(18, 0))
         self.client.force_login(self.admin)
@@ -481,12 +483,75 @@ class WaitingGroupTests(TestCase):
         self.assertEqual(EnrollmentRequest.objects.filter(status=EnrollmentRequest.STATUS_ENROLLED).count(), 2)
         self.assertTrue(self.cohort.lessons.exists())
 
-    def test_confirmed_group_enrols_new_students_immediately(self):
+    def test_launched_group_is_frozen_for_adding_and_removing(self):
         self.place(1); self.place(2)
         self.client.post(reverse("dashboard:cohort_confirm", args=[self.course.pk, self.cohort.pk]))
-        req, _ = self.place(3)
-        self.assertEqual(req.status, EnrollmentRequest.STATUS_ENROLLED)
-        self.assertTrue(Enrollment.objects.filter(user=req.user, cohort=self.cohort).exists())
+        self.assertTrue(Cohort.objects.get(pk=self.cohort.pk).is_locked)
+        req, _ = self.place(3)  # cannot join
+        self.assertNotEqual(req.status, EnrollmentRequest.STATUS_ENROLLED)
+        self.assertEqual(Enrollment.objects.filter(cohort=self.cohort).count(), 2)
+        member = Enrollment.objects.filter(cohort=self.cohort).first()  # cannot leave, by any route
+        other = make_cohort(course=self.course, mode="private")
+        self.client.post(reverse("dashboard:student_action"), {"kind": "enrollment", "id": member.pk, "action": "remove"})
+        self.client.post(reverse("dashboard:student_action"), {"kind": "enrollment", "id": member.pk, "action": "move", "cohort": other.pk})
+        self.client.post(reverse("dashboard:enrollment_action", args=[self.course.pk, member.pk, "assign"]), {"cohort": other.pk})
+        self.client.post(reverse("dashboard:enrollment_action", args=[self.course.pk, member.pk, "delete"]))
+        member.refresh_from_db()
+        self.assertEqual(member.cohort_id, self.cohort.pk)
+
+    def test_cannot_launch_without_a_teacher(self):
+        self.cohort.teacher = None
+        self.cohort.save()
+        self.place(1); self.place(2)
+        self.client.post(reverse("dashboard:cohort_confirm", args=[self.course.pk, self.cohort.pk]))
+        self.assertIsNone(Cohort.objects.get(pk=self.cohort.pk).confirmed_at)
+
+    def test_launch_early_with_force(self):
+        self.place(1)
+        self.client.post(reverse("dashboard:cohort_confirm", args=[self.course.pk, self.cohort.pk]), {"force": "1"})
+        self.assertIsNotNone(Cohort.objects.get(pk=self.cohort.pk).confirmed_at)
+
+    def test_move_and_remove_students_before_launch(self):
+        req1, _ = self.place(1)
+        second = make_cohort(course=self.course, mode="group", min_students=2, max_students=3)
+        act = reverse("dashboard:student_action")
+        self.client.post(act, {"kind": "request", "id": req1.pk, "action": "move", "cohort": second.pk})
+        req1.refresh_from_db()
+        self.assertEqual(req1.cohort_id, second.pk)
+        self.client.post(act, {"kind": "request", "id": req1.pk, "action": "remove"})
+        req1.refresh_from_db()
+        self.assertIsNone(req1.cohort_id)
+        self.assertEqual(req1.status, EnrollmentRequest.STATUS_CONTACTED)
+
+    def test_enrolled_student_moves_between_open_cohorts(self):
+        private = make_cohort(course=self.course, mode="private")
+        user = User.objects.create_user("e", "e@x.com", "pw")
+        enrollment = Enrollment.objects.create(user=user, course=self.course, cohort=private)
+        target = make_cohort(course=self.course, mode="group", min_students=2, max_students=3)
+        self.client.post(reverse("dashboard:student_action"), {"kind": "enrollment", "id": enrollment.pk, "action": "move", "cohort": target.pk})
+        enrollment.refresh_from_db()
+        self.assertEqual(enrollment.cohort_id, target.pk)
+
+    def test_cohort_and_student_pages_show_status_test_and_payment(self):
+        req1, _ = self.place(1)
+        PlacementResult.objects.create(user=req1.user, percent=64)
+        req2, _ = self.place(2)
+        EnrollmentRequest.objects.filter(pk=req2.pk).update(payment_status="paid")
+        resp = self.client.get(reverse("dashboard:cohort_detail", args=[self.cohort.pk]))
+        self.assertContains(resp, "64%")
+        self.assertContains(resp, "لم يُنهِه")
+        self.assertContains(resp, "دفع")
+        user = User.objects.get(username="w1")
+        self.assertContains(resp, reverse("dashboard:student_detail", args=[user.pk]))
+        page = self.client.get(reverse("dashboard:student_detail", args=[user.pk]))
+        self.assertContains(page, "64%")
+        self.assertContains(page, self.course.title_ar)
+
+    def test_student_page_hides_actions_when_locked(self):
+        self.place(1); self.place(2)
+        self.client.post(reverse("dashboard:cohort_confirm", args=[self.course.pk, self.cohort.pk]))
+        user = User.objects.get(username="w1")
+        self.assertContains(self.client.get(reverse("dashboard:student_detail", args=[user.pk])), "مُطلقة ومُسندة")
 
     def test_full_group_rejects_more(self):
         for i in range(1, 4):
@@ -505,14 +570,15 @@ class WaitingGroupTests(TestCase):
     def test_all_cohorts_page_filters(self):
         self.place(1); self.place(2)
         url = reverse("dashboard:all_cohorts")
-        self.assertContains(self.client.get(url), "تأكيد المجموعة")
-        self.assertContains(self.client.get(url), "W1")  # waiting students are named
-        self.assertContains(self.client.get(url, {"status": "ready"}), "تأكيد المجموعة")
-        self.assertNotContains(self.client.get(url, {"status": "confirmed"}), "تأكيد المجموعة")
+        self.assertContains(self.client.get(url), "اكتمل العدد")
+        self.assertContains(self.client.get(url, {"status": "ready"}), "اكتمل العدد — تحتاج إطلاق")
+        self.assertNotContains(self.client.get(url, {"status": "launched"}), f"/dashboard/cohorts/{self.cohort.pk}/")
+        self.assertContains(self.client.get(url, {"q": "zzz"}), "لا توجد مجموعات")
+        self.assertContains(self.client.get(reverse("dashboard:cohort_detail", args=[self.cohort.pk])), "W1")
 
     def test_pages_render(self):
         self.place(1); self.place(2)
-        self.assertContains(self.client.get(reverse("dashboard:cohorts_list", args=[self.course.pk])), "تأكيد المجموعة")
+        self.assertContains(self.client.get(reverse("dashboard:cohorts_list", args=[self.course.pk])), "اكتمل العدد")
         self.assertContains(self.client.get(reverse("dashboard:index")), "مجموعات تنتظر اكتمال العدد")
 
 
