@@ -185,7 +185,7 @@ class DashboardCourseTests(TestCase):
     def test_admin_creates_cohort_with_own_slots_and_generates(self):
         self.client.force_login(self.admin)
         resp = self.client.post(reverse("dashboard:cohort_create", args=[self.course.pk]), {
-            "name": "مجموعة السبت", "mode": "group", "weeks": 2, "start_date": "2030-01-07",
+            "name": "مجموعة السبت", "mode": "group", "weeks": 2, "min_students": 4, "max_students": 8, "start_date": "2030-01-07",
             "slots-TOTAL_FORMS": 2, "slots-INITIAL_FORMS": 0, "slots-MIN_NUM_FORMS": 0, "slots-MAX_NUM_FORMS": 1000,
             "slots-0-weekday": 0, "slots-0-start_time": "18:00", "slots-0-duration_minutes": 60,
             "slots-1-weekday": "", "slots-1-start_time": "", "slots-1-duration_minutes": 60,
@@ -436,9 +436,76 @@ class PerStudentTimesTests(TestCase):
         admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
         req = EnrollmentRequest.objects.create(course=self.course, user=User.objects.create_user("n", "n@x.com", "pw"),
                                                full_name="N", email="n@x.com", phone="1")
+        self.cohort_a.confirmed_at = timezone.now()
+        self.cohort_a.save()
         self.client.force_login(admin)
         self.client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": self.cohort_a.pk})
         self.assertEqual(Enrollment.objects.get(user=req.user).cohort, self.cohort_a)
+
+
+class WaitingGroupTests(TestCase):
+    """Group cohorts collect students on a staff-only waiting list until the minimum is reached."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
+        self.cohort = make_cohort(mode="group", min_students=2, max_students=3)
+        self.course = self.cohort.course
+        CohortSlot.objects.create(cohort=self.cohort, weekday=0, start_time=datetime.time(18, 0))
+        self.client.force_login(self.admin)
+
+    def place(self, n):
+        user = User.objects.create_user(f"w{n}", f"w{n}@x.com", "pw")
+        req = EnrollmentRequest.objects.create(course=self.course, user=user, full_name=f"W{n}", email=user.email, phone="1")
+        resp = self.client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": self.cohort.pk})
+        req.refresh_from_db()
+        return req, resp
+
+    def test_student_waits_without_enrollment_until_confirmed(self):
+        req, _ = self.place(1)
+        self.assertEqual(req.status, EnrollmentRequest.STATUS_WAITING)
+        self.assertFalse(Enrollment.objects.exists())
+        self.assertFalse(self.cohort.is_ready_to_confirm)
+
+    def test_confirm_needs_minimum_then_enrols_everyone_and_makes_sessions(self):
+        confirm = reverse("dashboard:cohort_confirm", args=[self.course.pk, self.cohort.pk])
+        self.place(1)
+        self.client.post(confirm)
+        self.cohort.refresh_from_db()
+        self.assertIsNone(self.cohort.confirmed_at)
+        self.place(2)
+        self.assertTrue(Cohort.objects.get(pk=self.cohort.pk).is_ready_to_confirm)
+        self.client.post(confirm)
+        self.cohort.refresh_from_db()
+        self.assertIsNotNone(self.cohort.confirmed_at)
+        self.assertEqual(Enrollment.objects.filter(cohort=self.cohort, status="active").count(), 2)
+        self.assertEqual(EnrollmentRequest.objects.filter(status=EnrollmentRequest.STATUS_ENROLLED).count(), 2)
+        self.assertTrue(self.cohort.lessons.exists())
+
+    def test_confirmed_group_enrols_new_students_immediately(self):
+        self.place(1); self.place(2)
+        self.client.post(reverse("dashboard:cohort_confirm", args=[self.course.pk, self.cohort.pk]))
+        req, _ = self.place(3)
+        self.assertEqual(req.status, EnrollmentRequest.STATUS_ENROLLED)
+        self.assertTrue(Enrollment.objects.filter(user=req.user, cohort=self.cohort).exists())
+
+    def test_full_group_rejects_more(self):
+        for i in range(1, 4):
+            self.place(i)
+        req, _ = self.place(4)
+        self.assertNotEqual(req.status, EnrollmentRequest.STATUS_WAITING)
+        self.assertEqual(self.cohort.seats_taken(), 3)
+
+    def test_private_cohort_enrols_immediately(self):
+        private = make_cohort(course=self.course, mode="private")
+        user = User.objects.create_user("p", "p@x.com", "pw")
+        req = EnrollmentRequest.objects.create(course=self.course, user=user, full_name="P", email="p@x.com", phone="1")
+        self.client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": private.pk})
+        self.assertTrue(Enrollment.objects.filter(user=user, cohort=private).exists())
+
+    def test_pages_render(self):
+        self.place(1); self.place(2)
+        self.assertContains(self.client.get(reverse("dashboard:cohorts_list", args=[self.course.pk])), "تأكيد المجموعة")
+        self.assertContains(self.client.get(reverse("dashboard:index")), "مجموعات تنتظر اكتمال العدد")
 
 
 class ArabicSlugTests(TestCase):

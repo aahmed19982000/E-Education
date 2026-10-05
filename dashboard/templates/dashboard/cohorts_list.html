@@ -13,7 +13,7 @@
 <div class="dash-table-wrap">
   {% if cohorts %}
   <table class="dash-table">
-    <thead><tr><th>المجموعة</th><th>النوع</th><th>المدرس</th><th>البداية</th><th>الطلاب</th><th>الجلسات</th><th></th></tr></thead>
+    <thead><tr><th>المجموعة</th><th>النوع</th><th>المدرس</th><th>البداية</th><th>الطلاب / الحد الأدنى</th><th>الحالة</th><th>الجلسات</th><th></th></tr></thead>
     <tbody>
     {% for c in cohorts %}
       <tr>
@@ -21,11 +21,21 @@
         <td>{{ c.get_mode_display }}</td>
         <td>{{ c.teacher.name_ar|default:"—" }}</td>
         <td>{{ c.start_date|date:"Y-m-d"|default:"—" }}</td>
-        <td>{{ c.students_count }}</td>
+        <td>
+          {% if c.mode == 'group' %}
+            {% with taken=c.seats_taken %}{{ taken }} / {{ c.min_students }} <small style="color:var(--muted)">(حتى {{ c.max_students }})</small>{% endwith %}
+            {% if c.is_forming and c.waiting_requests %}
+              <div style="font-size:12px;color:var(--muted);">ينتظر:
+                {% for r in c.waiting_requests %}<a href="{% url 'dashboard:request_detail' r.pk %}">{{ r.full_name }}</a>{% if not forloop.last %}، {% endif %}{% endfor %}</div>
+            {% endif %}
+          {% else %}{{ c.students_count }}{% endif %}
+        </td>
+        <td>{% if c.mode == 'private' %}—{% elif c.is_forming %}<span class="rq-pill st-{% if c.is_ready_to_confirm %}enrolled{% else %}waiting{% endif %}">{% if c.is_ready_to_confirm %}اكتمل العدد{% else %}قيد التكوين{% endif %}</span>{% else %}<span class="rq-pill st-enrolled">مؤكدة</span>{% endif %}</td>
         <td>{{ c.lessons_count }}</td>
         <td><div class="dash-table-actions">
           <a href="{% url 'dashboard:lessons_list' c.pk %}">الجلسات</a>
           {% if can_write_courses %}
+            {% if c.is_ready_to_confirm %}<form method="post" action="{% url 'dashboard:cohort_confirm' course.pk c.pk %}" style="display:inline">{% csrf_token %}<button type="submit" class="btn btn-accent btn-sm">تأكيد المجموعة وتسجيل الطلاب</button></form>{% endif %}
             <a href="{% url 'dashboard:cohort_edit' course.pk c.pk %}">تعديل</a>
             <a class="danger" href="{% url 'dashboard:cohort_delete' course.pk c.pk %}">حذف</a>
           {% endif %}

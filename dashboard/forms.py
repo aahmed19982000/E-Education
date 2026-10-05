@@ -462,10 +462,11 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
 class CohortForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Cohort
-        fields = ["name", "mode", "teacher", "start_date", "weeks"]
+        fields = ["name", "mode", "teacher", "start_date", "weeks", "min_students", "max_students"]
         widgets = {"start_date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
         labels = {"name": "اسم المجموعة (اختياري)", "mode": "النوع", "teacher": "المدرس",
-                  "start_date": "تاريخ بداية الجلسات", "weeks": "عدد الأسابيع"}
+                  "start_date": "تاريخ بداية الجلسات", "weeks": "عدد الأسابيع",
+                  "min_students": "الحد الأدنى للبدء", "max_students": "الحد الأقصى للطلاب"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

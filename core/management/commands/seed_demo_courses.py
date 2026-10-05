@@ -116,6 +116,9 @@ class Command(BaseCommand):
             user.set_password(DEMO_PASSWORD)
             user.save()
         group = cohorts["مجموعة السبت والثلاثاء مساءً"]
+        if not group.confirmed_at:  # the demo student is already attending it
+            group.confirmed_at = timezone.now()
+            group.save(update_fields=["confirmed_at"])
         enrollment, _ = Enrollment.objects.update_or_create(
             user=user, course=group.course, defaults={"cohort": group, "status": Enrollment.STATUS_ACTIVE})
         first = group.lessons.first()

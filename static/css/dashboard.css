@@ -325,6 +325,7 @@ table.dash-table { width: 100%; border-collapse: collapse; }
 .rq-pill.st-new { background: #FBF0DC; color: #8a6a1c; }
 .rq-pill.st-contacted { background: #E3EEFB; color: #1f5a9e; }
 .rq-pill.st-teacher_assigned { background: #EEE6FA; color: #5b3a9e; }
+.rq-pill.st-waiting { background: #E6EEF9; color: #2c5b9a; }
 .rq-pill.st-enrolled { background: #E2F3EA; color: #1c7a4a; }
 .rq-pill.st-closed { background: #ECECEC; color: #777; }
 .rq-pill.pay-paid { background: #E2F3EA; color: #1c7a4a; }

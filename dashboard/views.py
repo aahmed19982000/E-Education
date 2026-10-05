@@ -98,6 +98,9 @@ def index(request):
         ctx["courses_count"] = Course.objects.count()
     if ctx["can_view_requests"]:
         ctx["new_requests_count"] = EnrollmentRequest.objects.filter(status=EnrollmentRequest.STATUS_NEW).count()
+        forming = Cohort.objects.filter(mode="group", confirmed_at__isnull=True).select_related("course")
+        ctx["forming_cohorts"] = [c for c in forming if c.seats_taken() or c.is_ready_to_confirm]
+        ctx["ready_cohorts_count"] = sum(1 for c in ctx["forming_cohorts"] if c.is_ready_to_confirm)
     if ctx["can_view_users"]:
         ctx["users_count"] = User.objects.filter(is_staff=True).count()
     return render(request, "dashboard/index.html", ctx)
@@ -549,7 +552,8 @@ def cohorts_list(request, course_pk):
     course = get_object_or_404(Course, pk=course_pk)
     ctx = base_context(request, active="courses")
     ctx.update({"course": course, "cohorts": course.cohorts.select_related("teacher").annotate(
-        lessons_count=Count("lessons", distinct=True), students_count=Count("enrollments", distinct=True))})
+        lessons_count=Count("lessons", distinct=True), students_count=Count("enrollments", distinct=True))
+        .prefetch_related("requests")})
     return render(request, "dashboard/cohorts_list.html", ctx)
 
 
@@ -750,22 +754,56 @@ def request_detail(request, pk):
     return render(request, "dashboard/request_detail.html", ctx)
 
 
+def _already_in(req, cohort):
+    """True when the request's student already holds a seat in this cohort (waiting or enrolled)."""
+    return (req.cohort_id == cohort.pk and req.status == EnrollmentRequest.STATUS_WAITING) or \
+        Enrollment.objects.filter(user=req.user, course=req.course, cohort=cohort).exists()
+
+
 @section_required(SECTION_REQUESTS, "write")
 @require_POST
 def request_enroll(request, pk):
-    """Once the teacher and times are agreed, put the student into the course."""
+    """Once the teacher and times are agreed, place the student.
+
+    A forming group only collects the student on its waiting list (staff-only);
+    they are enrolled, and see the course, when the group is confirmed.
+    """
     obj = get_object_or_404(EnrollmentRequest, pk=pk)
+    cohort = None
+    if request.POST.get("cohort"):
+        cohort = get_object_or_404(Cohort, pk=request.POST["cohort"], course=obj.course)
     if not (obj.user and obj.course):
         messages.error(request, "لا يمكن التسجيل: الطالب لم ينشئ حسابًا بعد.")
+    elif cohort and cohort.mode == "group" and cohort.seats_left == 0 and not _already_in(obj, cohort):
+        messages.error(request, "المجموعة مكتملة العدد.")
+    elif cohort and cohort.is_forming:
+        obj.cohort = cohort
+        obj.status = EnrollmentRequest.STATUS_WAITING
+        obj.save(update_fields=["cohort", "status"])
+        messages.success(request, f"أُضيف الطالب إلى قائمة انتظار المجموعة ({cohort.seats_taken()} / {cohort.min_students}).")
     else:
         enrollment, _ = Enrollment.objects.get_or_create(user=obj.user, course=obj.course)
         if not enrollment.is_active:
             enrollment.status = Enrollment.STATUS_ACTIVE
-        cohort_id = request.POST.get("cohort")
-        if cohort_id:
-            enrollment.cohort = get_object_or_404(Cohort, pk=cohort_id, course=obj.course)
+        if cohort:
+            enrollment.cohort = cohort
         enrollment.save()
         obj.status = EnrollmentRequest.STATUS_ENROLLED
         obj.save(update_fields=["status"])
         messages.success(request, "تم تسجيل الطالب في الكورس.")
     return redirect("dashboard:request_detail", pk=obj.pk)
+
+
+@section_required(SECTION_COURSES, "write")
+@require_POST
+def cohort_confirm(request, course_pk, pk):
+    """Staff start a group whose waiting list reached the minimum: enrol everyone and make the sessions."""
+    cohort = get_object_or_404(Cohort, pk=pk, course_id=course_pk)
+    if not cohort.is_forming:
+        messages.error(request, "هذه المجموعة مؤكدة بالفعل.")
+    elif not cohort.is_ready_to_confirm and not request.POST.get("force"):
+        messages.error(request, f"العدد لم يكتمل بعد ({cohort.seats_taken()} / {cohort.min_students}).")
+    else:
+        count = cohort.confirm()
+        messages.success(request, f"تم تأكيد المجموعة وتسجيل {count} طالب.")
+    return redirect("dashboard:cohorts_list", course_pk=course_pk)

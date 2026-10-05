@@ -93,6 +93,11 @@ class Cohort(models.Model):
     start_date = models.DateField(null=True, blank=True, help_text="First day sessions are generated from")
     weeks = models.PositiveSmallIntegerField(default=8, validators=[MinValueValidator(1)],
                                              help_text="How many weeks of sessions to generate")
+    # Group size: students wait (backend only) until `min_students` is reached, then
+    # staff confirm the group. Private cohorts are never held back.
+    min_students = models.PositiveSmallIntegerField(default=4, validators=[MinValueValidator(1)])
+    max_students = models.PositiveSmallIntegerField(default=8, validators=[MinValueValidator(1)])
+    confirmed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -100,6 +105,52 @@ class Cohort(models.Model):
 
     def __str__(self):
         return f"{self.course} — {self.name or self.get_mode_display()} #{self.pk}"
+
+    def clean(self):
+        if self.min_students and self.max_students and self.min_students > self.max_students:
+            raise ValidationError({"max_students": "الحد الأقصى يجب ألا يقل عن الحد الأدنى."})
+
+    @property
+    def is_forming(self):
+        """A group still collecting students: new students wait instead of being enrolled."""
+        return self.mode == "group" and self.confirmed_at is None
+
+    def waiting_requests(self):
+        """Students placed here who are not enrolled yet (they have an account, so can be enrolled)."""
+        return self.requests.filter(status=EnrollmentRequest.STATUS_WAITING, user__isnull=False)
+
+    def active_students_count(self):
+        return self.enrollments.filter(status=Enrollment.STATUS_ACTIVE).count()
+
+    def seats_taken(self):
+        return self.active_students_count() + self.waiting_requests().count()
+
+    @property
+    def seats_left(self):
+        return max(self.max_students - self.seats_taken(), 0)
+
+    @property
+    def is_ready_to_confirm(self):
+        return self.is_forming and self.seats_taken() >= self.min_students
+
+    def confirm(self):
+        """Start the group: enrol every waiting student and generate the sessions.
+
+        Returns how many students were enrolled.
+        """
+        enrolled = 0
+        for req in list(self.waiting_requests().select_related("user")):
+            enrollment, _ = Enrollment.objects.get_or_create(user=req.user, course=self.course)
+            enrollment.status = Enrollment.STATUS_ACTIVE
+            enrollment.cohort = self
+            enrollment.save()
+            req.status = EnrollmentRequest.STATUS_ENROLLED
+            req.save(update_fields=["status"])
+            enrolled += 1
+        self.confirmed_at = timezone.now()
+        self.save(update_fields=["confirmed_at"])
+        self.generate_lessons()
+        return enrolled
 
     def generate_lessons(self):
         """Create the sessions for every weekly slot; returns how many were new.
@@ -280,11 +331,13 @@ class EnrollmentRequest(models.Model):
     STATUS_NEW = "new"
     STATUS_CONTACTED = "contacted"
     STATUS_TEACHER_ASSIGNED = "teacher_assigned"
+    STATUS_WAITING = "waiting"
     STATUS_ENROLLED = "enrolled"
     STATUS_CLOSED = "closed"
     STATUS_CHOICES = [
         (STATUS_NEW, "جديد"), (STATUS_CONTACTED, "تم التواصل"),
         (STATUS_TEACHER_ASSIGNED, "تم اختيار المدرس والمواعيد"),
+        (STATUS_WAITING, "بانتظار اكتمال المجموعة"),
         (STATUS_ENROLLED, "تم التسجيل في الكورس"), (STATUS_CLOSED, "مغلق"),
     ]
 
@@ -316,6 +369,8 @@ class EnrollmentRequest(models.Model):
     payment_status = models.CharField(max_length=10, choices=PAYMENT_CHOICES, default=PAYMENT_UNPAID)
     payment_method = models.CharField(max_length=10, choices=PAY_METHOD_CHOICES, default=PAY_CONTACT)
     assigned_teacher = models.ForeignKey(TeamMember, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    # The forming group this request waits in (staff-only; the student sees nothing yet).
+    cohort = models.ForeignKey(Cohort, null=True, blank=True, on_delete=models.SET_NULL, related_name="requests")
     admin_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

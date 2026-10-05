@@ -45,11 +45,12 @@
       {% if can_write_requests %}<div class="dash-form-actions"><button type="submit" class="btn btn-primary">حفظ</button>
         <a class="btn btn-outline" href="{% url 'dashboard:requests_list' %}">رجوع</a></div>{% endif %}
     </form>
+    {% if obj.status == 'waiting' and obj.cohort %}<p class="rq-note"><b>في الانتظار</b>مجموعة {{ obj.cohort.name|default:obj.cohort.get_mode_display }} #{{ obj.cohort.pk }} ({{ obj.cohort.seats_taken }} / {{ obj.cohort.min_students }}). يُسجَّل الطالب ويظهر له الكورس عند تأكيد المجموعة.</p>{% endif %}
     {% if can_write_requests and can_enroll %}
       <form method="post" action="{% url 'dashboard:request_enroll' obj.pk %}" class="rq-enroll">{% csrf_token %}
         <select name="cohort" class="field"><option value="">— بدون مجموعة (تُحدد لاحقًا) —</option>
-          {% for c in cohorts %}<option value="{{ c.pk }}">{{ c.name|default:c.get_mode_display }} #{{ c.pk }} — {{ c.teacher.name_ar|default:"بدون مدرس" }}</option>{% endfor %}</select>
-        <button type="submit" class="btn btn-accent">{% if enrolled %}إعادة تفعيل التسجيل في الكورس{% else %}تسجيل الطالب في الكورس{% endif %}</button></form>
+          {% for c in cohorts %}<option value="{{ c.pk }}">{{ c.name|default:c.get_mode_display }} #{{ c.pk }} — {{ c.teacher.name_ar|default:"بدون مدرس" }}{% if c.mode == 'group' %} — {% if c.is_forming %}قيد التكوين {{ c.seats_taken }}/{{ c.min_students }}{% else %}مؤكدة{% endif %}{% endif %}</option>{% endfor %}</select>
+        <button type="submit" class="btn btn-accent">{% if obj.status == 'waiting' %}نقل إلى مجموعة أخرى{% elif enrolled %}إعادة تفعيل التسجيل في الكورس{% else %}تسجيل الطالب في الكورس{% endif %}</button></form>
     {% endif %}
   </div>
 </div>

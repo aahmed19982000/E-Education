@@ -48,6 +48,7 @@ urlpatterns = [
     path("courses/<int:course_pk>/cohorts/", views.cohorts_list, name="cohorts_list"),
     path("courses/<int:course_pk>/cohorts/add/", views.cohort_form, name="cohort_create"),
     path("courses/<int:course_pk>/cohorts/<int:pk>/edit/", views.cohort_form, name="cohort_edit"),
+    path("courses/<int:course_pk>/cohorts/<int:pk>/confirm/", views.cohort_confirm, name="cohort_confirm"),
     path("courses/<int:course_pk>/cohorts/<int:pk>/delete/", views.cohort_delete, name="cohort_delete"),
     path("cohorts/<int:cohort_pk>/lessons/", views.lessons_list, name="lessons_list"),
     path("cohorts/<int:cohort_pk>/lessons/generate/", views.lessons_generate, name="lessons_generate"),
