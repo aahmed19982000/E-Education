@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'core',
-    'levels',
+    'levels',  # migrations only: quiz/courses migrations depend on it
     'articles',
     'team',
     'quiz',
