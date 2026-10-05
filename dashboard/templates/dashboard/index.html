@@ -50,7 +50,7 @@
 
 {% if can_view_requests and forming_cohorts %}
 <div class="dash-card" style="margin-bottom:16px;">
-  <h3 style="margin-top:0;">مجموعات تنتظر اكتمال العدد{% if ready_cohorts_count %} — <span style="color:var(--accent,#0a7)">{{ ready_cohorts_count }} جاهزة للتأكيد</span>{% endif %}</h3>
+  <h3 style="margin-top:0;"><a href="{% url 'dashboard:all_cohorts' %}">مجموعات تنتظر اكتمال العدد</a>{% if ready_cohorts_count %} — <span style="color:var(--accent,#0a7)">{{ ready_cohorts_count }} جاهزة للتأكيد</span>{% endif %}</h3>
   <ul style="margin:0;padding-inline-start:18px;line-height:2;">
     {% for c in forming_cohorts %}
       <li><a href="{% url 'dashboard:cohorts_list' c.course_id %}">{{ c.course.title_ar }} — {{ c.name|default:"مجموعة" }} #{{ c.pk }}</a>:

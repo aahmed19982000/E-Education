@@ -557,6 +557,29 @@ def cohorts_list(request, course_pk):
     return render(request, "dashboard/cohorts_list.html", ctx)
 
 
+@section_required(SECTION_COURSES)
+def all_cohorts(request):
+    """Every group of every course in one place, filterable by where it is in its life."""
+    current = request.GET.get("status", "all")
+    qs = Cohort.objects.select_related("course", "teacher").annotate(
+        lessons_count=Count("lessons", distinct=True), students_count=Count("enrollments", distinct=True),
+    ).prefetch_related("requests")
+    if current == "private":
+        qs = qs.filter(mode="private")
+    elif current in ("forming", "ready", "confirmed"):
+        qs = qs.filter(mode="group", confirmed_at__isnull=current != "confirmed")
+    cohorts = list(qs)
+    if current == "ready":
+        cohorts = [c for c in cohorts if c.is_ready_to_confirm]
+    elif current == "forming":
+        cohorts = [c for c in cohorts if not c.is_ready_to_confirm]
+    ctx = base_context(request, active="cohorts")
+    ctx.update({"cohorts": cohorts, "course": None, "current": current, "filters": [
+        ("all", "الكل"), ("forming", "قيد التكوين"), ("ready", "اكتمل العدد"),
+        ("confirmed", "مؤكدة"), ("private", "خصوصي")]})
+    return render(request, "dashboard/cohorts_list.html", ctx)
+
+
 @section_required(SECTION_COURSES, "write")
 def cohort_form(request, course_pk, pk=None):
     course = get_object_or_404(Course, pk=course_pk)

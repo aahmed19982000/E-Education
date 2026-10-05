@@ -502,6 +502,13 @@ class WaitingGroupTests(TestCase):
         self.client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": private.pk})
         self.assertTrue(Enrollment.objects.filter(user=user, cohort=private).exists())
 
+    def test_all_cohorts_page_filters(self):
+        self.place(1); self.place(2)
+        url = reverse("dashboard:all_cohorts")
+        self.assertContains(self.client.get(url), "تأكيد المجموعة")
+        self.assertContains(self.client.get(url, {"status": "ready"}), "تأكيد المجموعة")
+        self.assertNotContains(self.client.get(url, {"status": "confirmed"}), "تأكيد المجموعة")
+
     def test_pages_render(self):
         self.place(1); self.place(2)
         self.assertContains(self.client.get(reverse("dashboard:cohorts_list", args=[self.course.pk])), "تأكيد المجموعة")

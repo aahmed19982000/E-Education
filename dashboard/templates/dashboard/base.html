@@ -36,6 +36,7 @@
         {% endif %}
         {% if can_view_courses %}
           <a href="{% url 'dashboard:courses_list' %}" class="{% if active == 'courses' %}active{% endif %}">الكورسات والجلسات</a>
+          <a href="{% url 'dashboard:all_cohorts' %}" class="{% if active == 'cohorts' %}active{% endif %}">إدارة المجموعات</a>
         {% endif %}
         {% if can_view_requests %}
           <a href="{% url 'dashboard:requests_list' %}" class="{% if active == 'requests' %}active{% endif %}">طلبات الاشتراك</a>

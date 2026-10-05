@@ -1,22 +1,25 @@
 {% extends "dashboard/base.html" %}
-{% block title %}مجموعات {{ course.title_ar }}{% endblock %}
-{% block page_title %}مجموعات: {{ course.title_ar }}{% endblock %}
+{% block title %}المجموعات{% endblock %}
+{% block page_title %}{% if course %}مجموعات: {{ course.title_ar }}{% else %}إدارة المجموعات{% endif %}{% endblock %}
 {% block content %}
 <div class="dash-toolbar">
   <h2>{{ cohorts|length }} مجموعة</h2>
   <div class="dash-table-actions">
-    <a class="btn btn-outline" href="{% url 'dashboard:enrollments_list' course.pk %}">الطلاب</a>
+    {% if course %}<a class="btn btn-outline" href="{% url 'dashboard:enrollments_list' course.pk %}">الطلاب</a>
     {% if can_write_courses %}<a class="btn btn-primary" href="{% url 'dashboard:cohort_create' course.pk %}">+ إضافة مجموعة</a>{% endif %}
+    {% else %}{% for key, label in filters %}<a class="btn {% if key == current %}btn-primary{% else %}btn-outline{% endif %}" href="?status={{ key }}">{{ label }}</a>{% endfor %}
+    <a class="btn btn-outline" href="{% url 'dashboard:courses_list' %}">+ مجموعة جديدة (من الكورس)</a>{% endif %}
   </div>
 </div>
 <p style="color:var(--muted);font-size:13px;">المواعيد غير ثابتة للكورس: لكل جروب أو طالب خصوصي مجموعة بمدرسه ومواعيده.</p>
 <div class="dash-table-wrap">
   {% if cohorts %}
   <table class="dash-table">
-    <thead><tr><th>المجموعة</th><th>النوع</th><th>المدرس</th><th>البداية</th><th>الطلاب / الحد الأدنى</th><th>الحالة</th><th>الجلسات</th><th></th></tr></thead>
+    <thead><tr>{% if not course %}<th>الكورس</th>{% endif %}<th>المجموعة</th><th>النوع</th><th>المدرس</th><th>البداية</th><th>الطلاب / الحد الأدنى</th><th>الحالة</th><th>الجلسات</th><th></th></tr></thead>
     <tbody>
     {% for c in cohorts %}
       <tr>
+        {% if not course %}<td class="wrap">{{ c.course.title_ar }}</td>{% endif %}
         <td class="wrap">{{ c.name|default:"—" }} #{{ c.pk }}</td>
         <td>{{ c.get_mode_display }}</td>
         <td>{{ c.teacher.name_ar|default:"—" }}</td>
@@ -35,9 +38,9 @@
         <td><div class="dash-table-actions">
           <a href="{% url 'dashboard:lessons_list' c.pk %}">الجلسات</a>
           {% if can_write_courses %}
-            {% if c.is_ready_to_confirm %}<form method="post" action="{% url 'dashboard:cohort_confirm' course.pk c.pk %}" style="display:inline">{% csrf_token %}<button type="submit" class="btn btn-accent btn-sm">تأكيد المجموعة وتسجيل الطلاب</button></form>{% endif %}
-            <a href="{% url 'dashboard:cohort_edit' course.pk c.pk %}">تعديل</a>
-            <a class="danger" href="{% url 'dashboard:cohort_delete' course.pk c.pk %}">حذف</a>
+            {% if c.is_ready_to_confirm %}<form method="post" action="{% url 'dashboard:cohort_confirm' c.course_id c.pk %}" style="display:inline">{% csrf_token %}<button type="submit" class="btn btn-accent btn-sm">تأكيد المجموعة وتسجيل الطلاب</button></form>{% endif %}
+            <a href="{% url 'dashboard:cohort_edit' c.course_id c.pk %}">تعديل</a>
+            <a class="danger" href="{% url 'dashboard:cohort_delete' c.course_id c.pk %}">حذف</a>
           {% endif %}
         </div></td>
       </tr>

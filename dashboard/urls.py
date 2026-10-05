@@ -41,6 +41,7 @@ urlpatterns = [
     path("requests/", views.requests_list, name="requests_list"),
     path("requests/<int:pk>/", views.request_detail, name="request_detail"),
     path("requests/<int:pk>/enroll/", views.request_enroll, name="request_enroll"),
+    path("cohorts/", views.all_cohorts, name="all_cohorts"),
     path("courses/", views.courses_list, name="courses_list"),
     path("courses/add/", views.course_form, name="course_create"),
     path("courses/<int:pk>/edit/", views.course_form, name="course_edit"),
