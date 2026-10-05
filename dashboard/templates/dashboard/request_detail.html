@@ -47,7 +47,11 @@
     </form>
     {% if obj.status == 'waiting' and obj.cohort %}<p class="rq-note"><b>في الانتظار</b>مجموعة {{ obj.cohort.name|default:obj.cohort.get_mode_display }} #{{ obj.cohort.pk }} ({{ obj.cohort.seats_taken }} / {{ obj.cohort.min_students }}). يُسجَّل الطالب ويظهر له الكورس عند تأكيد المجموعة.</p>{% endif %}
     {% if can_write_requests and needs_payment %}<p class="rq-note"><b>لم يدفع بعد</b>لا يمكن إضافة الطالب إلى مجموعة قبل أن يدفع. غيّر حالة الدفع إلى «دفع» وحفظ الطلب أولًا.</p>{% endif %}
-    {% if can_write_requests and needs_account %}<p class="rq-note"><b>دفع لكنه بلا حساب</b>لا يمكن إضافته إلى مجموعة حتى ينشئ حسابًا بنفس بريده.</p>{% endif %}
+    {% if can_write_requests and needs_account %}
+      <div class="rq-note"><b>لا يوجد حساب لهذا الطالب</b>لا يمكن إضافته إلى مجموعة بدون حساب. أنشئ له حسابًا ببريده {{ obj.email }} (أو يُربط بحسابه إن كان مسجلًا)، ثم أضِفه للمجموعة بعد الدفع.
+        <form method="post" action="{% url 'dashboard:request_create_account' obj.pk %}" style="margin-top:10px;">{% csrf_token %}
+          <button type="submit" class="btn btn-primary">إنشاء حساب للطالب</button></form></div>
+    {% endif %}
     {% if can_write_requests and can_enroll %}
       <form method="post" action="{% url 'dashboard:request_enroll' obj.pk %}" class="rq-enroll">{% csrf_token %}
         <select name="cohort" class="field"><option value="">— بدون مجموعة (تُحدد لاحقًا) —</option>

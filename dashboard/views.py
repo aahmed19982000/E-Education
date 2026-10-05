@@ -6,6 +6,7 @@ from django.db import models
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.crypto import get_random_string
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
@@ -927,7 +928,7 @@ def request_detail(request, pk):
         cohorts = [c for c in obj.course.cohorts.select_related("teacher")
                    if not c.is_locked and (c.mode == "private" or c.seats_left or c.pk == obj.cohort_id)]
     ctx.update({"obj": obj, "form": form, "cohorts": cohorts, "can_enroll": bool(obj.user and obj.course and obj.is_paid),
-                "needs_payment": bool(obj.course and not obj.is_paid), "needs_account": bool(obj.course and obj.is_paid and not obj.user),
+                "needs_payment": bool(obj.course and not obj.is_paid), "needs_account": bool(obj.kind == "student" and not obj.user),
                 "enrolled": bool(obj.user and obj.course and Enrollment.objects.filter(user=obj.user, course=obj.course).exists())})
     return render(request, "dashboard/request_detail.html", ctx)
 
@@ -963,6 +964,41 @@ def request_enroll(request, pk):
         obj.status = EnrollmentRequest.STATUS_ENROLLED
         obj.save(update_fields=["status"])
         messages.success(request, "تم تسجيل الطالب في الكورس.")
+    return redirect("dashboard:request_detail", pk=obj.pk)
+
+
+@section_required(SECTION_REQUESTS, "write")
+@require_POST
+def request_create_account(request, pk):
+    """Give a student who applied without an account one, so they can be placed in a group.
+
+    An account with the same email is reused. A new one gets a random temporary password,
+    shown once to staff to pass on (the site has no email or password-reset flow yet).
+    """
+    obj = get_object_or_404(EnrollmentRequest, pk=pk)
+    if obj.user_id:
+        messages.info(request, "للطالب حساب بالفعل.")
+        return redirect("dashboard:request_detail", pk=obj.pk)
+    if obj.kind != EnrollmentRequest.KIND_STUDENT:
+        messages.error(request, "إنشاء الحساب متاح لطلبات الطلاب فقط.")
+        return redirect("dashboard:request_detail", pk=obj.pk)
+    email = obj.email.strip().lower()
+    existing = User.objects.filter(email__iexact=email).first()
+    if existing:
+        obj.user = existing
+        obj.save(update_fields=["user"])
+        messages.success(request, f"رُبط الطلب بحساب الطالب الموجود ({existing.email}).")
+        return redirect("dashboard:request_detail", pk=obj.pk)
+    password = get_random_string(10, allowed_chars="abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789")
+    first_name, _, last_name = obj.full_name.strip().partition(" ")
+    user = User.objects.create_user(username=email, email=email, password=password,
+                                    first_name=first_name, last_name=last_name)
+    user.profile.phone = obj.phone
+    user.profile.save()
+    obj.user = user
+    obj.save(update_fields=["user"])
+    messages.success(request, f"تم إنشاء حساب للطالب. البريد: {email} — كلمة المرور المؤقتة: {password} "
+                              "(تظهر لمرة واحدة، سلّمها للطالب).")
     return redirect("dashboard:request_detail", pk=obj.pk)
 
 

@@ -525,6 +525,29 @@ class WaitingGroupTests(TestCase):
         req.refresh_from_db()
         self.assertEqual(req.status, EnrollmentRequest.STATUS_WAITING)
 
+    def test_create_account_for_guest_request_then_add_to_group(self):
+        req = EnrollmentRequest.objects.create(course=self.course, full_name="سلمى أحمد", email="Salma@X.com",
+                                               phone="0100", payment_status="paid")
+        page = self.client.get(reverse("dashboard:request_detail", args=[req.pk]))
+        self.assertContains(page, "إنشاء حساب للطالب")
+        resp = self.client.post(reverse("dashboard:request_create_account", args=[req.pk]), follow=True)
+        req.refresh_from_db()
+        self.assertEqual(req.user.email, "salma@x.com")
+        self.assertEqual(req.user.profile.phone, "0100")
+        self.assertTrue(req.user.has_usable_password())
+        self.assertContains(resp, "كلمة المرور المؤقتة")
+        self.client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": self.cohort.pk})
+        req.refresh_from_db()
+        self.assertEqual(req.status, EnrollmentRequest.STATUS_WAITING)
+
+    def test_create_account_reuses_existing_account_with_same_email(self):
+        existing = User.objects.create_user("old", "same@x.com", "pw")
+        req = EnrollmentRequest.objects.create(course=self.course, full_name="S", email="SAME@x.com", phone="1")
+        self.client.post(reverse("dashboard:request_create_account", args=[req.pk]))
+        req.refresh_from_db()
+        self.assertEqual(req.user, existing)
+        self.assertEqual(User.objects.filter(email__iexact="same@x.com").count(), 1)
+
     def test_launch_early_with_force(self):
         self.place(1)
         self.client.post(reverse("dashboard:cohort_confirm", args=[self.course.pk, self.cohort.pk]), {"force": "1"})
