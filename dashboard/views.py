@@ -921,7 +921,13 @@ def request_detail(request, pk):
             messages.success(request, "تم حفظ الطلب.")
             return redirect("dashboard:request_detail", pk=obj.pk)
     ctx = base_context(request, active="requests")
-    ctx.update({"obj": obj, "form": form, "cohorts": obj.course.cohorts.all() if obj.course else [], "can_enroll": bool(obj.user and obj.course),
+    cohorts = []
+    if obj.course:
+        # Only groups the student can actually join: not launched, and with a free seat (or the one they hold).
+        cohorts = [c for c in obj.course.cohorts.select_related("teacher")
+                   if not c.is_locked and (c.mode == "private" or c.seats_left or c.pk == obj.cohort_id)]
+    ctx.update({"obj": obj, "form": form, "cohorts": cohorts, "can_enroll": bool(obj.user and obj.course and obj.is_paid),
+                "needs_payment": bool(obj.course and not obj.is_paid), "needs_account": bool(obj.course and obj.is_paid and not obj.user),
                 "enrolled": bool(obj.user and obj.course and Enrollment.objects.filter(user=obj.user, course=obj.course).exists())})
     return render(request, "dashboard/request_detail.html", ctx)
 
@@ -940,6 +946,8 @@ def request_enroll(request, pk):
         cohort = get_object_or_404(Cohort, pk=request.POST["cohort"], course=obj.course)
     if not (obj.user and obj.course):
         messages.error(request, "لا يمكن التسجيل: الطالب لم ينشئ حسابًا بعد.")
+    elif not obj.is_paid:
+        messages.error(request, placement.UNPAID)
     elif cohort:
         error = placement.place_request(obj, cohort)
         if error:

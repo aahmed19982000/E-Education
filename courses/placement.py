@@ -8,6 +8,7 @@ message, or None on success.
 from .models import Cohort, Enrollment, EnrollmentRequest
 
 LOCKED = "المجموعة مُطلقة ومُسندة لمدرس، لا يمكن إدخال طلاب أو إخراجهم منها."
+UNPAID = "لا يمكن إضافة الطالب إلى مجموعة قبل أن يدفع."
 
 
 def _target_error(cohort, course_id, holds_seat_here=False):
@@ -24,6 +25,8 @@ def place_request(req, cohort):
     """Place a request's student: a forming group keeps them waiting (staff-only), otherwise enrol them."""
     if not (req.user and req.course):
         return "لا يمكن التسجيل: الطالب لم ينشئ حسابًا بعد."
+    if not req.is_paid:
+        return UNPAID
     here = (req.cohort_id == cohort.pk and req.status == EnrollmentRequest.STATUS_WAITING) or \
         Enrollment.objects.filter(user=req.user, course=req.course, cohort=cohort).exists()
     error = _target_error(cohort, req.course_id, holds_seat_here=here)

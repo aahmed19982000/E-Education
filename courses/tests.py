@@ -320,6 +320,7 @@ class DashboardRequestTests(TestCase):
         self.assertContains(self.client.get(reverse("dashboard:request_detail", args=[self.req.pk])), "s@x.com")
 
     def test_enroll_from_request(self):
+        EnrollmentRequest.objects.filter(pk=self.req.pk).update(payment_status="paid")
         self.client.force_login(self.admin)
         self.client.post(reverse("dashboard:request_enroll", args=[self.req.pk]))
         self.assertTrue(Enrollment.objects.filter(user=self.student, course=self.course).exists())
@@ -436,7 +437,7 @@ class PerStudentTimesTests(TestCase):
     def test_enroll_from_request_with_cohort(self):
         admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
         req = EnrollmentRequest.objects.create(course=self.course, user=User.objects.create_user("n", "n@x.com", "pw"),
-                                               full_name="N", email="n@x.com", phone="1")
+                                               full_name="N", email="n@x.com", phone="1", payment_status="paid")
         self.cohort_a.confirmed_at = timezone.now()
         self.cohort_a.save()
         self.client.force_login(admin)
@@ -457,7 +458,8 @@ class WaitingGroupTests(TestCase):
 
     def place(self, n):
         user = User.objects.create_user(f"w{n}", f"w{n}@x.com", "pw")
-        req = EnrollmentRequest.objects.create(course=self.course, user=user, full_name=f"W{n}", email=user.email, phone="1")
+        req = EnrollmentRequest.objects.create(course=self.course, user=user, full_name=f"W{n}", email=user.email, phone="1",
+                                               payment_status="paid")
         resp = self.client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": self.cohort.pk})
         req.refresh_from_db()
         return req, resp
@@ -505,6 +507,23 @@ class WaitingGroupTests(TestCase):
         self.place(1); self.place(2)
         self.client.post(reverse("dashboard:cohort_confirm", args=[self.course.pk, self.cohort.pk]))
         self.assertIsNone(Cohort.objects.get(pk=self.cohort.pk).confirmed_at)
+
+    def test_unpaid_request_cannot_be_added_to_a_group(self):
+        user = User.objects.create_user("u", "u@x.com", "pw")
+        req = EnrollmentRequest.objects.create(course=self.course, user=user, full_name="U", email="u@x.com", phone="1")
+        self.client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": self.cohort.pk})
+        req.refresh_from_db()
+        self.assertNotEqual(req.status, EnrollmentRequest.STATUS_WAITING)
+        self.assertFalse(Enrollment.objects.exists())
+        page = self.client.get(reverse("dashboard:request_detail", args=[req.pk]))
+        self.assertContains(page, "لم يدفع بعد")
+        self.assertNotContains(page, "request_enroll")
+        EnrollmentRequest.objects.filter(pk=req.pk).update(payment_status="paid")
+        page = self.client.get(reverse("dashboard:request_detail", args=[req.pk]))
+        self.assertContains(page, reverse("dashboard:request_enroll", args=[req.pk]))
+        self.client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": self.cohort.pk})
+        req.refresh_from_db()
+        self.assertEqual(req.status, EnrollmentRequest.STATUS_WAITING)
 
     def test_launch_early_with_force(self):
         self.place(1)
@@ -563,7 +582,8 @@ class WaitingGroupTests(TestCase):
     def test_private_cohort_enrols_immediately(self):
         private = make_cohort(course=self.course, mode="private")
         user = User.objects.create_user("p", "p@x.com", "pw")
-        req = EnrollmentRequest.objects.create(course=self.course, user=user, full_name="P", email="p@x.com", phone="1")
+        req = EnrollmentRequest.objects.create(course=self.course, user=user, full_name="P", email="p@x.com", phone="1",
+                                               payment_status="paid")
         self.client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": private.pk})
         self.assertTrue(Enrollment.objects.filter(user=user, cohort=private).exists())
 
