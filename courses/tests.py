@@ -506,6 +506,7 @@ class WaitingGroupTests(TestCase):
         self.place(1); self.place(2)
         url = reverse("dashboard:all_cohorts")
         self.assertContains(self.client.get(url), "تأكيد المجموعة")
+        self.assertContains(self.client.get(url), "W1")  # waiting students are named
         self.assertContains(self.client.get(url, {"status": "ready"}), "تأكيد المجموعة")
         self.assertNotContains(self.client.get(url, {"status": "confirmed"}), "تأكيد المجموعة")
 

@@ -553,7 +553,7 @@ def cohorts_list(request, course_pk):
     ctx = base_context(request, active="courses")
     ctx.update({"course": course, "cohorts": course.cohorts.select_related("teacher").annotate(
         lessons_count=Count("lessons", distinct=True), students_count=Count("enrollments", distinct=True))
-        .prefetch_related("requests")})
+        .prefetch_related("requests", "enrollments__user")})
     return render(request, "dashboard/cohorts_list.html", ctx)
 
 
@@ -563,7 +563,7 @@ def all_cohorts(request):
     current = request.GET.get("status", "all")
     qs = Cohort.objects.select_related("course", "teacher").annotate(
         lessons_count=Count("lessons", distinct=True), students_count=Count("enrollments", distinct=True),
-    ).prefetch_related("requests")
+    ).prefetch_related("requests", "enrollments__user")
     if current == "private":
         qs = qs.filter(mode="private")
     elif current in ("forming", "ready", "confirmed"):
