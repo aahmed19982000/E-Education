@@ -1,4 +1,5 @@
 {% extends "dashboard/base.html" %}
+{% load whatsapp %}
 {% block title %}طلبات الاشتراك{% endblock %}
 {% block page_title %}طلبات الاشتراك{% endblock %}
 {% block content %}
@@ -43,7 +44,7 @@
             <span class="rq-avatar {{ r.kind }}">{{ r.full_name|slice:":1" }}</span>
             <div>
               <div class="rq-name">{{ r.full_name }}</div>
-              <div class="rq-sub"><a href="tel:{{ r.phone }}">{{ r.phone }}</a></div>
+              <div class="rq-sub"><a href="tel:{{ r.phone }}">{{ r.phone }}</a> {% whatsapp_link r.phone %}</div>
             </div>
           </div>
         </td>

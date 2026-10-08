@@ -1,4 +1,5 @@
 {% extends "dashboard/base.html" %}
+{% load whatsapp %}
 {% block title %}{{ student.get_full_name|default:student.email }}{% endblock %}
 {% block page_title %}صفحة الطالب{% endblock %}
 {% block content %}
@@ -8,7 +9,7 @@
       <span class="ch-avatar" style="width:56px;height:56px;font-size:22px;">{{ student.get_full_name|default:student.email|slice:":1" }}</span>
       <div>
         <h2 style="margin:0 0 4px;">{{ student.get_full_name|default:student.email }}</h2>
-        <div style="color:var(--muted);font-size:13.5px;"><a href="mailto:{{ student.email }}">{{ student.email }}</a>{% if phone %} · <a href="tel:{{ phone }}">{{ phone }}</a>{% endif %}</div>
+        <div style="color:var(--muted);font-size:13.5px;"><a href="mailto:{{ student.email }}">{{ student.email }}</a>{% if phone %} · <a href="tel:{{ phone }}">{{ phone }}</a> {% whatsapp_link phone %}{% endif %}</div>
       </div>
     </div>
     <div class="ch-hero-actions"><a class="btn btn-outline" href="{% url 'dashboard:all_cohorts' %}">كل المجموعات</a></div>

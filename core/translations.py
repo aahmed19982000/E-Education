@@ -141,7 +141,7 @@ AR = {
     },
     "auth": {
         "login": "تسجيل الدخول", "register": "حساب جديد", "name": "الاسم الكامل", "email": "البريد الإلكتروني",
-        "phone": "رقم الهاتف", "password": "كلمة المرور", "password2": "تأكيد كلمة المرور",
+        "phone": "رقم الواتس اب", "password": "كلمة المرور", "password2": "تأكيد كلمة المرور",
         "loginBtn": "دخول", "registerBtn": "إنشاء حساب",
     },
     "footer": {
@@ -286,7 +286,7 @@ EN = {
     },
     "auth": {
         "login": "Log in", "register": "New account", "name": "Full name", "email": "Email",
-        "phone": "Phone number", "password": "Password", "password2": "Confirm password",
+        "phone": "WhatsApp number", "password": "Password", "password2": "Confirm password",
         "loginBtn": "Log in", "registerBtn": "Create account",
     },
     "footer": {

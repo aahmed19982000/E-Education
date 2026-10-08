@@ -466,3 +466,7 @@ table.dash-table { width: 100%; border-collapse: collapse; }
 .ch-item h4 { margin: 0; font-size: 15.5px; color: var(--primary); font-weight: 800; }
 .ch-facts { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
 .ch-facts b { color: var(--primary); }
+
+/* WhatsApp quick-message link */
+.wa-link { display: inline-flex; align-items: center; gap: 5px; margin-inline-start: 6px; padding: 3px 10px; border-radius: 999px; background: #E3F7EA; color: #128C4A; font-size: 11.5px; font-weight: 800; white-space: nowrap; border: 1px solid #bfe8cf; }
+.wa-link:hover { background: #25D366; color: #fff; border-color: #25D366; }

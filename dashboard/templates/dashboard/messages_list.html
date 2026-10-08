@@ -1,4 +1,5 @@
 {% extends "dashboard/base.html" %}
+{% load whatsapp %}
 {% block title %}رسائل تواصل معنا{% endblock %}
 {% block page_title %}رسائل تواصل معنا{% endblock %}
 
@@ -20,7 +21,7 @@
       <tr>
         <td>{{ msg.name }}</td>
         <td>{{ msg.email }}</td>
-        <td>{{ msg.phone|default:"—" }}</td>
+        <td>{{ msg.phone|default:"—" }} {% whatsapp_link msg.phone %}</td>
         <td>{{ msg.created_at|date:"Y-m-d H:i" }}</td>
         <td>
           <div class="dash-table-actions">

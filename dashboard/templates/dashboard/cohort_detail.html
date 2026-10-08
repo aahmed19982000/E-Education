@@ -1,4 +1,5 @@
 {% extends "dashboard/base.html" %}
+{% load whatsapp %}
 {% block title %}{{ cohort.name|default:"مجموعة" }} #{{ cohort.pk }}{% endblock %}
 {% block page_title %}تفاصيل المجموعة{% endblock %}
 {% block content %}
@@ -56,7 +57,7 @@
     {% for r in rows %}
       <tr>
         <td><div class="ch-person"><span class="ch-avatar">{{ r.name|slice:":1" }}</span>
-          <div><a href="{% url 'dashboard:student_detail' r.user.pk %}">{{ r.name }}</a><small>{{ r.user.email }}{% if r.user.profile.phone %} · {{ r.user.profile.phone }}{% endif %}</small></div></div></td>
+          <div><a href="{% url 'dashboard:student_detail' r.user.pk %}">{{ r.name }}</a><small>{{ r.user.email }}{% if r.user.profile.phone %} · {{ r.user.profile.phone }}{% endif %}</small>{% whatsapp_link r.user.profile.phone %}</div></div></td>
         <td>{% if r.waiting %}<span class="ch-pill forming">بانتظار الإطلاق</span>{% elif r.active %}<span class="ch-pill launched">مسجّل</span>{% else %}<span class="ch-pill muted">اشتراك ملغي</span>{% endif %}</td>
         <td>{% if r.result %}<span class="ch-score {% if r.result.percent >= 70 %}high{% elif r.result.percent >= 40 %}mid{% else %}low{% endif %}">{{ r.result.percent }}%</span> <small style="color:var(--muted)">{{ r.result.created_at|date:"Y-m-d" }}</small>{% else %}<span class="ch-pill muted">لم يُنهِه</span>{% endif %}</td>
         <td>{% if r.paid %}<span class="ch-pill paid">دفع</span>{% else %}<span class="ch-pill unpaid">لم يدفع</span>{% endif %}</td>

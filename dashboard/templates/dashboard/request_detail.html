@@ -1,4 +1,5 @@
 {% extends "dashboard/base.html" %}
+{% load whatsapp %}
 {% block title %}طلب {{ obj.full_name }}{% endblock %}
 {% block page_title %}{% if obj.kind == 'teacher' %}حجز ورشة المدرّسين{% else %}طلب اشتراك{% endif %}: {{ obj.full_name }}{% endblock %}
 {% block content %}
@@ -13,7 +14,7 @@
       </div>
     </div>
     <dl class="rq-facts">
-      <div><dt>الهاتف</dt><dd><a href="tel:{{ obj.phone }}">{{ obj.phone }}</a></dd></div>
+      <div><dt>الهاتف</dt><dd><a href="tel:{{ obj.phone }}">{{ obj.phone }}</a> {% whatsapp_link obj.phone %}</dd></div>
       <div><dt>البريد</dt><dd><a href="mailto:{{ obj.email }}">{{ obj.email }}</a></dd></div>
       {% if obj.kind == 'teacher' %}
         <div><dt>الطلب</dt><dd>حجز مكان في ورشة المدرّسين — {{ obj.get_mode_display }}</dd></div>

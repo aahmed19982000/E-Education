@@ -3,11 +3,13 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
+from .phone import validate_whatsapp
+
 
 class RegisterForm(forms.Form):
     full_name = forms.CharField(max_length=150)
     email = forms.EmailField()
-    phone = forms.CharField(max_length=30, required=False)
+    phone = forms.CharField(max_length=30, validators=[validate_whatsapp])  # WhatsApp number, required
     password = forms.CharField(widget=forms.PasswordInput)
     password2 = forms.CharField(widget=forms.PasswordInput)
 
@@ -44,7 +46,7 @@ class RegisterForm(forms.Form):
             first_name=first_name,
             last_name=last_name,
         )
-        user.profile.phone = self.cleaned_data.get("phone", "")
+        user.profile.phone = self.cleaned_data["phone"].strip()
         user.profile.save()
         return user
 

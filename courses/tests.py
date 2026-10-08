@@ -243,7 +243,7 @@ class PlacementRecordingTests(TestCase):
 
 from .models import EnrollmentRequest  # noqa: E402
 
-APPLY = {"full_name": "منى أحمد", "email": "mona@x.com", "phone": "0100", "mode": "private",
+APPLY = {"full_name": "منى أحمد", "email": "mona@x.com", "phone": "01001234567", "mode": "private",
          "preferred_times": "مساءً", "notes": ""}
 
 
@@ -266,7 +266,7 @@ class ApplyFlowTests(TestCase):
         req = EnrollmentRequest.objects.get()
         checkout = reverse("courses:checkout", args=[req.pk])
         resp = self.client.post(f"{reverse('accounts:login')}?mode=register&next={checkout}", {
-            "mode": "register", "full_name": "منى أحمد", "email": "mona@x.com", "phone": "0100",
+            "mode": "register", "full_name": "منى أحمد", "email": "mona@x.com", "phone": "01001234567",
             "password": "Str0ng-pass-93", "password2": "Str0ng-pass-93",
         })
         self.assertRedirects(resp, checkout, fetch_redirect_response=False)
@@ -638,7 +638,7 @@ class ArabicSlugTests(TestCase):
 
 class WorkshopBookingTests(TestCase):
     def test_booking_lands_in_requests_marked_as_teacher(self):
-        resp = self.client.post(reverse("core:teachers"), {"full_name": "Mona", "email": "m@x.com", "phone": "0100", "mode": "private", "payment_method": "online"})
+        resp = self.client.post(reverse("core:teachers"), {"full_name": "Mona", "email": "m@x.com", "phone": "01001234567", "mode": "private", "payment_method": "online"})
         self.assertContains(resp, "تم استلام طلب الحجز")
         req = EnrollmentRequest.objects.get()
         self.assertEqual(req.kind, EnrollmentRequest.KIND_TEACHER)
@@ -693,7 +693,7 @@ class SemiPrivateTests(TestCase):
         self.course.is_published = True
         self.course.save()
         resp = self.client.post(reverse("courses:apply", args=[self.course.slug]), {
-            "full_name": "A B", "email": "a@x.com", "phone": "1", "mode": "semi_private"})
+            "full_name": "A B", "email": "a@x.com", "phone": "01001234567", "mode": "semi_private"})
         self.assertEqual(resp.status_code, 302)
         req = EnrollmentRequest.objects.get(email="a@x.com")
         self.assertEqual(req.mode, "semi_private")
@@ -702,7 +702,7 @@ class SemiPrivateTests(TestCase):
     def test_apply_rejects_unoffered_mode(self):
         course = make_course(title_ar="بدون semi", is_published=True)
         resp = self.client.post(reverse("courses:apply", args=[course.slug]), {
-            "full_name": "A B", "email": "a@x.com", "phone": "1", "mode": "semi_private"})
+            "full_name": "A B", "email": "a@x.com", "phone": "01001234567", "mode": "semi_private"})
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(EnrollmentRequest.objects.exists())
 

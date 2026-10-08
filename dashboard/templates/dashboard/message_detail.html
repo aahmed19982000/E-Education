@@ -1,4 +1,5 @@
 {% extends "dashboard/base.html" %}
+{% load whatsapp %}
 {% block title %}رسالة من {{ object.name }}{% endblock %}
 {% block page_title %}رسالة من {{ object.name }}{% endblock %}
 
@@ -7,7 +8,7 @@
   <div class="dash-form-grid">
     <div class="dash-field"><label>الاسم</label><div>{{ object.name }}</div></div>
     <div class="dash-field"><label>البريد الإلكتروني</label><div>{{ object.email }}</div></div>
-    <div class="dash-field"><label>الهاتف</label><div>{{ object.phone|default:"—" }}</div></div>
+    <div class="dash-field"><label>الهاتف</label><div>{{ object.phone|default:"—" }} {% whatsapp_link object.phone %}</div></div>
     <div class="dash-field"><label>التاريخ</label><div>{{ object.created_at|date:"Y-m-d H:i" }}</div></div>
   </div>
   <div class="dash-message-body">{{ object.message|linebreaksbr }}</div>

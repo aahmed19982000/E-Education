@@ -21,7 +21,8 @@
         <input class="field" type="email" name="email" placeholder="{{ t.auth.email }}" value="{{ register_form.email.value|default:'' }}" required>
         {% if register_form.email.errors %}<div class="form-errors">{{ register_form.email.errors }}</div>{% endif %}
 
-        <input class="field" type="text" name="phone" placeholder="{{ t.auth.phone }}" value="{{ register_form.phone.value|default:'' }}">
+        <input class="field" type="tel" name="phone" inputmode="tel" placeholder="{{ t.auth.phone }}" value="{{ register_form.phone.value|default:'' }}" required>
+        {% if register_form.phone.errors %}<div class="form-errors">{{ register_form.phone.errors }}</div>{% endif %}
 
         <input class="field" type="password" name="password" placeholder="{{ t.auth.password }}" required>
         {% if register_form.password.errors %}<div class="form-errors">{{ register_form.password.errors }}</div>{% endif %}
