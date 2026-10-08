@@ -26,6 +26,7 @@
         <div class="c-plan-box {% if not c.group.offered %}is-off{% endif %}">
           <div class="c-plan-tag">{{ t.courses.group }}</div>
           <div class="c-plan-hint">{{ t.courses.planGroupHint }}</div>
+          {% if c.group.offered %}<ul class="c-feat">{% for f in PLAN_FEATURES.group %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
           {% if c.group.offered %}
             {% if c.group.price %}<div class="c-plan-price"><strong>{{ c.group.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
             <a class="c-btn primary" href="{% url 'courses:apply' slug=c.slug %}?mode=group">{{ t.courses.bookNow }}</a>
@@ -34,6 +35,7 @@
         <div class="c-plan-box {% if not c.semi_private.offered %}is-off{% endif %}">
           <div class="c-plan-tag">{{ t.courses.semiPrivate }}</div>
           <div class="c-plan-hint">{{ t.courses.planSemiPrivateHint }}</div>
+          {% if c.semi_private.offered %}<ul class="c-feat">{% for f in PLAN_FEATURES.semi_private %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
           {% if c.semi_private.offered %}
             {% if c.semi_private.price %}<div class="c-plan-price"><strong>{{ c.semi_private.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
             <a class="c-btn primary" href="{% url 'courses:apply' slug=c.slug %}?mode=semi_private">{{ t.courses.bookNow }}</a>
@@ -42,6 +44,7 @@
         <div class="c-plan-box featured {% if not c.private.offered %}is-off{% endif %}">
           <div class="c-plan-tag">{{ t.courses.private }}</div>
           <div class="c-plan-hint">{{ t.courses.planPrivateHint }}</div>
+          {% if c.private.offered %}<ul class="c-feat">{% for f in PLAN_FEATURES.private %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
           {% if c.private.offered %}
             {% if c.private.price %}<div class="c-plan-price"><strong>{{ c.private.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
             <a class="c-btn" href="{% url 'courses:apply' slug=c.slug %}?mode=private">{{ t.courses.bookNow }}</a>

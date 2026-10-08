@@ -1,4 +1,5 @@
 {% extends "courses/_base.html" %}
+{% load site_extras %}
 {% block title %}{{ course.title }} · {{ t.brand }}{% endblock %}
 {% block content %}
 <section class="c-hero">
@@ -50,7 +51,8 @@
           {% for mode, price in prices.items %}
           <div class="c-plan">
             <div><div class="name">{% if mode == "private" %}{{ t.courses.private }}{% elif mode == "semi_private" %}{{ t.courses.semiPrivate }}{% else %}{{ t.courses.group }}{% endif %}</div>
-              <div class="hint">{% if mode == "private" %}{{ t.courses.planPrivateHint }}{% elif mode == "semi_private" %}{{ t.courses.planSemiPrivateHint }}{% else %}{{ t.courses.planGroupHint }}{% endif %}</div></div>
+              <div class="hint">{% if mode == "private" %}{{ t.courses.planPrivateHint }}{% elif mode == "semi_private" %}{{ t.courses.planSemiPrivateHint }}{% else %}{{ t.courses.planGroupHint }}{% endif %}</div>
+              <ul class="c-feat">{% for f in PLAN_FEATURES|get_item:mode %}<li>{{ f }}</li>{% endfor %}</ul></div>
             <div class="amount">{% if price %}{{ price }}<small>{{ t.courses.currency }}</small>{% else %}—{% endif %}</div>
           </div>
           {% endfor %}

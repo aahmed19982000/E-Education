@@ -79,3 +79,51 @@ class SiteSettingsDashboardTests(TestCase):
     def test_nav_link_only_for_those_with_access(self):
         self.login(Profile.ROLE_SUPPORT)
         self.assertNotContains(self.client.get(reverse("dashboard:index")), reverse("dashboard:site_settings"))
+
+
+from courses.models import Course  # noqa: E402
+
+
+class PlanFeaturesTests(TestCase):
+    """Visitors see what Group, Semi private and Private include before they register."""
+
+    def setUp(self):
+        self.course = Course.objects.create(title_ar="كورس", is_published=True, offers_semi_private=True,
+                                            price_group=600, price_semi_private=900, price_private=1500)
+
+    def test_defaults_show_on_list_detail_and_apply_pages(self):
+        for url in (reverse("courses:list"), reverse("courses:detail", args=[self.course.slug]),
+                    reverse("courses:apply", args=[self.course.slug])):
+            page = self.client.get(url)
+            for text in ("الأقل تكلفة للفرد", "مجموعة صغيرة (2 إلى 3 طلاب)", "مدرس لك وحدك"):
+                self.assertContains(page, text, msg_prefix=url)
+
+    def test_unoffered_plan_does_not_advertise_its_features(self):
+        course = Course.objects.create(title_ar="بلا خصوصي", is_published=True, offers_private=False)
+        page = self.client.get(reverse("courses:list"))
+        self.assertEqual(page.content.decode().count("مدرس لك وحدك"), 1)  # only the first course offers Private
+
+    def test_dashboard_text_replaces_the_default_for_that_plan_only(self):
+        SiteSettings.objects.update_or_create(pk=1, defaults={"features_private_ar": "ميزة أولى\n\n  ميزة ثانية  "})
+        page = self.client.get(reverse("courses:list"))
+        self.assertContains(page, "<li>ميزة أولى</li>")
+        self.assertContains(page, "<li>ميزة ثانية</li>")
+        self.assertNotContains(page, "مدرس لك وحدك")
+        self.assertContains(page, "الأقل تكلفة للفرد")  # other plans keep their defaults
+
+    def test_english_pages_use_english_text(self):
+        SiteSettings.objects.update_or_create(pk=1, defaults={"features_group_ar": "عربي فقط"})
+        self.client.get("/lang/en/")
+        page = self.client.get(reverse("courses:list"))
+        self.assertContains(page, "Lowest cost per person")
+        self.assertNotContains(page, "عربي فقط")
+
+    def test_admin_edits_features_from_the_settings_page(self):
+        admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
+        self.client.force_login(admin)
+        self.assertContains(self.client.get(reverse("dashboard:site_settings")), "Semi private — بالعربية")
+        self.client.post(reverse("dashboard:site_settings"), {
+            "whatsapp_number": "", "whatsapp_message": "", "features_semi_private_ar": "ميزة من الأدمن"})
+        self.assertEqual(SiteSettings.load().features_semi_private_ar, "ميزة من الأدمن")
+        self.client.logout()
+        self.assertContains(self.client.get(reverse("courses:list")), "ميزة من الأدمن")

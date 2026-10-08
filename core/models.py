@@ -14,6 +14,15 @@ class SiteSettings(models.Model):
     whatsapp_message = models.CharField(
         max_length=200, blank=True, help_text="Optional text pre-filled in the visitor's chat.")
 
+    # What each course type includes, shown to visitors before they sign up. One feature per line;
+    # empty falls back to the defaults in core/translations.py.
+    features_group_ar = models.TextField(blank=True)
+    features_group_en = models.TextField(blank=True)
+    features_semi_private_ar = models.TextField(blank=True)
+    features_semi_private_en = models.TextField(blank=True)
+    features_private_ar = models.TextField(blank=True)
+    features_private_en = models.TextField(blank=True)
+
     class Meta:
         verbose_name = verbose_name_plural = "Site settings"
 
@@ -24,6 +33,20 @@ class SiteSettings(models.Model):
     def load(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+    def plan_features(self, lang):
+        """{mode: [feature, ...]} for Group, Semi private and Private in this language.
+
+        The text edited in the dashboard wins; a plan left empty shows the default list.
+        """
+        from .translations import get_translations
+        defaults = get_translations(lang)["courses"]["features"]
+        result = {}
+        for mode in ("group", "semi_private", "private"):
+            text = getattr(self, f"features_{mode}_{'en' if lang == 'en' else 'ar'}")
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+            result[mode] = lines or list(defaults[mode])
+        return result
 
     @property
     def whatsapp_url(self):

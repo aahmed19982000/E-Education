@@ -163,3 +163,13 @@
   .c-plan-box { padding: 24px 16px; }
 }
 @media (max-width: 480px) { .c-offer-plans { grid-template-columns: 1fr; } .c-plan-box + .c-plan-box { border-inline-start: none; border-top: 1px solid var(--border); } }
+
+/* What each course type includes */
+.c-feat { list-style: none; margin: 8px 0 4px; padding: 0; display: grid; gap: 6px; text-align: start; width: 100%; }
+.c-feat li { position: relative; padding-inline-start: 22px; font-size: 13px; line-height: 1.6; color: inherit; }
+.c-feat li::before { content: "✓"; position: absolute; inset-inline-start: 0; top: 0; font-weight: 800; color: #1c9a5e; }
+.c-plan-box.featured .c-feat li::before { color: var(--accent); }
+.c-plan-box .c-feat { margin: 10px 0 6px; }
+.c-choice .c-feat { margin-top: 8px; font-weight: 500; }
+.c-plan .c-feat { margin-top: 6px; }
+.c-plan .c-feat li { color: var(--muted); font-size: 12.5px; }

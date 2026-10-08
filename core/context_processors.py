@@ -4,6 +4,7 @@ from .translations import get_translations
 
 def site_language(request):
     lang = getattr(request, "lang", "ar")
+    site = SiteSettings.load()
     other_lang = "en" if lang == "ar" else "ar"
     return {
         "LANG": lang,
@@ -11,5 +12,6 @@ def site_language(request):
         "DIR": "rtl" if lang == "ar" else "ltr",
         "IS_RTL": lang == "ar",
         "t": get_translations(lang),
-        "SITE_WHATSAPP_URL": SiteSettings.load().whatsapp_url,
+        "SITE_WHATSAPP_URL": site.whatsapp_url,
+        "PLAN_FEATURES": site.plan_features(lang),
     }

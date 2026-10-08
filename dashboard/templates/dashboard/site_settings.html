@@ -2,20 +2,29 @@
 {% block title %}إعدادات الموقع{% endblock %}
 {% block page_title %}إعدادات الموقع{% endblock %}
 {% block content %}
-<div class="dash-card" style="max-width:640px;">
-  <h3 style="margin-top:0;">أيقونة الواتس اب في الموقع</h3>
-  <p style="color:var(--muted);font-size:13.5px;line-height:1.8;margin-top:0;">تظهر أيقونة واتس اب عائمة في كل صفحات الموقع، وعند الضغط عليها تفتح محادثة مع هذا الرقم.</p>
-  <form method="post">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    {% for f in form %}
+<form method="post">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  <div class="dash-card" style="max-width:760px;margin-bottom:20px;">
+    <h3 style="margin-top:0;">أيقونة الواتس اب في الموقع</h3>
+    <p style="color:var(--muted);font-size:13.5px;line-height:1.8;margin-top:0;">تظهر أيقونة واتس اب عائمة في كل صفحات الموقع، وعند الضغط عليها تفتح محادثة مع هذا الرقم.</p>
+    {% for f in form %}{% if f.name == 'whatsapp_number' or f.name == 'whatsapp_message' %}
     <div class="dash-field" style="margin-bottom:16px;"><label>{{ f.label }}</label>{{ f }}
       {% if f.help_text %}<small style="color:var(--muted);display:block;margin-top:5px;">{{ f.help_text }}</small>{% endif %}{{ f.errors }}</div>
-    {% endfor %}
-    <div class="dash-form-actions"><button type="submit" class="btn btn-primary">حفظ</button>
-      {% if whatsapp_url %}<a class="btn btn-outline" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">جرّب الرابط</a>{% endif %}</div>
-  </form>
-  <p style="margin:18px 0 0;font-size:13px;color:{% if whatsapp_url %}#1c7a4a{% else %}#a33333{% endif %};">
-    {% if whatsapp_url %}الأيقونة ظاهرة الآن في الموقع.{% else %}الأيقونة مخفية حاليًا (لا يوجد رقم).{% endif %}</p>
-</div>
+    {% endif %}{% endfor %}
+    <p style="margin:0;font-size:13px;color:{% if whatsapp_url %}#1c7a4a{% else %}#a33333{% endif %};">
+      {% if whatsapp_url %}الأيقونة ظاهرة الآن في الموقع. <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">جرّب الرابط</a>{% else %}الأيقونة مخفية حاليًا (لا يوجد رقم).{% endif %}</p>
+  </div>
+
+  <div class="dash-card" style="max-width:760px;margin-bottom:20px;">
+    <h3 style="margin-top:0;">مميزات كل نوع كورس</h3>
+    <p style="color:var(--muted);font-size:13.5px;line-height:1.8;margin-top:0;">تظهر للعميل قبل التسجيل: في صفحة الكورسات وصفحة الكورس ونموذج الاشتراك. اكتب ميزة في كل سطر. إن تركت نوعًا فارغًا تظهر له الميزات الافتراضية.</p>
+    {% for f in form %}{% if f.name|slice:":9" == 'features_' %}
+    <div class="dash-field" style="margin-bottom:16px;"><label>{{ f.label }}</label>{{ f }}{{ f.errors }}</div>
+    {% endif %}{% endfor %}
+  </div>
+
+  <div class="dash-form-actions" style="max-width:760px;"><button type="submit" class="btn btn-primary">حفظ</button></div>
+</form>
 {% endblock %}
