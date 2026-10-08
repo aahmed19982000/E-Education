@@ -137,10 +137,11 @@ class OffersLayoutTests(TestCase):
                               price_private=1500)
         page = self.client.get(reverse("courses:list"))
         html = page.content.decode()
-        self.assertEqual(html.count('class="c-plan-tab'), 3)
+        self.assertEqual(html.count('class="c-plan-tab '), 3)
         self.assertEqual(html.count('role="tabpanel"'), 3)
         offer = page.context["offers"][0]
         self.assertEqual(offer["default"], "private")
         self.assertEqual([p["offered"] for p in offer["plans"]], [False, False, True])
         self.assertContains(page, "غير متاح لهذا الكورس", count=2)
-        self.assertContains(page, "c-plan-tab is-active is-off", count=0)
+        self.assertEqual(html.count("c-plan-tab is-active"), 1)
+        self.assertNotIn("c-plan-tab is-active is-off", html)
