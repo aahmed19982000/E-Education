@@ -32,6 +32,12 @@ class WorkshopBookingForm(forms.ModelForm):
         fields = ["full_name", "email", "phone", "mode", "payment_method", "notes"]
         widgets = {"mode": forms.RadioSelect, "payment_method": forms.RadioSelect}
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The workshop keeps its two plans; semi private is for student courses.
+        self.fields["mode"].choices = [c for c in EnrollmentRequest.MODE_CHOICES
+                                       if c[0] in (EnrollmentRequest.MODE_GROUP, EnrollmentRequest.MODE_PRIVATE)]
+
     def save(self, commit=True):
         obj = super().save(commit=False)
         obj.kind = EnrollmentRequest.KIND_TEACHER

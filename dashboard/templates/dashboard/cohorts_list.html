@@ -11,7 +11,7 @@
     <a class="btn btn-outline" href="{% url 'dashboard:courses_list' %}">+ مجموعة جديدة (من الكورس)</a>{% endif %}
   </div>
 </div>
-<p style="color:var(--muted);font-size:13px;">المواعيد غير ثابتة للكورس: لكل جروب أو طالب خصوصي مجموعة بمدرسه ومواعيده.</p>
+<p style="color:var(--muted);font-size:13px;">المواعيد غير ثابتة للكورس: لكل Group أو Semi private أو طالب Private مجموعة بمدرسه ومواعيده.</p>
 <div class="dash-table-wrap">
   {% if cohorts %}
   <table class="dash-table">
@@ -25,7 +25,7 @@
         <td>{{ c.teacher.name_ar|default:"—" }}</td>
         <td>{{ c.start_date|date:"Y-m-d"|default:"—" }}</td>
         <td>
-          {% if c.mode == 'group' %}
+          {% if c.mode != 'private' %}
             {% with taken=c.seats_taken %}{{ taken }} / {{ c.min_students }} <small style="color:var(--muted)">(حتى {{ c.max_students }})</small>{% endwith %}
           {% else %}{{ c.students_count }}{% endif %}
           {% include "dashboard/_cohort_people.html" %}

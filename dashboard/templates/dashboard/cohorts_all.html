@@ -40,11 +40,11 @@
     {% if c.slots.all %}<div class="ch-slots">{% for sl in c.slots.all %}<span class="ch-slot">{{ sl.get_weekday_display }} {{ sl.start_time|time:"H:i" }}</span>{% endfor %}</div>{% endif %}
 
     <div>
-      {% if c.mode == 'group' %}
+      {% if c.mode != 'private' %}
         <div class="ch-seats-head"><span>الطلاب</span><span><b>{{ c.taken }}</b> / {{ c.min_students }} للبدء · حتى {{ c.max_students }}</span></div>
         <div class="ch-progress {% if c.taken >= c.min_students %}full{% endif %}"><i style="width:{{ c.percent }}%"></i></div>
       {% else %}
-        <div class="ch-seats-head"><span>طالب خصوصي</span><span><b>{{ c.taken }}</b> مسجّل</span></div>
+        <div class="ch-seats-head"><span>طالب Private</span><span><b>{{ c.taken }}</b> مسجّل</span></div>
       {% endif %}
     </div>
 

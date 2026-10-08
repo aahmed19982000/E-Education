@@ -21,6 +21,7 @@
             <div class="c-choice">
               {% for radio in f %}
               <label>{{ radio.tag }}{% if radio.data.value == "private" %}{{ t.courses.private }}<small>{{ t.courses.privateHint }}{% if prices.private %} · {{ prices.private }} {{ t.courses.currency }}{% endif %}</small>
+                {% elif radio.data.value == "semi_private" %}{{ t.courses.semiPrivate }}<small>{{ t.courses.semiPrivateHint }}{% if prices.semi_private %} · {{ prices.semi_private }} {{ t.courses.currency }}{% endif %}</small>
                 {% else %}{{ t.courses.group }}<small>{{ t.courses.groupHint }}{% if prices.group %} · {{ prices.group }} {{ t.courses.currency }}{% endif %}</small>{% endif %}</label>
               {% endfor %}
             </div>

@@ -46,7 +46,7 @@
           <input type="hidden" name="kind" value="{{ it.kind }}"><input type="hidden" name="id" value="{{ it.obj.pk }}">
           <input type="hidden" name="action" value="move"><input type="hidden" name="next" value="{{ request.path }}">
           <select name="cohort" required><option value="">{% if it.cohort %}نقل إلى مجموعة…{% else %}توجيه إلى مجموعة…{% endif %}</option>
-            {% for o in it.options %}<option value="{{ o.pk }}">{{ o.name|default:"مجموعة" }} #{{ o.pk }}{% if o.mode == 'group' %} ({{ o.seats_taken }}/{{ o.max_students }}){% endif %}</option>{% endfor %}</select>
+            {% for o in it.options %}<option value="{{ o.pk }}">{{ o.name|default:"مجموعة" }} #{{ o.pk }}{% if o.mode != 'private' %} ({{ o.seats_taken }}/{{ o.max_students }}){% endif %}</option>{% endfor %}</select>
           <button class="btn btn-primary" type="submit">{% if it.cohort %}نقل{% else %}توجيه{% endif %}</button>
         </form>
         {% elif not it.cohort %}<span style="color:var(--muted);font-size:13px;">لا توجد مجموعات متاحة لهذا الكورس.</span>{% endif %}

@@ -31,7 +31,7 @@
     <div><dt>المدرس</dt><dd>{% if cohort.teacher %}{{ cohort.teacher.name_ar }}{% else %}<span style="color:#a33333">لم يُسند بعد</span>{% endif %}</dd></div>
     <div><dt>بداية الجلسات</dt><dd>{{ cohort.start_date|date:"Y-m-d"|default:"—" }} · {{ cohort.weeks }} أسبوع</dd></div>
     <div><dt>المواعيد</dt><dd>{% for sl in cohort.slots.all %}{{ sl.get_weekday_display }} {{ sl.start_time|time:"H:i" }}{% if not forloop.last %}، {% endif %}{% empty %}—{% endfor %}</dd></div>
-    {% if cohort.mode == 'group' %}
+    {% if cohort.mode != 'private' %}
     <div><dt>الطلاب (الحد الأدنى / الأقصى)</dt>
       <dd>{{ taken }} / {{ cohort.min_students }} · حتى {{ cohort.max_students }}
         <div class="ch-progress {% if taken >= cohort.min_students %}full{% endif %}" style="margin-top:7px;"><i style="width:{{ percent }}%"></i></div></dd></div>
@@ -67,7 +67,7 @@
             <input type="hidden" name="kind" value="{{ r.kind }}"><input type="hidden" name="id" value="{{ r.obj.pk }}">
             <input type="hidden" name="action" value="move"><input type="hidden" name="next" value="{{ request.path }}">
             <select name="cohort" required><option value="">نقل إلى…</option>
-              {% for o in others %}<option value="{{ o.pk }}">{{ o.name|default:"مجموعة" }} #{{ o.pk }}{% if o.mode == 'group' %} ({{ o.seats_taken }}/{{ o.max_students }}){% endif %}</option>{% endfor %}</select>
+              {% for o in others %}<option value="{{ o.pk }}">{{ o.name|default:"مجموعة" }} #{{ o.pk }}{% if o.mode != 'private' %} ({{ o.seats_taken }}/{{ o.max_students }}){% endif %}</option>{% endfor %}</select>
             <button class="btn btn-outline" type="submit">نقل</button>
           </form>
           {% endif %}

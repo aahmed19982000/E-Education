@@ -32,8 +32,10 @@ class Course(models.Model):
 
     audience = models.CharField(max_length=10, choices=AUDIENCE_CHOICES, default=AUDIENCE_STUDENTS)
     offers_group = models.BooleanField(default=True)
+    offers_semi_private = models.BooleanField(default=False)
     offers_private = models.BooleanField(default=True)
     price_group = models.PositiveIntegerField(null=True, blank=True, help_text="EGP")
+    price_semi_private = models.PositiveIntegerField(null=True, blank=True, help_text="EGP")
     price_private = models.PositiveIntegerField(null=True, blank=True, help_text="EGP")
 
     is_published = models.BooleanField(default=False)
@@ -70,13 +72,15 @@ class Course(models.Model):
         modes = []
         if self.offers_group:
             modes.append("group")
+        if self.offers_semi_private:
+            modes.append("semi_private")
         if self.offers_private:
             modes.append("private")
         return modes
 
     def price_for(self, mode):
         """The course's own price for a mode (courses are not tied to a level)."""
-        return self.price_private if mode == "private" else self.price_group
+        return {"private": self.price_private, "semi_private": self.price_semi_private}.get(mode, self.price_group)
 
 
 class Cohort(models.Model):
@@ -88,7 +92,8 @@ class Cohort(models.Model):
 
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="cohorts")
     name = models.CharField(max_length=150, blank=True, help_text="e.g. مجموعة السبت والثلاثاء")
-    mode = models.CharField(max_length=10, choices=[("group", "جروب"), ("private", "خصوصي")], default="group")
+    MODE_CHOICES = [("group", "Group"), ("semi_private", "Semi private"), ("private", "Private")]
+    mode = models.CharField(max_length=15, choices=MODE_CHOICES, default="group")
     teacher = models.ForeignKey(TeamMember, null=True, blank=True, on_delete=models.SET_NULL, related_name="cohorts")
     start_date = models.DateField(null=True, blank=True, help_text="First day sessions are generated from")
     weeks = models.PositiveSmallIntegerField(default=8, validators=[MinValueValidator(1)],
@@ -111,9 +116,14 @@ class Cohort(models.Model):
             raise ValidationError({"max_students": "الحد الأقصى يجب ألا يقل عن الحد الأدنى."})
 
     @property
+    def is_group_like(self):
+        """Group and semi private fill up to a minimum and are then launched; private never waits."""
+        return self.mode != "private"
+
+    @property
     def is_forming(self):
         """A group still collecting students: new students wait instead of being enrolled."""
-        return self.mode == "group" and self.confirmed_at is None
+        return self.is_group_like and self.confirmed_at is None
 
     def waiting_requests(self):
         """Students placed here who are not enrolled yet (they have an account, so can be enrolled)."""
@@ -132,7 +142,7 @@ class Cohort(models.Model):
     @property
     def is_locked(self):
         """Launched (confirmed + given a teacher): students can no longer be added or taken out."""
-        return self.mode == "group" and self.confirmed_at is not None and self.teacher_id is not None
+        return self.is_group_like and self.confirmed_at is not None and self.teacher_id is not None
 
     @property
     def is_ready_to_confirm(self):
@@ -330,8 +340,9 @@ class EnrollmentRequest(models.Model):
     """
 
     MODE_GROUP = "group"
+    MODE_SEMI_PRIVATE = "semi_private"
     MODE_PRIVATE = "private"
-    MODE_CHOICES = [(MODE_GROUP, "جروب"), (MODE_PRIVATE, "خصوصي")]
+    MODE_CHOICES = [(MODE_GROUP, "Group"), (MODE_SEMI_PRIVATE, "Semi private"), (MODE_PRIVATE, "Private")]
 
     STATUS_NEW = "new"
     STATUS_CONTACTED = "contacted"
@@ -366,7 +377,7 @@ class EnrollmentRequest(models.Model):
     full_name = models.CharField(max_length=150)
     email = models.EmailField()
     phone = models.CharField(max_length=30)
-    mode = models.CharField(max_length=10, choices=MODE_CHOICES, default=MODE_GROUP)
+    mode = models.CharField(max_length=15, choices=MODE_CHOICES, default=MODE_GROUP)
     preferred_times = models.TextField(blank=True)
     notes = models.TextField(blank=True)
 

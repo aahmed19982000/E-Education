@@ -435,7 +435,8 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Course
         fields = ["title_ar", "title_en", "description_ar", "description_en", "audience",
-                  "offers_group", "offers_private", "price_group", "price_private", "is_published"]
+                  "offers_group", "offers_semi_private", "offers_private",
+                  "price_group", "price_semi_private", "price_private", "is_published"]
         widgets = {
             "description_ar": forms.Textarea(attrs={"rows": 4}),
             "description_en": forms.Textarea(attrs={"rows": 4}),
@@ -443,8 +444,8 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
         labels = {
             "title_ar": "اسم الكورس (عربي)", "title_en": "اسم الكورس (إنجليزي — اختياري)",
             "description_ar": "الوصف (عربي)", "description_en": "الوصف (إنجليزي — اختياري)",
-            "audience": "نوع الكورس", "offers_group": "متاح جروب", "offers_private": "متاح خصوصي",
-            "price_group": "سعر الجروب (ج.م)", "price_private": "سعر الخصوصي (ج.م)",
+            "audience": "نوع الكورس", "offers_group": "متاح Group", "offers_semi_private": "متاح Semi private", "offers_private": "متاح Private",
+            "price_group": "سعر Group (ج.م)", "price_semi_private": "سعر Semi private (ج.م)", "price_private": "سعر Private (ج.م)",
             "is_published": "منشور على الموقع",
         }
 
@@ -454,8 +455,8 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        if not cleaned.get("offers_group") and not cleaned.get("offers_private"):
-            raise forms.ValidationError("اختر جروب أو خصوصي على الأقل.")
+        if not (cleaned.get("offers_group") or cleaned.get("offers_semi_private") or cleaned.get("offers_private")):
+            raise forms.ValidationError("اختر نوعًا واحدًا على الأقل: Group أو Semi private أو Private.")
         return cleaned
 
 

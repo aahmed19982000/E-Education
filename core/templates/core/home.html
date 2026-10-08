@@ -44,7 +44,7 @@
     <div class="hm-courses">
       {% for c in home_courses %}
         <a class="hm-course" href="{% url 'courses:detail' slug=c.slug %}">
-          <div class="hm-badges">{% for m in c.modes %}<span>{% if m == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</span>{% endfor %}</div>
+          <div class="hm-badges">{% for m in c.modes %}<span>{% if m == "private" %}{{ t.courses.private }}{% elif m == "semi_private" %}{{ t.courses.semiPrivate }}{% else %}{{ t.courses.group }}{% endif %}</span>{% endfor %}</div>
           <h3>{{ c.title }}</h3>
           <p>{{ c.description|truncatechars:110 }}</p>
           <div class="hm-course-foot">

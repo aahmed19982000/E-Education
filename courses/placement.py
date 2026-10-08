@@ -16,7 +16,7 @@ def _target_error(cohort, course_id, holds_seat_here=False):
         return "المجموعة تابعة لكورس آخر."
     if cohort.is_locked:
         return LOCKED
-    if cohort.mode == "group" and cohort.seats_left == 0 and not holds_seat_here:
+    if cohort.is_group_like and cohort.seats_left == 0 and not holds_seat_here:
         return "المجموعة مكتملة العدد."
     return None
 

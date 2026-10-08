@@ -139,7 +139,7 @@
 .c-offer-link { font-weight: 800; color: var(--primary); font-size: 14px; }
 .c-offer-link::after { content: " ‹"; }
 [dir="ltr"] .c-offer-link::after { content: " ›"; }
-.c-offer-plans { display: grid; grid-template-columns: 1fr 1fr; }
+.c-offer-plans { display: grid; grid-template-columns: repeat(3, 1fr); }
 .c-plan-box { padding: 32px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
 .c-plan-box + .c-plan-box { border-inline-start: 1px solid var(--border); }
 .c-plan-box.featured { background: var(--primary); color: #fff; }

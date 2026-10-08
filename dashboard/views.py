@@ -102,7 +102,7 @@ def index(request):
         ctx["courses_count"] = Course.objects.count()
     if ctx["can_view_requests"]:
         ctx["new_requests_count"] = EnrollmentRequest.objects.filter(status=EnrollmentRequest.STATUS_NEW).count()
-        forming = Cohort.objects.filter(mode="group", confirmed_at__isnull=True).select_related("course")
+        forming = Cohort.objects.exclude(mode="private").filter(confirmed_at__isnull=True).select_related("course")
         ctx["forming_cohorts"] = [c for c in forming if c.seats_taken() or c.is_ready_to_confirm]
         ctx["ready_cohorts_count"] = sum(1 for c in ctx["forming_cohorts"] if c.is_ready_to_confirm)
     if ctx["can_view_users"]:
@@ -579,7 +579,7 @@ def _student_facts(user_ids, course_ids=None):
 def _cohort_stage(c):
     """(key, label) of where a cohort is in its life, used for the pill and the filters."""
     if c.mode == "private":
-        return "private", "خصوصي"
+        return "private", "Private"
     if c.is_locked:
         return "launched", "مُطلقة"
     if c.confirmed_at:
@@ -611,7 +611,7 @@ def all_cohorts(request):
     ctx = base_context(request, active="cohorts")
     ctx.update({"cohorts": cohorts, "current": current, "query": query, "counts": counts, "filters": [
         ("all", "الكل"), ("forming", "قيد التكوين"), ("ready", "اكتمل العدد"),
-        ("launched", "مُطلقة"), ("private", "خصوصي")]})
+        ("launched", "مُطلقة"), ("private", "Private")]})
     return render(request, "dashboard/cohorts_all.html", ctx)
 
 

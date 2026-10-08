@@ -378,7 +378,7 @@ class AudienceAndModeTests(TestCase):
             "slots-TOTAL_FORMS": 0, "slots-INITIAL_FORMS": 0, "slots-MIN_NUM_FORMS": 0, "slots-MAX_NUM_FORMS": 1000,
         })
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "جروب أو خصوصي")
+        self.assertContains(resp, "اختر نوعًا واحدًا على الأقل")
 
 
 class PerStudentTimesTests(TestCase):
@@ -662,3 +662,78 @@ class WorkshopBookingTests(TestCase):
         self.assertContains(self.client.get(url + "?q=Student"), "Student S")
         detail = self.client.get(reverse("dashboard:request_detail", args=[EnrollmentRequest.objects.get(full_name="Teacher T").pk]))
         self.assertContains(detail, "ورشة المدرّسين")
+
+
+class SemiPrivateTests(TestCase):
+    """Course types are Group, Semi private and Private; semi private fills up and launches like a group."""
+
+    def setUp(self):
+        self.course = make_course(offers_semi_private=True, price_semi_private=900, price_group=600, price_private=1500)
+
+    def test_course_offers_three_modes_with_prices(self):
+        self.assertEqual(self.course.allowed_modes(), ["group", "semi_private", "private"])
+        self.assertEqual(self.course.price_for("semi_private"), 900)
+        self.assertEqual(self.course.price_for("group"), 600)
+        self.assertEqual(self.course.price_for("private"), 1500)
+
+    def test_semi_private_off_by_default(self):
+        self.assertEqual(make_course(title_ar="x").allowed_modes(), ["group", "private"])
+
+    def test_public_pages_show_all_three_types(self):
+        self.course.is_published = True
+        self.course.save()
+        listing = self.client.get(reverse("courses:list"))
+        self.assertContains(listing, "Semi private")
+        self.assertContains(listing, "?mode=semi_private")
+        apply_page = self.client.get(reverse("courses:apply", args=[self.course.slug]) + "?mode=semi_private")
+        self.assertContains(apply_page, 'value="semi_private"')
+        self.assertContains(apply_page, "900")
+
+    def test_apply_with_semi_private_saves_request_and_price(self):
+        self.course.is_published = True
+        self.course.save()
+        resp = self.client.post(reverse("courses:apply", args=[self.course.slug]), {
+            "full_name": "A B", "email": "a@x.com", "phone": "1", "mode": "semi_private"})
+        self.assertEqual(resp.status_code, 302)
+        req = EnrollmentRequest.objects.get(email="a@x.com")
+        self.assertEqual(req.mode, "semi_private")
+        self.assertEqual(req.price, 900)
+
+    def test_apply_rejects_unoffered_mode(self):
+        course = make_course(title_ar="بدون semi", is_published=True)
+        resp = self.client.post(reverse("courses:apply", args=[course.slug]), {
+            "full_name": "A B", "email": "a@x.com", "phone": "1", "mode": "semi_private"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(EnrollmentRequest.objects.exists())
+
+    def test_workshop_form_keeps_only_group_and_private(self):
+        from .forms import WorkshopBookingForm
+        self.assertEqual([c[0] for c in WorkshopBookingForm().fields["mode"].choices], ["group", "private"])
+
+    def test_semi_private_cohort_waits_launches_and_freezes_like_a_group(self):
+        teacher = TeamMember.objects.create(name_ar="م", role_ar="مدرس", specialties_ar="x")
+        cohort = make_cohort(course=self.course, mode="semi_private", min_students=2, max_students=3, teacher=teacher)
+        self.assertTrue(cohort.is_forming)
+        admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
+        self.client.force_login(admin)
+        for n in (1, 2):
+            user = User.objects.create_user(f"s{n}", f"s{n}@x.com", "pw")
+            req = EnrollmentRequest.objects.create(course=self.course, user=user, full_name=f"S{n}", email=user.email,
+                                                   phone="1", mode="semi_private", payment_status="paid")
+            self.client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": cohort.pk})
+        self.assertFalse(Enrollment.objects.exists())  # waiting, not enrolled
+        self.client.post(reverse("dashboard:cohort_confirm", args=[self.course.pk, cohort.pk]))
+        cohort.refresh_from_db()
+        self.assertTrue(cohort.is_locked)
+        self.assertEqual(Enrollment.objects.filter(cohort=cohort).count(), 2)
+
+    def test_dashboard_course_form_accepts_semi_private_only(self):
+        admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
+        self.client.force_login(admin)
+        resp = self.client.post(reverse("dashboard:course_create"), {
+            "title_ar": "كورس semi", "audience": "students", "offers_semi_private": "on",
+            "price_semi_private": "800", "is_published": "on"})
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(Course.objects.get(title_ar="كورس semi").allowed_modes(), ["semi_private"])
+        resp = self.client.post(reverse("dashboard:course_create"), {"title_ar": "لا شيء", "audience": "students"})
+        self.assertEqual(resp.status_code, 200)

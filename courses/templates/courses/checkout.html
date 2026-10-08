@@ -22,7 +22,7 @@
       <h2>{{ t.courses.summary }}</h2>
       <dl>
         {% if course %}<div><dt>{{ t.courses.course }}</dt><dd>{{ course.title }}</dd></div>{% endif %}
-        <div><dt>{{ t.courses.type }}</dt><dd>{% if req.mode == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</dd></div>
+        <div><dt>{{ t.courses.type }}</dt><dd>{% if req.mode == "private" %}{{ t.courses.private }}{% elif req.mode == "semi_private" %}{{ t.courses.semiPrivate }}{% else %}{{ t.courses.group }}{% endif %}</dd></div>
       </dl>
       {% if req.price %}<div class="c-total"><span>{{ t.courses.price }}</span><strong>{{ req.price }} {{ t.courses.currency }}</strong></div>{% endif %}
     </div></aside>

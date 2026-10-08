@@ -22,6 +22,7 @@ def course_list(request):
         offers.append({
             **course.localized(request.lang),
             "group": {"offered": "group" in modes, "price": course.price_for("group")},
+            "semi_private": {"offered": "semi_private" in modes, "price": course.price_for("semi_private")},
             "private": {"offered": "private" in modes, "price": course.price_for("private")},
         })
     return render(request, "courses/list.html", {"offers": offers})

@@ -7,7 +7,7 @@
     <h1>{{ t.courses.title }}</h1>
     <p>{{ t.courses.subtitle }}</p>
     <div class="c-hero-points">
-      <span>{{ t.courses.group }}</span><span>{{ t.courses.private }}</span><span>Zoom</span>
+      <span>{{ t.courses.group }}</span><span>{{ t.courses.semiPrivate }}</span><span>{{ t.courses.private }}</span><span>Zoom</span>
     </div>
   </div>
 </section>
@@ -29,6 +29,14 @@
           {% if c.group.offered %}
             {% if c.group.price %}<div class="c-plan-price"><strong>{{ c.group.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
             <a class="c-btn primary" href="{% url 'courses:apply' slug=c.slug %}?mode=group">{{ t.courses.bookNow }}</a>
+          {% else %}<div class="c-plan-na">{{ t.courses.notOffered }}</div>{% endif %}
+        </div>
+        <div class="c-plan-box {% if not c.semi_private.offered %}is-off{% endif %}">
+          <div class="c-plan-tag">{{ t.courses.semiPrivate }}</div>
+          <div class="c-plan-hint">{{ t.courses.planSemiPrivateHint }}</div>
+          {% if c.semi_private.offered %}
+            {% if c.semi_private.price %}<div class="c-plan-price"><strong>{{ c.semi_private.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
+            <a class="c-btn primary" href="{% url 'courses:apply' slug=c.slug %}?mode=semi_private">{{ t.courses.bookNow }}</a>
           {% else %}<div class="c-plan-na">{{ t.courses.notOffered }}</div>{% endif %}
         </div>
         <div class="c-plan-box featured {% if not c.private.offered %}is-off{% endif %}">

@@ -22,14 +22,16 @@ COURSES = [
         title_ar="الإنجليزية للمحادثة اليومية", title_en="Everyday English Conversation",
         description_ar="كورس لايف لتكوين الطلاقة في الكلام: مواقف حقيقية، تصحيح فوري، ومتابعة بعد كل جلسة.",
         description_en="A live course to build speaking fluency: real situations, instant correction and follow-up after every session.",
-        offers_group=True, offers_private=True, price_group=600, price_private=1500,
+        offers_group=True, offers_semi_private=True, offers_private=True,
+        price_group=600, price_semi_private=900, price_private=1500,
     ),
     dict(
         slug="demo-ielts-prep", audience=Course.AUDIENCE_STUDENTS,
         title_ar="التحضير لاختبار IELTS", title_en="IELTS Preparation",
         description_ar="تدريب على الأقسام الأربعة (استماع، قراءة، كتابة، محادثة) مع اختبارات تجريبية وتقييم فردي.",
         description_en="Training on all four sections (listening, reading, writing, speaking) with mock tests and individual feedback.",
-        offers_group=True, offers_private=True, price_group=900, price_private=2200,
+        offers_group=True, offers_semi_private=True, offers_private=True,
+        price_group=900, price_semi_private=1400, price_private=2200,
     ),
     dict(
         slug="demo-teacher-international", audience=Course.AUDIENCE_TEACHERS,
@@ -52,6 +54,7 @@ COHORTS = {
     "demo-english-speaking": [
         ("مجموعة السبت والثلاثاء مساءً", "group", "demo-sara-ali", [(5, "19:00", 60), (1, "19:00", 60)], 6),
         ("مجموعة الأحد والأربعاء صباحًا", "group", "demo-omar-khaled", [(6, "10:00", 60), (2, "10:00", 60)], 6),
+        ("مجموعة Semi private — 3 طلاب", "semi_private", "demo-omar-khaled", [(0, "20:00", 60), (3, "20:00", 60)], 6),
         ("جلسات خصوصية — طالب واحد", "private", "demo-sara-ali", [(3, "21:00", 45)], 4),
     ],
     "demo-ielts-prep": [
@@ -99,7 +102,8 @@ class Command(BaseCommand):
                 first_day = min(next_weekday(wd) for wd, _t, _m in slots)
                 cohort, _ = Cohort.objects.update_or_create(
                     course=courses[slug], name=name,
-                    defaults=dict(mode=mode, teacher=teachers.get(teacher_slug), start_date=first_day, weeks=weeks),
+                    defaults=dict(mode=mode, teacher=teachers.get(teacher_slug), start_date=first_day, weeks=weeks,
+                                  **({"min_students": 2, "max_students": 3} if mode == "semi_private" else {})),
                 )
                 for weekday, hhmm, minutes in slots:
                     CohortSlot.objects.update_or_create(

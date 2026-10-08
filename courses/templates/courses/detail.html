@@ -6,7 +6,7 @@
     <div class="c-crumbs"><a href="{% url 'courses:list' %}">{{ t.courses.title }}</a> / {{ course.title }}</div>
     <div class="c-badges" style="margin-bottom:14px;">
       <span class="c-badge">{% if course.audience == "teachers" %}{{ t.courses.teachers }}{% else %}{{ t.courses.students }}{% endif %}</span>
-      {% for m in course.modes %}<span class="c-badge">{% if m == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</span>{% endfor %}
+      {% for m in course.modes %}<span class="c-badge">{% if m == "private" %}{{ t.courses.private }}{% elif m == "semi_private" %}{{ t.courses.semiPrivate }}{% else %}{{ t.courses.group }}{% endif %}</span>{% endfor %}
     </div>
     <h1>{{ course.title }}</h1>
   </div>
@@ -49,8 +49,8 @@
         <div class="c-plans">
           {% for mode, price in prices.items %}
           <div class="c-plan">
-            <div><div class="name">{% if mode == "private" %}{{ t.courses.private }}{% else %}{{ t.courses.group }}{% endif %}</div>
-              <div class="hint">{% if mode == "private" %}{{ t.courses.planPrivateHint }}{% else %}{{ t.courses.planGroupHint }}{% endif %}</div></div>
+            <div><div class="name">{% if mode == "private" %}{{ t.courses.private }}{% elif mode == "semi_private" %}{{ t.courses.semiPrivate }}{% else %}{{ t.courses.group }}{% endif %}</div>
+              <div class="hint">{% if mode == "private" %}{{ t.courses.planPrivateHint }}{% elif mode == "semi_private" %}{{ t.courses.planSemiPrivateHint }}{% else %}{{ t.courses.planGroupHint }}{% endif %}</div></div>
             <div class="amount">{% if price %}{{ price }}<small>{{ t.courses.currency }}</small>{% else %}—{% endif %}</div>
           </div>
           {% endfor %}
