@@ -1,6 +1,7 @@
 {% extends "courses/_base.html" %}
 {% block title %}{{ t.courses.title }} · {{ t.brand }}{% endblock %}
 {% block content %}
+<script>document.documentElement.classList.add('has-js');</script>
 <section class="c-hero">
   <div class="c-wrap">
     <div class="c-eyebrow">{{ t.brand }}</div>
@@ -16,40 +17,37 @@
   {% if offers %}
   <div class="c-offers">
     {% for c in offers %}
-    <article class="c-offer-card">
+    <article class="c-offer-card" data-offer>
       <div class="c-offer-info">
         <h2>{{ c.title }}</h2>
         <p>{{ c.description|truncatechars:220 }}</p>
         <a class="c-offer-link" href="{% url 'courses:detail' slug=c.slug %}">{{ t.courses.viewCourse }}</a>
       </div>
+
+      <div class="c-plan-tabs" role="tablist" aria-label="{{ t.courses.pickMode }}">
+        {% for p in c.plans %}
+        <button type="button" role="tab" class="c-plan-tab{% if p.mode == c.default %} is-active{% endif %}{% if not p.offered %} is-off{% endif %}" data-plan="{{ p.mode }}" aria-selected="{% if p.mode == c.default %}true{% else %}false{% endif %}">
+          <span>{{ p.label }}</span>
+          <small>{% if not p.offered %}—{% elif p.price %}{{ p.price }} {{ t.courses.currency }}{% endif %}</small>
+        </button>
+        {% endfor %}
+      </div>
+
       <div class="c-offer-plans">
-        <div class="c-plan-box {% if not c.group.offered %}is-off{% endif %}">
-          <div class="c-plan-tag">{{ t.courses.group }}</div>
-          <div class="c-plan-hint">{{ t.courses.planGroupHint }}</div>
-          {% if c.group.offered %}<ul class="c-feat">{% for f in PLAN_FEATURES.group %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
-          {% if c.group.offered %}
-            {% if c.group.price %}<div class="c-plan-price"><strong>{{ c.group.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
-            <a class="c-btn primary" href="{% url 'courses:apply' slug=c.slug %}?mode=group">{{ t.courses.bookNow }}</a>
-          {% else %}<div class="c-plan-na">{{ t.courses.notOffered }}</div>{% endif %}
-        </div>
-        <div class="c-plan-box {% if not c.semi_private.offered %}is-off{% endif %}">
-          <div class="c-plan-tag">{{ t.courses.semiPrivate }}</div>
-          <div class="c-plan-hint">{{ t.courses.planSemiPrivateHint }}</div>
-          {% if c.semi_private.offered %}<ul class="c-feat">{% for f in PLAN_FEATURES.semi_private %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
-          {% if c.semi_private.offered %}
-            {% if c.semi_private.price %}<div class="c-plan-price"><strong>{{ c.semi_private.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
-            <a class="c-btn primary" href="{% url 'courses:apply' slug=c.slug %}?mode=semi_private">{{ t.courses.bookNow }}</a>
-          {% else %}<div class="c-plan-na">{{ t.courses.notOffered }}</div>{% endif %}
-        </div>
-        <div class="c-plan-box featured {% if not c.private.offered %}is-off{% endif %}">
-          <div class="c-plan-tag">{{ t.courses.private }}</div>
-          <div class="c-plan-hint">{{ t.courses.planPrivateHint }}</div>
-          {% if c.private.offered %}<ul class="c-feat">{% for f in PLAN_FEATURES.private %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
-          {% if c.private.offered %}
-            {% if c.private.price %}<div class="c-plan-price"><strong>{{ c.private.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
-            <a class="c-btn" href="{% url 'courses:apply' slug=c.slug %}?mode=private">{{ t.courses.bookNow }}</a>
-          {% else %}<div class="c-plan-na">{{ t.courses.notOffered }}</div>{% endif %}
-        </div>
+        {% for p in c.plans %}
+        <section class="c-plan-box{% if p.mode == 'private' %} featured{% endif %}{% if not p.offered %} is-off{% endif %}{% if p.mode == c.default %} is-active{% endif %}" data-plan="{{ p.mode }}" role="tabpanel">
+          <div class="c-plan-tag">{{ p.label }}</div>
+          {% if p.offered %}
+            {% if p.price %}<div class="c-plan-price"><strong>{{ p.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
+            <div class="c-plan-hint">{{ p.hint }}</div>
+            <ul class="c-feat">{% for f in p.features %}<li>{{ f }}</li>{% endfor %}</ul>
+            <a class="c-btn{% if p.mode != 'private' %} primary{% endif %}" href="{% url 'courses:apply' slug=c.slug %}?mode={{ p.mode }}">{{ t.courses.bookNow }}</a>
+          {% else %}
+            <div class="c-plan-hint">{{ p.hint }}</div>
+            <div class="c-plan-na">{{ t.courses.notOffered }}</div>
+          {% endif %}
+        </section>
+        {% endfor %}
       </div>
     </article>
     {% endfor %}
@@ -63,4 +61,17 @@
   </section>
   {% else %}<div class="c-empty">{{ t.courses.noCourses }}</div>{% endif %}
 </div>
+<script>
+  document.addEventListener('click', function (e) {
+    var tab = e.target.closest('.c-plan-tab');
+    if (!tab) return;
+    var card = tab.closest('[data-offer]'), mode = tab.dataset.plan;
+    card.querySelectorAll('.c-plan-tab').forEach(function (t) {
+      var on = t === tab;
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    card.querySelectorAll('.c-plan-box').forEach(function (b) { b.classList.toggle('is-active', b.dataset.plan === mode); });
+  });
+</script>
 {% endblock %}

@@ -173,3 +173,42 @@
 .c-choice .c-feat { margin-top: 8px; font-weight: 500; }
 .c-plan .c-feat { margin-top: 6px; }
 .c-plan .c-feat li { color: var(--muted); font-size: 12.5px; }
+
+/* ---- Offers v2: info on top, three plans below; tabs on small screens ---- */
+.c-offers { gap: 28px; }
+.c-offer-card { display: block; border-radius: 22px; }
+.c-offer-info { border-inline-end: none; border-bottom: 1px solid var(--border); padding: 28px 36px; gap: 10px; }
+.c-offer-info p { max-width: 70ch; }
+.c-offer-plans { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.c-plan-box { padding: 30px 26px 28px; gap: 12px; align-items: stretch; text-align: start; }
+.c-plan-box .c-plan-tag { align-self: flex-start; }
+.c-plan-box .c-plan-price { margin: 4px 0 0; }
+.c-plan-box .c-plan-hint { margin-top: -4px; }
+.c-plan-box .c-feat { margin: 6px 0 12px; }
+.c-plan-box .c-btn { margin-top: auto; }
+.c-plan-box.is-off { opacity: 1; background: #FAFAF9; }
+.c-plan-box.is-off .c-plan-tag { opacity: .6; }
+.c-plan-box.is-off .c-plan-na { margin: 10px 0 0; padding: 14px; border: 1px dashed var(--border); border-radius: 12px; text-align: center; }
+.c-plan-tabs { display: none; }
+
+@media (max-width: 860px) {
+  .c-offer-info { padding: 22px 20px; }
+  .c-offer-plans { grid-template-columns: 1fr; }
+  .c-plan-box + .c-plan-box { border-inline-start: none; border-top: 1px solid var(--border); }
+  .c-plan-box { padding: 22px 20px 24px; }
+
+  /* With JS: one plan at a time behind segmented tabs. Without JS the plans simply stack. */
+  .has-js .c-plan-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 12px 14px; background: var(--bg); border-bottom: 1px solid var(--border); }
+  .has-js .c-plan-box { display: none; border-top: none; }
+  .has-js .c-plan-box.is-active { display: flex; }
+  .c-plan-tab { appearance: none; border: 1px solid var(--border); background: #fff; border-radius: 12px; padding: 9px 4px; font-family: inherit; color: var(--primary); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.25; min-height: 52px; justify-content: center; }
+  .c-plan-tab span { font-weight: 800; font-size: 13px; }
+  .c-plan-tab small { font-size: 11.5px; color: var(--muted); font-weight: 700; }
+  .c-plan-tab.is-active { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(20,39,91,.25); }
+  .c-plan-tab.is-active small { color: var(--accent); }
+  .c-plan-tab.is-off { opacity: .55; }
+  .c-hero-points span { font-size: 12.5px; padding: 5px 12px; }
+}
+@media (max-width: 380px) { .c-plan-tab span { font-size: 12px; } }
+.c-plan-box .c-plan-price { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.c-plan-box .c-plan-price strong { display: inline; font-size: 40px; }

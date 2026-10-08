@@ -7,6 +7,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from core.translations import get_translations
+from core.models import SiteSettings
+from core.translations import get_translations
 from quiz.models import PlacementResult
 
 from .access import can_view_lesson_material, has_active_enrollment, is_staff_user
@@ -16,15 +18,21 @@ from .models import Attendance, Course, Enrollment, EnrollmentRequest, Lesson, L
 
 def course_list(request):
     courses = Course.objects.filter(is_published=True, audience=Course.AUDIENCE_STUDENTS)
+    tr = get_translations(request.lang)["courses"]
+    features = SiteSettings.load().plan_features(request.lang)
+    plan_meta = [  # (mode, label, hint)
+        ("group", tr["group"], tr["planGroupHint"]),
+        ("semi_private", tr["semiPrivate"], tr["planSemiPrivateHint"]),
+        ("private", tr["private"], tr["planPrivateHint"]),
+    ]
     offers = []
     for course in courses:
         modes = course.allowed_modes()
-        offers.append({
-            **course.localized(request.lang),
-            "group": {"offered": "group" in modes, "price": course.price_for("group")},
-            "semi_private": {"offered": "semi_private" in modes, "price": course.price_for("semi_private")},
-            "private": {"offered": "private" in modes, "price": course.price_for("private")},
-        })
+        plans = [{"mode": mode, "label": label, "hint": hint, "offered": mode in modes,
+                  "price": course.price_for(mode), "features": features[mode]}
+                 for mode, label, hint in plan_meta]
+        offers.append({**course.localized(request.lang), "plans": plans,
+                       "default": modes[0] if modes else "group"})
     return render(request, "courses/list.html", {"offers": offers})
 
 

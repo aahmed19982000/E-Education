@@ -127,3 +127,20 @@ class PlanFeaturesTests(TestCase):
         self.assertEqual(SiteSettings.load().features_semi_private_ar, "ميزة من الأدمن")
         self.client.logout()
         self.assertContains(self.client.get(reverse("courses:list")), "ميزة من الأدمن")
+
+
+class OffersLayoutTests(TestCase):
+    """/courses/: one tab and one panel per plan, the first offered plan active, unoffered plans marked."""
+
+    def test_each_course_has_three_tabs_and_panels_with_the_first_offered_active(self):
+        Course.objects.create(title_ar="بلا جروب", is_published=True, offers_group=False, offers_private=True,
+                              price_private=1500)
+        page = self.client.get(reverse("courses:list"))
+        html = page.content.decode()
+        self.assertEqual(html.count('class="c-plan-tab'), 3)
+        self.assertEqual(html.count('role="tabpanel"'), 3)
+        offer = page.context["offers"][0]
+        self.assertEqual(offer["default"], "private")
+        self.assertEqual([p["offered"] for p in offer["plans"]], [False, False, True])
+        self.assertContains(page, "غير متاح لهذا الكورس", count=2)
+        self.assertContains(page, "c-plan-tab is-active is-off", count=0)
