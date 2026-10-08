@@ -6,6 +6,7 @@ from django.db import models
 from accounts.models import Profile
 from articles.models import Article
 from courses.models import Attendance, Cohort, CohortSlot, EnrollmentRequest, Course, Enrollment, Lesson, LessonAttachment
+from core.models import SiteSettings
 from team.models import VIDEO_MAX_MB, TeacherAvailability, TeamMember, TeamReview
 from quiz.audio import AudioDecodeError, compress_audio
 from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
@@ -429,6 +430,23 @@ class StaffUserEditForm(StyledFormMixin, forms.Form):
         self.user.profile.role = self.cleaned_data["role"]
         self.user.profile.save(update_fields=["role"])
         return self.user
+
+
+class SiteSettingsForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = SiteSettings
+        fields = ["whatsapp_number", "whatsapp_message"]
+        labels = {"whatsapp_number": "رقم الواتس اب للتواصل مع الأكاديمية",
+                  "whatsapp_message": "رسالة جاهزة تظهر للزائر (اختياري)"}
+        help_texts = {"whatsapp_number": "مثال: 01012345678 أو +201012345678. اتركه فارغًا لإخفاء أيقونة الواتس اب من الموقع.",
+                      "whatsapp_message": "مثال: مرحبًا، أريد الاستفسار عن الكورسات."}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
+    def clean_whatsapp_number(self):
+        return self.cleaned_data["whatsapp_number"].strip()
 
 
 class CourseForm(StyledFormMixin, forms.ModelForm):

@@ -372,3 +372,8 @@ section.panel-row { padding: 24px 24px 64px; display: grid; grid-template-column
 .review-video { width: 100%; max-height: 420px; border-radius: 10px; background: #000; margin-bottom: 14px; display: block; }
 .review-text { font-size: 15px; line-height: 1.9; color: #3A4258; margin: 8px 0; }
 .review-author { font-size: 13px; font-weight: 800; color: var(--primary); }
+
+/* Floating WhatsApp button (number is set in the dashboard) */
+.wa-float { position: fixed; inset-inline-end: 20px; bottom: 20px; z-index: 90; width: 58px; height: 58px; border-radius: 50%; background: #25D366; color: #fff; display: grid; place-items: center; box-shadow: 0 8px 22px rgba(0,0,0,.25); transition: transform .15s ease, box-shadow .15s ease; }
+.wa-float:hover { transform: scale(1.07); box-shadow: 0 12px 28px rgba(0,0,0,.3); }
+@media (max-width: 600px) { .wa-float { width: 52px; height: 52px; inset-inline-end: 14px; bottom: 14px; } }

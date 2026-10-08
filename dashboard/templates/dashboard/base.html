@@ -53,6 +53,9 @@
         {% if can_view_users %}
           <a href="{% url 'dashboard:users_list' %}" class="{% if active == 'users' %}active{% endif %}">أعضاء الفريق</a>
         {% endif %}
+        {% if can_view_settings %}
+          <a href="{% url 'dashboard:site_settings' %}" class="{% if active == 'settings' %}active{% endif %}">إعدادات الموقع</a>
+        {% endif %}
       </nav>
 
       <div class="dash-sidebar-footer">

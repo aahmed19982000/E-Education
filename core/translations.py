@@ -144,7 +144,7 @@ AR = {
         "phone": "رقم الواتس اب", "password": "كلمة المرور", "password2": "تأكيد كلمة المرور",
         "loginBtn": "دخول", "registerBtn": "إنشاء حساب",
     },
-    "footer": {
+    "footer": {"whatsapp": "تواصل معنا عبر واتس اب", 
         "tagline": "منصة تعليم إنجليزي للطلاب والمدرسين، تبدأ باختبار تحديد مستوى مجاني.",
         "linksTitle": "روابط سريعة", "copyright": "© 2026 أكاديمية E-Education. جميع الحقوق محفوظة.",
     },
@@ -289,7 +289,7 @@ EN = {
         "phone": "WhatsApp number", "password": "Password", "password2": "Confirm password",
         "loginBtn": "Log in", "registerBtn": "Create account",
     },
-    "footer": {
+    "footer": {"whatsapp": "Chat with us on WhatsApp", 
         "tagline": "An English learning platform for students and teachers, starting with a free level test.",
         "linksTitle": "Quick links", "copyright": "© 2026 E-Education Academy. All rights reserved.",
     },

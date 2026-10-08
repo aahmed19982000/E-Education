@@ -27,11 +27,12 @@ from quiz.models import PlacementResult
 from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
 
 from .decorators import dashboard_required, section_required
-from .forms import (
+from core.models import SiteSettings
+from .forms import (SiteSettingsForm,
     ArticleForm, AttachmentFormSet, CategoryForm, CohortForm, CourseForm, EnrollForm, LessonForm, RequestForm, SlotFormSet, DashboardLoginForm, AvailabilityFormSet, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
 )
 from .permissions import (
-    SECTION_ARTICLES, SECTION_COURSES, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_REQUESTS, SECTION_TEAM, SECTION_USERS,
+    SECTION_ARTICLES, SECTION_COURSES, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_REQUESTS, SECTION_SETTINGS, SECTION_TEAM, SECTION_USERS,
     can_access, get_dashboard_role, role_label,
 )
 
@@ -84,6 +85,7 @@ def base_context(request, active=""):
         "can_write_requests": can_access(role, SECTION_REQUESTS, "write"),
         "can_view_requests": can_access(role, SECTION_REQUESTS),
         "can_view_users": can_access(role, SECTION_USERS),
+        "can_view_settings": can_access(role, SECTION_SETTINGS),
     }
 
 
@@ -109,6 +111,21 @@ def index(request):
         ctx["users_count"] = User.objects.filter(is_staff=True).count()
     return render(request, "dashboard/index.html", ctx)
 
+
+
+# --- Site settings -------------------------------------------------------------
+
+@section_required(SECTION_SETTINGS, "write")
+def site_settings(request):
+    instance = SiteSettings.load()
+    form = SiteSettingsForm(request.POST or None, instance=instance)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "تم حفظ الإعدادات." if instance.whatsapp_url else "تم الحفظ. أيقونة الواتس اب مخفية لأنه لا يوجد رقم.")
+        return redirect("dashboard:site_settings")
+    ctx = base_context(request, active="settings")
+    ctx.update({"form": form, "whatsapp_url": instance.whatsapp_url})
+    return render(request, "dashboard/site_settings.html", ctx)
 
 
 # --- Articles ---------------------------------------------------------------

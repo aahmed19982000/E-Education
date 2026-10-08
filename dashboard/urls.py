@@ -11,6 +11,7 @@ urlpatterns = [
     path("", views.index, name="index"),
 
 
+    path("settings/", views.site_settings, name="site_settings"),
     path("articles/", views.articles_list, name="articles_list"),
     path("articles/add/", views.article_form, name="article_create"),
     path("articles/<int:pk>/edit/", views.article_form, name="article_edit"),

@@ -21,6 +21,7 @@ SECTION_MESSAGES = "messages"
 SECTION_COURSES = "courses"
 SECTION_REQUESTS = "requests"
 SECTION_USERS = "users"
+SECTION_SETTINGS = "settings"
 
 # None = no access, "read" = view only, "write" = full CRUD.
 ROLE_PERMISSIONS = {
@@ -32,6 +33,7 @@ ROLE_PERMISSIONS = {
         SECTION_COURSES: "write",
         SECTION_REQUESTS: "write",
         SECTION_USERS: "write",
+        SECTION_SETTINGS: "write",
     },
     # Administrator levels: manager (everything, incl. members), content staff, customer support.
     ROLE_MANAGER: {
@@ -42,6 +44,7 @@ ROLE_PERMISSIONS = {
         SECTION_COURSES: "write",
         SECTION_REQUESTS: "write",
         SECTION_USERS: "write",
+        SECTION_SETTINGS: "write",
     },
     ROLE_SUPPORT: {
         SECTION_ARTICLES: None,
@@ -51,6 +54,7 @@ ROLE_PERMISSIONS = {
         SECTION_COURSES: "read",
         SECTION_REQUESTS: "write",
         SECTION_USERS: None,
+        SECTION_SETTINGS: None,
     },
     ROLE_CONTENT_STAFF: {
         SECTION_ARTICLES: "write",
@@ -60,6 +64,7 @@ ROLE_PERMISSIONS = {
         SECTION_COURSES: "write",
         SECTION_REQUESTS: "write",
         SECTION_USERS: None,
+        SECTION_SETTINGS: None,
     },
     ROLE_TEACHER: {
         SECTION_ARTICLES: None,
@@ -69,6 +74,7 @@ ROLE_PERMISSIONS = {
         SECTION_COURSES: "read",
         SECTION_REQUESTS: "read",
         SECTION_USERS: None,
+        SECTION_SETTINGS: None,
     },
 }
 
