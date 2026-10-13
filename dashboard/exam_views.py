@@ -1,6 +1,7 @@
 """Building exams, seeing who handed them in, and marking voice / written answers.
 
-Teachers manage the exams of their own groups; dashboard admins manage every group's.
+Admins create and edit exams (for any group). A teacher only reviews: they see the results of their
+own groups' exams, listen to the answers and give the marks.
 """
 from decimal import Decimal, InvalidOperation
 
@@ -39,9 +40,15 @@ def _may_see(request, cohort):
 
 
 def _may_edit(request, cohort):
+    """Creating and editing exams is the admin's job; teachers never do it."""
+    return request.dashboard_role != ROLE_TEACHER and can_access(request.dashboard_role, SECTION_COURSES, "write")
+
+
+def _may_grade(request, cohort):
+    """Giving marks: the group's own teacher, or an admin who can edit courses."""
     if request.dashboard_role == ROLE_TEACHER:
         return _may_see(request, cohort)
-    return can_access(request.dashboard_role, SECTION_COURSES, "write")
+    return _may_edit(request, cohort)
 
 
 def _visible_cohorts(request):
@@ -68,7 +75,7 @@ def exams_list(request):
         rows = [{"lesson": l, "exam": exams.get(l.pk)} for l in lessons]
         groups.append({"cohort": cohort, "rows": rows, "level": exams.get(("level", cohort.pk))})
     ctx = _context(request, "exams")
-    ctx.update({"groups": groups, "can_edit": request.dashboard_role == ROLE_TEACHER or can_access(
+    ctx.update({"groups": groups, "can_edit": request.dashboard_role != ROLE_TEACHER and can_access(
         request.dashboard_role, SECTION_COURSES, "write")})
     return render(request, "dashboard/exams_list.html", ctx)
 
@@ -104,7 +111,7 @@ def _save_exam(request, cohort, lesson, kind):
 def exam_for_lesson(request, lesson_pk):
     lesson = get_object_or_404(Lesson.objects.select_related("cohort__course"), pk=lesson_pk)
     if not _may_edit(request, lesson.cohort):
-        raise Http404 if request.dashboard_role == ROLE_TEACHER else PermissionDenied
+        raise PermissionDenied
     return _save_exam(request, lesson.cohort, lesson, Exam.KIND_SESSION)
 
 
@@ -112,7 +119,7 @@ def exam_for_lesson(request, lesson_pk):
 def exam_for_level(request, cohort_pk):
     cohort = get_object_or_404(Cohort.objects.select_related("course"), pk=cohort_pk)
     if not _may_edit(request, cohort):
-        raise Http404 if request.dashboard_role == ROLE_TEACHER else PermissionDenied
+        raise PermissionDenied
     return _save_exam(request, cohort, None, Exam.KIND_LEVEL)
 
 
@@ -147,7 +154,7 @@ def submission_grade(request, pk):
     exam = submission.exam
     if not _may_see(request, exam.cohort):
         raise Http404 if request.dashboard_role == ROLE_TEACHER else PermissionDenied
-    can_grade = _may_edit(request, exam.cohort)
+    can_grade = _may_grade(request, exam.cohort)
     answers = list(submission.answers.select_related("question"))
     if request.method == "POST":
         if not can_grade:

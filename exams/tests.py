@@ -191,8 +191,8 @@ class TeacherExamTests(ExamBase):
         data.update(extra)
         return data
 
-    def test_teacher_builds_a_session_exam_for_their_own_session(self):
-        self.client.force_login(self.teacher)
+    def test_admin_builds_a_session_exam(self):
+        self.client.force_login(self.admin)
         url = reverse("dashboard:exam_for_lesson", args=[self.l2.pk])
         self.assertEqual(self.client.get(url).status_code, 200)
         resp = self.client.post(url, self.formset())
@@ -205,7 +205,7 @@ class TeacherExamTests(ExamBase):
         self.assertEqual(exam.total_points(), Decimal("5"))
 
     def test_multiple_choice_needs_options_and_a_valid_correct_number(self):
-        self.client.force_login(self.teacher)
+        self.client.force_login(self.admin)
         url = reverse("dashboard:exam_for_lesson", args=[self.l2.pk])
         resp = self.client.post(url, self.formset(**{"questions-0-options_text": "only one"}))
         self.assertEqual(resp.status_code, 200)
@@ -213,14 +213,33 @@ class TeacherExamTests(ExamBase):
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(Exam.objects.filter(lesson=self.l2).exists())
 
-    def test_teacher_cannot_touch_another_teachers_group(self):
+    def test_teachers_cannot_create_or_edit_exams(self):
+        for teacher in (self.teacher, self.other_teacher):
+            self.client.force_login(teacher)
+            for name, args in (("dashboard:exam_for_lesson", [self.l1.pk]), ("dashboard:exam_for_level", [self.cohort.pk])):
+                self.assertEqual(self.client.get(reverse(name, args=args)).status_code, 403, name)
+                self.assertEqual(self.client.post(reverse(name, args=args), self.formset()).status_code, 403, name)
+        self.assertEqual(Exam.objects.count(), 1)
+
+    def test_teacher_sees_only_their_own_groups_results(self):
+        self.client.force_login(self.teacher)
+        self.assertEqual(self.client.get(reverse("dashboard:exam_results", args=[self.exam.pk])).status_code, 200)
         self.client.force_login(self.other_teacher)
-        for name, args in (("dashboard:exam_for_lesson", [self.l1.pk]), ("dashboard:exam_for_level", [self.cohort.pk]),
-                           ("dashboard:exam_results", [self.exam.pk])):
-            self.assertEqual(self.client.get(reverse(name, args=args)).status_code, 404, name)
+        self.assertEqual(self.client.get(reverse("dashboard:exam_results", args=[self.exam.pk])).status_code, 404)
+
+    def test_teacher_pages_offer_no_create_or_edit_buttons(self):
+        self.client.force_login(self.teacher)
+        listing = self.client.get(reverse("dashboard:exams_list")).content.decode()
+        self.assertNotIn(reverse("dashboard:exam_for_lesson", args=[self.l1.pk]), listing)
+        self.assertNotIn(reverse("dashboard:exam_for_level", args=[self.cohort.pk]), listing)
+        results = self.client.get(reverse("dashboard:exam_results", args=[self.exam.pk])).content.decode()
+        self.assertNotIn(reverse("dashboard:exam_for_lesson", args=[self.l1.pk]), results)
+        self.client.force_login(self.admin)
+        self.assertIn(reverse("dashboard:exam_for_lesson", args=[self.l1.pk]),
+                      self.client.get(reverse("dashboard:exams_list")).content.decode())
 
     def test_one_level_exam_per_group(self):
-        self.client.force_login(self.teacher)
+        self.client.force_login(self.admin)
         url = reverse("dashboard:exam_for_level", args=[self.cohort.pk])
         self.client.post(url, self.formset())
         self.client.post(url, self.formset(title="Edited"))
