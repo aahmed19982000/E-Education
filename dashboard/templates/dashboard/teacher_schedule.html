@@ -26,6 +26,7 @@
         {% if l.state == "ended" %}{% elif l.zoom_url %}<a href="{{ l.zoom_url }}" target="_blank" rel="noopener">Zoom</a>{% else %}<a class="warn" href="{% url 'dashboard:teacher_lesson' l.pk %}">بدون رابط</a>{% endif %}
         {% if l.state != "upcoming" %}<a href="{% url 'dashboard:teacher_attendance' l.pk %}">{% if l.has_marks %}الحضور ✓{% else %}سجّل الحضور{% endif %}</a>{% endif %}
         <a href="{% url 'dashboard:teacher_lesson' l.pk %}">تعديل</a>
+        <a href="{% url 'dashboard:exam_for_lesson' l.pk %}">{% if l.exam %}الامتحان{% else %}+ امتحان{% endif %}</a>
       </div>
     </div>
     {% empty %}<p class="td-none">لا جلسات</p>{% endfor %}

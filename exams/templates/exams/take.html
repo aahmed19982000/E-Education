@@ -1,0 +1,43 @@
+{% extends "courses/_base.html" %}
+{% load static %}
+{% block title %}{{ exam.display_title }} · {{ t.brand }}{% endblock %}
+{% block content %}
+{% with d=t.exams %}
+<section class="c-hero"><div class="c-wrap">
+  <div class="c-crumbs"><a href="{% url 'courses:mine' %}">{{ d.back }}</a> / {{ exam.course.title_ar }}</div>
+  <h1>{{ exam.display_title }}</h1>
+  <p>{% if deadline %}{{ d.due }}: {{ deadline|date:"Y-m-d H:i" }}{% else %}{{ d.noDeadline }}{% endif %}</p>
+</div></section>
+<div class="c-wrap c-body">
+  {% if late %}<div class="c-notice" style="margin-bottom:16px;">{{ d.lateWarn }}</div>{% endif %}
+  {% if error %}<div class="c-notice" style="margin-bottom:16px;border-color:#f0c9c9;color:#b00020;">{{ error }}</div>{% endif %}
+  {% if exam.instructions %}<div class="c-panel" style="margin-bottom:20px;"><p class="c-text">{{ exam.instructions|linebreaksbr }}</p></div>{% endif %}
+  <form method="post" enctype="multipart/form-data" class="ex-form" data-confirm="{{ d.confirm }}"
+        data-record="{{ d.record }}" data-stop="{{ d.stop }}" data-recorded="{{ d.recorded }}" data-rerecord="{{ d.reRecord }}" data-nomic="{{ d.noMic }}">
+    {% csrf_token %}
+    {% for q in questions %}
+    <div class="c-panel ex-q">
+      <div class="ex-q-head"><span class="c-num">{{ forloop.counter }}</span><span class="ex-pts">{{ q.points|floatformat:"-2" }} {{ d.points }}</span></div>
+      <p class="ex-q-text">{{ q.text|linebreaksbr }}</p>
+      {% if q.kind == "mcq" %}
+        <div class="ex-options">{% for opt in q.options %}
+          <label class="ex-option"><input type="radio" name="q{{ q.pk }}" value="{{ forloop.counter0 }}"><span>{{ opt }}</span></label>
+        {% endfor %}</div>
+      {% elif q.kind == "text" %}
+        <textarea name="q{{ q.pk }}" rows="5" class="ex-text" placeholder="{{ d.typeHere }}"></textarea>
+      {% else %}
+        <div class="ex-voice" data-name="q{{ q.pk }}">
+          <button type="button" class="c-btn primary ex-rec-btn">{{ d.record }}</button>
+          <audio controls class="ex-preview" hidden></audio>
+          <p class="c-note ex-nomic" hidden>{{ d.noMic }}</p>
+          <label class="ex-upload">{{ d.orUpload }}: <input type="file" name="q{{ q.pk }}" accept="audio/*"></label>
+        </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    <button type="submit" class="c-btn">{{ d.submit }}</button>
+  </form>
+</div>
+<script src="{% static 'js/exam.js' %}" defer></script>
+{% endwith %}
+{% endblock %}

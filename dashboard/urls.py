@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import teacher as views_teacher, views
+from . import exam_views, teacher as views_teacher, views
 
 app_name = "dashboard"
 
@@ -15,6 +15,12 @@ urlpatterns = [
     path("teacher/students/", views_teacher.teacher_students, name="teacher_students"),
     path("teacher/lessons/<int:pk>/", views_teacher.teacher_lesson, name="teacher_lesson"),
     path("teacher/lessons/<int:pk>/attendance/", views_teacher.teacher_attendance, name="teacher_attendance"),
+
+    path("exams/", exam_views.exams_list, name="exams_list"),
+    path("exams/lesson/<int:lesson_pk>/", exam_views.exam_for_lesson, name="exam_for_lesson"),
+    path("exams/level/<int:cohort_pk>/", exam_views.exam_for_level, name="exam_for_level"),
+    path("exams/<int:pk>/results/", exam_views.exam_results, name="exam_results"),
+    path("exams/submissions/<int:pk>/", exam_views.submission_grade, name="submission_grade"),
 
     path("settings/", views.site_settings, name="site_settings"),
     path("articles/", views.articles_list, name="articles_list"),

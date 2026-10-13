@@ -1,0 +1,10 @@
+{% extends "courses/_base.html" %}
+{% block title %}{{ exam.display_title }} · {{ t.brand }}{% endblock %}
+{% block content %}
+<section class="c-hero"><div class="c-wrap"><h1>{{ exam.display_title }}</h1></div></section>
+<div class="c-wrap c-body"><div class="c-empty">
+  <h2 style="color:var(--primary);">{{ t.exams.closedTitle }}</h2>
+  <p>{{ t.exams.closedDesc }} {{ opens_at|date:"Y-m-d H:i" }}</p>
+  <a class="c-btn primary" style="display:inline-block;width:auto;" href="{% url 'courses:mine' %}">{{ t.exams.back }}</a>
+</div></div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "courses/_base.html" %}
+{% block title %}{{ exam.display_title }} · {{ t.brand }}{% endblock %}
+{% block content %}
+{% with d=t.exams %}
+<section class="c-hero"><div class="c-wrap">
+  <div class="c-crumbs"><a href="{% url 'courses:mine' %}">{{ d.back }}</a> / {{ exam.course.title_ar }}</div>
+  <h1>{{ exam.display_title }}</h1>
+  <p>{{ d.yourScore }}: <b>{{ earned|floatformat:"-2" }}</b> {{ d.outOf }} {{ total|floatformat:"-2" }} ({{ percent }}%)</p>
+</div></section>
+<div class="c-wrap c-body">
+  {% if submission.is_late %}<div class="c-notice" style="margin-bottom:16px;">{{ d.lateNote }}</div>{% endif %}
+  {% if state == "submitted" %}<div class="c-notice" style="margin-bottom:16px;">{{ d.pendingNote }}</div>{% endif %}
+  {% if submission.feedback %}<div class="c-panel" style="margin-bottom:20px;"><h2>{{ d.feedback }}</h2><p class="c-text">{{ submission.feedback|linebreaksbr }}</p></div>{% endif %}
+  {% for r in rows %}
+  <div class="c-panel ex-q">
+    <div class="ex-q-head"><span class="c-num">{{ forloop.counter }}</span>
+      <span class="ex-pts">{% if r.answer.points_awarded is not None %}{{ r.answer.points_awarded|floatformat:"-2" }} / {% endif %}{{ r.question.points|floatformat:"-2" }} {{ d.points }}</span></div>
+    <p class="ex-q-text">{{ r.question.text|linebreaksbr }}</p>
+    {% if r.question.kind == "mcq" %}
+      <p class="c-text">{{ d.yourAnswer }}: <b class="{% if r.correct %}ex-ok{% else %}ex-bad{% endif %}">{% if r.answer.choice_index is not None %}{% for opt in r.question.options %}{% if forloop.counter0 == r.answer.choice_index %}{{ opt }}{% endif %}{% endfor %}{% else %}{{ d.notAnswered }}{% endif %}</b></p>
+      {% if not r.correct %}<p class="c-text">{{ d.correctAnswer }}: <b class="ex-ok">{% for opt in r.question.options %}{% if forloop.counter0 == r.question.correct_index %}{{ opt }}{% endif %}{% endfor %}</b></p>{% endif %}
+    {% elif r.question.kind == "text" %}
+      <p class="c-text">{{ d.yourAnswer }}: {% if r.answer.text %}{{ r.answer.text|linebreaksbr }}{% else %}<i>{{ d.notAnswered }}</i>{% endif %}</p>
+    {% else %}
+      {% if r.answer.audio_file %}<audio controls src="{% url 'exams:audio' pk=r.answer.pk %}"></audio>{% else %}<p class="c-text"><i>{{ d.notAnswered }}</i></p>{% endif %}
+    {% endif %}
+    {% if r.answer.feedback %}<div class="c-notice" style="margin-top:10px;"><b>{{ d.feedback }}:</b> {{ r.answer.feedback }}</div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endwith %}
+{% endblock %}

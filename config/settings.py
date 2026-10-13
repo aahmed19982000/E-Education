@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'team',
     'quiz',
     'courses',
+    'exams',
     'accounts',
     'contact_us',
     'dashboard',

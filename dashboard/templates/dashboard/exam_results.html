@@ -1,0 +1,30 @@
+{% extends "dashboard/base.html" %}
+{% block title %}نتائج الامتحان{% endblock %}
+{% block page_title %}{{ exam.display_title }} — {{ exam.course.title_ar }}{% endblock %}
+{% block content %}
+<div class="dash-toolbar">
+  <h2>{% if opens_at %}يُفتح: {{ opens_at|date:"Y-m-d H:i" }}{% endif %}{% if deadline %} · آخر موعد: {{ deadline|date:"Y-m-d H:i" }}{% endif %} · الدرجة الكاملة {{ total|floatformat:"-2" }}</h2>
+  <div class="dash-table-actions">
+    {% if can_edit %}<a class="btn btn-outline" href="{% if exam.lesson_id %}{% url 'dashboard:exam_for_lesson' exam.lesson_id %}{% else %}{% url 'dashboard:exam_for_level' exam.cohort_id %}{% endif %}">تعديل الامتحان</a>{% endif %}
+    <a class="btn btn-outline" href="{% url 'dashboard:exams_list' %}">كل الامتحانات</a>
+  </div>
+</div>
+{% if not exam.is_published %}<div class="td-alert">هذا الامتحان مسودة ولا يراه الطلاب. انشره من «تعديل الامتحان».</div>{% endif %}
+<div class="dash-table-wrap">
+  <table class="dash-table">
+    <thead><tr><th>الطالب</th><th>الحالة</th><th>الدرجة</th><th>وقت التسليم</th><th></th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr><td>{{ r.name }}</td>
+        <td>{% if r.state == "submitted" %}<span class="td-chip risk">بانتظار التقييم</span>
+          {% elif r.state == "graded" %}<span class="td-chip live">تم التقييم</span>
+          {% elif r.state == "late" %}<span class="td-chip risk">متأخر — لم يسلّم</span>
+          {% elif r.state == "todo" %}<span class="td-chip">لم يسلّم بعد</span>
+          {% else %}<span class="td-chip done">لم يُفتح</span>{% endif %}
+          {% if r.submission.is_late %}<span class="td-chip risk">سلّم متأخرًا</span>{% endif %}</td>
+        <td>{% if r.submission %}{{ r.submission.earned|floatformat:"-2" }} ({{ r.submission.percent }}%){% else %}—{% endif %}</td>
+        <td>{% if r.submission %}{{ r.submission.submitted_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}</td>
+        <td>{% if r.submission %}<a href="{% url 'dashboard:submission_grade' r.submission.pk %}">{% if r.state == "submitted" %}تقييم{% else %}عرض{% endif %}</a>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="5">لا يوجد طلاب نشطون في هذه المجموعة.</td></tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endblock %}

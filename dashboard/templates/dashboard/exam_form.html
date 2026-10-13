@@ -1,0 +1,48 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }} — {{ cohort.course.title_ar }}{% endblock %}
+{% block content %}
+<div class="dash-card">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="dash-form-grid">
+      <div class="dash-field"><label>{{ form.title.label }}</label>{{ form.title }}{{ form.title.errors }}</div>
+      <div class="dash-field" style="align-self:end;"><label>{{ form.is_published }} {{ form.is_published.label }}</label><small style="color:var(--muted)">{{ form.is_published.help_text }}</small></div>
+    </div>
+    <div class="dash-form-grid full"><div class="dash-field"><label>{{ form.instructions.label }}</label>{{ form.instructions }}</div></div>
+
+    <h3 style="margin:24px 0 8px;">الأسئلة</h3>
+    <p class="td-empty" style="margin-bottom:12px;">الاختيار من متعدد يُصحَّح تلقائيًا. الأسئلة الصوتية والكتابية تُقيَّم يدويًا. اترك الأسئلة الفارغة كما هي ولن تُحفظ.</p>
+    {{ formset.management_form }}{{ formset.non_form_errors }}
+    {% for f in formset %}
+      <div class="td-panel" style="margin-bottom:14px;">
+        {{ f.id }}{{ f.non_field_errors }}
+        <div class="dash-form-grid">
+          <div class="dash-field"><label>{{ f.kind.label }}</label>{{ f.kind }}{{ f.kind.errors }}</div>
+          <div class="dash-field"><label>{{ f.points.label }}</label>{{ f.points }}{{ f.points.errors }}</div>
+        </div>
+        <div class="dash-form-grid full"><div class="dash-field"><label>{{ f.text.label }}</label>{{ f.text }}{{ f.text.errors }}</div></div>
+        <div class="dash-form-grid ex-mcq-fields">
+          <div class="dash-field"><label>{{ f.options_text.label }}</label>{{ f.options_text }}{{ f.options_text.errors }}</div>
+          <div class="dash-field"><label>{{ f.correct_number.label }}</label>{{ f.correct_number }}{{ f.correct_number.errors }}</div>
+        </div>
+        {% if f.instance.pk %}<label style="color:#b00020;">{{ f.DELETE }} حذف هذا السؤال</label>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="dash-form-actions">
+      <button type="submit" class="btn btn-primary">حفظ</button>
+      {% if exam %}<a class="btn btn-outline" href="{% url 'dashboard:exam_results' exam.pk %}">النتائج</a>{% endif %}
+      <a class="btn btn-outline" href="{% url 'dashboard:exams_list' %}">رجوع</a>
+    </div>
+  </form>
+</div>
+<script>
+document.querySelectorAll(".td-panel").forEach(function (box) {
+  var kind = box.querySelector("select[name$='-kind']"), fields = box.querySelector(".ex-mcq-fields");
+  if (!kind || !fields) return;
+  function sync() { fields.style.display = kind.value === "mcq" ? "" : "none"; }
+  kind.addEventListener("change", sync); sync();
+});
+</script>
+{% endblock %}

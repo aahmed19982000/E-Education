@@ -25,6 +25,16 @@
   </div>
   {% endif %}
 
+  {% if exams %}
+  <div class="c-panel sd-requests"><h2>{{ t.exams.title }}{% if exams_due %} <span class="sd-state late">{{ exams_due }}</span>{% endif %}</h2>
+    <ul class="sd-list">{% for r in exams %}
+      <li><div><a href="{% url 'exams:take' pk=r.exam.pk %}"><b>{{ r.exam.display_title }}</b></a>
+        <small>{{ r.exam.course.title_ar }}{% if r.state == "todo" or r.state == "late" %} · {% if r.deadline %}{{ t.exams.due }}: {{ r.deadline|date:"Y-m-d H:i" }}{% else %}{{ t.exams.noDeadline }}{% endif %}{% endif %}{% if r.submission %} · {{ r.submission.percent }}%{% endif %}</small></div>
+        <span class="sd-state {{ r.state }}">{% if r.state == "todo" %}{{ t.exams.todo }}{% elif r.state == "late" %}{{ t.exams.late }}{% elif r.state == "submitted" %}{{ t.exams.submitted }}{% else %}{{ t.exams.graded }}{% endif %}</span></li>
+    {% endfor %}</ul>
+  </div>
+  {% endif %}
+
   {% if cards %}
   <div class="sd-grid">
     <div>

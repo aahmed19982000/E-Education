@@ -1,0 +1,30 @@
+{% extends "dashboard/base.html" %}
+{% block title %}الامتحانات{% endblock %}
+{% block page_title %}الامتحانات{% endblock %}
+{% block content %}
+{% for g in groups %}
+<div class="dash-card" style="margin-bottom:16px;">
+  <div class="dash-toolbar" style="margin-bottom:10px;">
+    <h2>{{ g.cohort.course.title_ar }} — {{ g.cohort.name|default:g.cohort.get_mode_display }} #{{ g.cohort.pk }}</h2>
+    <div class="dash-table-actions">
+      {% if g.level %}<a class="btn btn-outline" href="{% url 'dashboard:exam_results' g.level.pk %}">نتائج اختبار نهاية المستوى</a>{% endif %}
+      {% if can_edit %}<a class="btn btn-primary" href="{% url 'dashboard:exam_for_level' g.cohort.pk %}">{% if g.level %}تعديل{% else %}+ اختبار{% endif %} نهاية المستوى</a>{% endif %}
+    </div>
+  </div>
+  {% if g.rows %}
+  <div class="dash-table-wrap"><table class="dash-table">
+    <thead><tr><th>الجلسة</th><th>الموعد</th><th>الامتحان</th><th>التسليمات</th><th></th></tr></thead>
+    <tbody>{% for r in g.rows %}
+      <tr><td>{{ r.lesson.display_title_ar }}</td><td>{{ r.lesson.starts_at|date:"Y-m-d H:i" }}</td>
+        <td>{% if r.exam %}{{ r.exam.questions.all|length }} سؤال · {% if r.exam.is_published %}منشور{% else %}مسودة{% endif %}{% else %}—{% endif %}</td>
+        <td>{% if r.exam %}{{ r.exam.subs }}{% if r.exam.pending %} <span class="td-chip risk">{{ r.exam.pending }} بانتظار التقييم</span>{% endif %}{% else %}—{% endif %}</td>
+        <td><div class="dash-table-actions">
+          {% if r.exam %}<a href="{% url 'dashboard:exam_results' r.exam.pk %}">النتائج</a>{% endif %}
+          {% if can_edit %}<a href="{% url 'dashboard:exam_for_lesson' r.lesson.pk %}">{% if r.exam %}تعديل{% else %}إنشاء امتحان{% endif %}</a>{% endif %}
+        </div></td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="td-empty">لا توجد جلسات لهذه المجموعة بعد.</p>{% endif %}
+</div>
+{% empty %}<div class="dash-card"><p class="td-empty" style="margin:0;">لا توجد مجموعات.</p></div>{% endfor %}
+{% endblock %}

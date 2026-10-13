@@ -1,0 +1,35 @@
+{% extends "dashboard/base.html" %}
+{% block title %}تقييم{% endblock %}
+{% block page_title %}{{ student }} — {{ exam.display_title }}{% endblock %}
+{% block content %}
+<div class="dash-toolbar"><h2>الدرجة الحالية: {{ earned|floatformat:"-2" }} من {{ total|floatformat:"-2" }}{% if submission.is_late %} · <span style="color:#b00020">سلّم متأخرًا</span>{% endif %}</h2>
+  <a class="btn btn-outline" href="{% url 'dashboard:exam_results' exam.pk %}">رجوع للنتائج</a></div>
+<form method="post">
+  {% csrf_token %}
+  {% for a in answers %}
+  <div class="td-panel" style="margin-bottom:14px;">
+    <h3>سؤال {{ forloop.counter }} <small style="color:var(--muted)">({{ a.question.points|floatformat:"-2" }} درجة)</small></h3>
+    <p style="line-height:1.9;">{{ a.question.text|linebreaksbr }}</p>
+    {% if a.question.kind == "mcq" %}
+      <p>إجابة الطالب: <b>{% if a.choice_index is not None %}{% for o in a.question.options %}{% if forloop.counter0 == a.choice_index %}{{ o }}{% endif %}{% endfor %}{% else %}لم يُجب{% endif %}</b>
+        — {% if a.points_awarded == a.question.points %}<span style="color:#1c6b3a">صحيحة</span>{% else %}<span style="color:#b00020">خاطئة</span>{% endif %}
+        ({{ a.points_awarded|floatformat:"-2" }})</p>
+    {% else %}
+      {% if a.question.kind == "voice" %}
+        {% if a.audio_file %}<audio controls src="{% url 'exams:audio' pk=a.pk %}"></audio>{% else %}<p class="td-empty">لم يسجّل الطالب إجابة.</p>{% endif %}
+      {% else %}
+        <p style="background:var(--cream);border-radius:10px;padding:12px;line-height:1.9;">{% if a.text %}{{ a.text|linebreaksbr }}{% else %}<i>لم يكتب الطالب إجابة.</i>{% endif %}</p>
+      {% endif %}
+      <div class="dash-form-grid">
+        <div class="dash-field"><label>الدرجة (من {{ a.question.points|floatformat:"-2" }})</label>
+          <input type="number" step="0.25" min="0" max="{{ a.question.points|floatformat:'-2' }}" name="pts-{{ a.pk }}" value="{% if a.points_awarded is not None %}{{ a.points_awarded|floatformat:'-2' }}{% endif %}" {% if not can_grade %}disabled{% endif %}></div>
+        <div class="dash-field"><label>ملاحظة للطالب</label><input type="text" name="fb-{{ a.pk }}" value="{{ a.feedback }}" {% if not can_grade %}disabled{% endif %}></div>
+      </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  <div class="dash-form-grid full"><div class="dash-field"><label>ملاحظة عامة للطالب</label>
+    <textarea name="feedback" rows="3" {% if not can_grade %}disabled{% endif %}>{{ submission.feedback }}</textarea></div></div>
+  {% if can_grade %}<div class="dash-form-actions"><button type="submit" class="btn btn-primary">حفظ التقييم</button></div>{% endif %}
+</form>
+{% endblock %}

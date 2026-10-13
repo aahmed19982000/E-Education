@@ -7,6 +7,7 @@ from accounts.models import Profile
 from articles.models import Article
 from courses.models import Attendance, Cohort, CohortSlot, EnrollmentRequest, Course, Enrollment, Lesson, LessonAttachment
 from core.models import SiteSettings
+from exams.models import Exam, ExamQuestion
 from team.models import VIDEO_MAX_MB, TeacherAvailability, TeamMember, TeamReview
 from quiz.audio import AudioDecodeError, compress_audio
 from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
@@ -636,3 +637,59 @@ class AvailabilityForm(StyledFormMixin, forms.ModelForm):
 
 
 AvailabilityFormSet = forms.inlineformset_factory(TeamMember, TeacherAvailability, form=AvailabilityForm, extra=2, can_delete=True)
+
+
+# --- Exams ----------------------------------------------------------------------
+
+class ExamForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Exam
+        fields = ["title", "instructions", "is_published"]
+        widgets = {"instructions": forms.Textarea(attrs={"rows": 3})}
+        labels = {"title": "عنوان الامتحان (اختياري)", "instructions": "تعليمات للطلاب (اختياري)",
+                  "is_published": "نشر الامتحان للطلاب"}
+        help_texts = {"is_published": "يظهر للطلاب بعد انتهاء الجلسة فقط، حتى لو كان منشورًا الآن."}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
+
+class ExamQuestionForm(StyledFormMixin, forms.ModelForm):
+    options_text = forms.CharField(
+        label="الاختيارات (اختيار في كل سطر)", required=False, widget=forms.Textarea(attrs={"rows": 4}))
+    correct_number = forms.IntegerField(label="رقم الاختيار الصحيح", required=False, min_value=1)
+
+    class Meta:
+        model = ExamQuestion
+        fields = ["kind", "text", "points"]
+        widgets = {"text": forms.Textarea(attrs={"rows": 2})}
+        labels = {"kind": "نوع السؤال", "text": "نص السؤال", "points": "الدرجة"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and self.instance.kind == ExamQuestion.KIND_MCQ:
+            self.fields["options_text"].initial = "\n".join(self.instance.options)
+            if self.instance.correct_index is not None:
+                self.fields["correct_number"].initial = self.instance.correct_index + 1
+        self._style_fields()
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("kind") == ExamQuestion.KIND_MCQ and not self.errors:
+            options = [line.strip() for line in cleaned.get("options_text", "").splitlines() if line.strip()]
+            number = cleaned.get("correct_number")
+            if len(options) < 2:
+                self.add_error("options_text", "أضف اختيارين على الأقل (اختيار في كل سطر).")
+            elif number is None or not 1 <= number <= len(options):
+                self.add_error("correct_number", f"اكتب رقم الإجابة الصحيحة من 1 إلى {len(options)}.")
+            else:
+                self.instance.options = options
+                self.instance.correct_index = number - 1
+        elif cleaned.get("kind") in (ExamQuestion.KIND_VOICE, ExamQuestion.KIND_TEXT):
+            self.instance.options, self.instance.correct_index = [], None
+        return cleaned
+
+
+ExamQuestionFormSet = forms.inlineformset_factory(
+    Exam, ExamQuestion, form=ExamQuestionForm, extra=3, can_delete=True)

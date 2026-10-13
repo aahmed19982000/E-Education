@@ -13,6 +13,8 @@ from quiz.models import PlacementResult
 
 from dashboard.permissions import ROLE_TEACHER, get_dashboard_role
 
+from exams.services import student_exams
+
 from .access import can_view_lesson_material, has_active_enrollment, is_staff_user
 from .forms import ApplyForm
 from .models import Attendance, Course, Enrollment, EnrollmentRequest, Lesson, LessonAttachment
@@ -114,7 +116,9 @@ def my_courses(request):
                   "status": tr["dash"]["status"].get(r.status, "")} for r in pending]
 
     placement = PlacementResult.objects.filter(user=request.user).first()
+    exam_rows = student_exams(request.user)
     return render(request, "courses/mine.html", {
+        "exams": exam_rows[:6], "exams_due": sum(1 for r in exam_rows if r["state"] in ("todo", "late")),
         "hello": tr["dash"]["hello"].format(
             name=request.user.first_name or request.user.get_full_name() or request.user.username),
         "cards": cards, "next": upcoming[0] if upcoming else None, "upcoming": upcoming[1:],
@@ -152,6 +156,7 @@ def lesson_detail(request, pk):
         "attendance": attendance,
         "placement": placement,
         "ask_placement": first_lesson and placement is None,
+        "exam": next((r for r in student_exams(request.user) if r["exam"].lesson_id == lesson.pk), None) if enrollment else None,
     })
 
 

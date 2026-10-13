@@ -31,6 +31,7 @@
         {% if is_teacher %}
           <a href="{% url 'dashboard:teacher_schedule' %}" class="{% if active == 't_schedule' %}active{% endif %}">جدولي</a>
           <a href="{% url 'dashboard:teacher_students' %}" class="{% if active == 't_students' %}active{% endif %}">طلابي</a>
+          <a href="{% url 'dashboard:exams_list' %}" class="{% if active == 'exams' %}active{% endif %}">الامتحانات</a>
         {% else %}        {% if can_view_articles %}
           <a href="{% url 'dashboard:articles_list' %}" class="{% if active == 'articles' %}active{% endif %}">المقالات</a>
         {% endif %}
@@ -40,6 +41,7 @@
         {% if can_view_courses %}
           <a href="{% url 'dashboard:courses_list' %}" class="{% if active == 'courses' %}active{% endif %}">الكورسات والجلسات</a>
           <a href="{% url 'dashboard:all_cohorts' %}" class="{% if active == 'cohorts' %}active{% endif %}">إدارة المجموعات</a>
+          <a href="{% url 'dashboard:exams_list' %}" class="{% if active == 'exams' %}active{% endif %}">الامتحانات</a>
         {% endif %}
         {% if can_view_requests %}
           <a href="{% url 'dashboard:requests_list' %}" class="{% if active == 'requests' %}active{% endif %}">طلبات الاشتراك</a>

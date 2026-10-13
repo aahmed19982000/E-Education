@@ -57,6 +57,15 @@
       {% else %}<p class="td-empty">لا توجد جلسات اليوم. استمتع بيومك!</p>{% endif %}
     </div>
 
+    {% if to_grade %}
+    <div class="td-panel warn">
+      <h3>إجابات امتحانات بانتظار تقييمك ({{ to_grade_count }})</h3>
+      <ul class="td-list">{% for sub in to_grade %}
+        <li><div><b>{{ sub.student_name }}</b><small>{{ sub.exam.display_title }} · {{ sub.exam.course.title_ar }}{% if sub.is_late %} · سلّم متأخرًا{% endif %}</small></div>
+          <a class="btn btn-outline" href="{% url 'dashboard:submission_grade' sub.pk %}">قيّم</a></li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
     {% if pending %}
     <div class="td-panel warn">
       <h3>جلسات تنتظر تسجيل الحضور</h3>

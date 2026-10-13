@@ -22,6 +22,10 @@
       {% if homework %}<div class="c-panel"><h2>{{ t.courses.homework }}</h2><ul class="c-files">{% for f in homework %}<li><a href="{% url 'courses:attachment' pk=f.pk %}">{{ f.title }}</a></li>{% endfor %}</ul></div>{% endif %}
     </div>
     <aside class="c-side">
+      {% if exam %}
+      <div class="c-panel"><h2>{{ exam.exam.display_title }}</h2>
+        <a class="c-btn {% if exam.state == 'todo' or exam.state == 'late' %}primary{% else %}ghost{% endif %}" href="{% url 'exams:take' pk=exam.exam.pk %}">{% if exam.submission %}{{ t.exams.view }}{% else %}{{ t.exams.start }}{% endif %}</a></div>
+      {% endif %}
       {% if placement %}
       <div class="c-panel"><h2>{{ t.courses.placementTitle }}</h2>
         <div class="c-placement"><span class="score">{{ placement.percent }}%</span></div></div>

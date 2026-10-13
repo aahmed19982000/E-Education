@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from courses.models import Attendance, Enrollment, Lesson
+from exams.models import Submission
 from quiz.models import PlacementResult
 from team.models import WEEKDAYS
 
@@ -121,11 +122,16 @@ def teacher_home(request):
     for c in cohorts:
         c.percent = round(c.done / c.total * 100) if c.total else 0
         c.next_lesson = c.lessons.filter(starts_at__gte=now).first()
+    to_grade = list(Submission.objects.filter(exam__cohort__teacher=member, graded_at__isnull=True)
+                    .select_related("exam__cohort__course", "exam__lesson", "user").order_by("submitted_at"))
+    for sub in to_grade:
+        sub.student_name = student_name(sub.user)
     rating = member.reviews.aggregate(avg=Avg("rating"), n=Count("id"))
     hour = timezone.localtime(now).hour
     ctx.update({
         "member": member, "greeting": "صباح الخير" if hour < 12 else "مساء الخير",
         "todays": todays, "next": upcoming[0] if upcoming else None, "upcoming": upcoming[1:5],
+        "to_grade": to_grade[:5], "to_grade_count": len(to_grade),
         "pending": pending[:5], "pending_count": len(pending), "no_link": no_link, "no_recording": no_recording,
         "strip": strip, "week_count": sum(d["count"] for d in strip),
         "cohorts": cohorts, "students_count": len(students), "follow_up": [s for s in students if s["at_risk"]][:5],

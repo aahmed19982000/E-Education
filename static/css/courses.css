@@ -252,3 +252,20 @@
   .sd-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 520px) { .sd-next-row { flex-direction: column; align-items: flex-start; } }
+
+/* ---- exams (student) ---- */
+.ex-q { margin-bottom: 18px; }
+.ex-q-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.ex-pts { font-size: 13px; font-weight: 800; color: var(--muted); }
+.ex-q-text { font-size: 17px; line-height: 1.9; color: var(--text); margin: 0 0 14px; }
+.ex-options { display: grid; gap: 10px; }
+.ex-option { display: flex; gap: 12px; align-items: center; border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; cursor: pointer; background: var(--bg); }
+.ex-option:has(input:checked) { border-color: var(--primary); background: var(--cream); }
+.ex-text { width: 100%; border: 1px solid var(--border); border-radius: 12px; padding: 12px; font-family: inherit; font-size: 15px; }
+.ex-voice { display: grid; gap: 10px; }
+.ex-voice .c-btn { width: auto; justify-self: start; }
+.ex-upload { font-size: 14px; color: var(--muted); }
+.ex-ok { color: #1c6b3a; } .ex-bad { color: #b00020; }
+.sd-state { flex: none; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 999px; background: var(--cream); border: 1px solid var(--cream-border); color: var(--primary); }
+.sd-state.late { background: #fde8e8; border-color: #f4c4c4; color: #b00020; }
+.sd-state.graded { background: #e7f6ec; border-color: #bfe5cb; color: #1c6b3a; }
