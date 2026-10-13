@@ -1,0 +1,85 @@
+{% extends "dashboard/base.html" %}
+{% block title %}لوحة المدرّس{% endblock %}
+{% block page_title %}أهلاً {{ request.user.first_name|default:request.user.email }}{% endblock %}
+
+{% block content %}
+{% if not member %}
+<div class="dash-card"><p style="margin:0;line-height:1.9;">حسابك غير مربوط بملفك في فريق العمل بعد، لذلك لا تظهر لك مجموعات أو جلسات.
+  اطلب من المدير ربط حسابك من صفحة «أعضاء الفريق».</p></div>
+{% else %}
+
+<div class="dash-stats-grid">
+  <div class="dash-stat"><div class="value">{{ cohorts|length }}</div><div class="label">مجموعاتي</div></div>
+  <div class="dash-stat"><div class="value">{{ students|length }}</div><div class="label">طلابي النشطون</div></div>
+  <div class="dash-stat"><div class="value">{{ week_count }}</div><div class="label">جلسات الأسبوع القادم</div></div>
+  <div class="dash-stat"><div class="value" {% if needs_attendance_count %}style="color:#b00020"{% endif %}>{{ needs_attendance_count }}</div><div class="label">جلسات بانتظار تسجيل الحضور</div></div>
+  <div class="dash-stat"><div class="value">{% if rating_avg %}{{ rating_avg }} ★{% else %}—{% endif %}</div><div class="label">التقييم{% if rating_n %} ({{ rating_n }}){% endif %}</div></div>
+</div>
+
+<div class="dash-card td-next" style="margin-bottom:16px;">
+  <h3 style="margin-top:0;">جلستي القادمة</h3>
+  {% if next %}
+    <div class="td-next-row">
+      <div class="td-when"><span>{% if next.starts_at.date == today %}اليوم{% else %}{{ next.starts_at|date:"l" }}{% endif %}</span><b>{{ next.starts_at|date:"H:i" }}</b><small>{{ next.starts_at|date:"Y-m-d" }}</small></div>
+      <div><b style="font-size:18px;">{{ next.cohort.course.title_ar }}</b>
+        <div style="color:var(--muted);font-size:14px;">{{ next.display_title_ar }} · {{ next.cohort.name|default:next.cohort.get_mode_display }} · {{ next.duration_minutes }} دقيقة</div></div>
+    </div>
+    <div class="dash-table-actions" style="margin-top:14px;">
+      {% if next.zoom_url %}<a class="btn btn-primary" href="{{ next.zoom_url }}" target="_blank" rel="noopener">بدء الجلسة (Zoom)</a>{% endif %}
+      <a class="btn btn-outline" href="{% url 'dashboard:teacher_lesson' next.pk %}">{% if next.zoom_url %}تعديل الجلسة{% else %}أضف رابط Zoom{% endif %}</a>
+    </div>
+  {% else %}<p style="margin:0;color:var(--muted);">لا توجد جلسات قادمة.</p>{% endif %}
+</div>
+
+{% if needs_attendance %}
+<div class="dash-card" style="margin-bottom:16px;border-color:#f0c9c9;">
+  <h3 style="margin-top:0;">سجّل الحضور</h3>
+  <div class="dash-table-wrap"><table class="dash-table"><tbody>
+    {% for l in needs_attendance %}
+    <tr><td>{{ l.cohort.course.title_ar }}</td><td>{{ l.display_title_ar }}</td><td>{{ l.starts_at|date:"Y-m-d H:i" }}</td>
+      <td><a href="{% url 'dashboard:teacher_attendance' l.pk %}">تسجيل الحضور</a></td></tr>
+    {% endfor %}
+  </tbody></table></div>
+</div>
+{% endif %}
+
+{% if upcoming %}
+<div class="dash-card" style="margin-bottom:16px;">
+  <h3 style="margin-top:0;">الجلسات القادمة</h3>
+  <div class="dash-table-wrap"><table class="dash-table"><tbody>
+    {% for l in upcoming %}
+    <tr><td>{{ l.cohort.course.title_ar }}</td><td>{{ l.display_title_ar }}</td><td>{{ l.starts_at|date:"Y-m-d H:i" }}</td>
+      <td>{% if l.zoom_url %}Zoom ✓{% else %}<span style="color:#b00020">بدون رابط</span>{% endif %}</td>
+      <td><a href="{% url 'dashboard:teacher_lesson' l.pk %}">تعديل</a></td></tr>
+    {% endfor %}
+  </tbody></table></div>
+</div>
+{% endif %}
+
+<div class="dash-card" style="margin-bottom:16px;">
+  <h3 style="margin-top:0;">مجموعاتي</h3>
+  {% if cohorts %}
+  <div class="dash-table-wrap"><table class="dash-table">
+    <thead><tr><th>الكورس</th><th>المجموعة</th><th>النوع</th><th>الطلاب</th><th>الجلسة القادمة</th></tr></thead>
+    <tbody>{% for c in cohorts %}
+      <tr><td>{{ c.course.title_ar }}</td><td>{{ c.name|default:"—" }}</td><td>{{ c.get_mode_display }}</td><td>{{ c.students }}</td>
+        <td>{% if c.next_lesson %}{{ c.next_lesson.starts_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<p style="margin:0;color:var(--muted);">لم تُسند لك مجموعات بعد.</p>{% endif %}
+</div>
+
+<div class="dash-card">
+  <h3 style="margin-top:0;">طلابي</h3>
+  {% if students %}
+  <div class="dash-table-wrap"><table class="dash-table">
+    <thead><tr><th>الطالب</th><th>الكورس</th><th>الحضور</th><th>مستوى الاختبار</th></tr></thead>
+    <tbody>{% for s in students %}
+      <tr><td>{{ s.enrollment.user.get_full_name|default:s.enrollment.user.email }}</td><td>{{ s.enrollment.course.title_ar }}</td>
+        <td>{{ s.attended }} / {{ s.total }} ({{ s.percent }}%)</td><td>{% if s.level is not None %}{{ s.level }}%{% else %}—{% endif %}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<p style="margin:0;color:var(--muted);">لا يوجد طلاب في مجموعاتك بعد.</p>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -370,6 +370,9 @@ class StaffUserCreateForm(StyledFormMixin, forms.Form):
     email = forms.EmailField(label="البريد الإلكتروني")
     password = forms.CharField(widget=forms.PasswordInput, label="كلمة المرور")
     role = forms.ChoiceField(choices=Profile.ROLE_GROUPS, label="الفئة والصلاحية")
+    team_member = forms.ModelChoiceField(
+        queryset=TeamMember.objects.filter(account_profile__isnull=True), required=False,
+        label="ملف المدرّس في فريق العمل", help_text="للمدرّسين فقط: يربط الحساب بمجموعاته وجلساته.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -408,6 +411,8 @@ class StaffUserCreateForm(StyledFormMixin, forms.Form):
             is_staff=True,
         )
         user.profile.role = self.cleaned_data["role"]
+        if user.profile.role == Profile.ROLE_TEACHER:
+            user.profile.team_member = self.cleaned_data.get("team_member")
         user.profile.save()
         return user
 
@@ -415,6 +420,9 @@ class StaffUserCreateForm(StyledFormMixin, forms.Form):
 class StaffUserEditForm(StyledFormMixin, forms.Form):
     role = forms.ChoiceField(choices=Profile.ROLE_GROUPS, label="الفئة والصلاحية")
     is_active = forms.BooleanField(label="الحساب مفعّل", required=False)
+    team_member = forms.ModelChoiceField(
+        queryset=TeamMember.objects.none(), required=False, label="ملف المدرّس في فريق العمل",
+        help_text="للمدرّسين فقط: يربط الحساب بمجموعاته وجلساته.")
 
     def __init__(self, *args, user=None, **kwargs):
         self.user = user
@@ -422,13 +430,19 @@ class StaffUserEditForm(StyledFormMixin, forms.Form):
         if user is not None and self.initial.get("role") is None:
             self.fields["role"].initial = getattr(user.profile, "role", "")
             self.fields["is_active"].initial = user.is_active
+            self.fields["team_member"].initial = user.profile.team_member_id
+        if user is not None:
+            self.fields["team_member"].queryset = TeamMember.objects.filter(
+                models.Q(account_profile__isnull=True) | models.Q(account_profile=user.profile))
         self._style_fields()
 
     def save(self):
         self.user.is_active = self.cleaned_data["is_active"]
         self.user.save(update_fields=["is_active"])
         self.user.profile.role = self.cleaned_data["role"]
-        self.user.profile.save(update_fields=["role"])
+        is_teacher = self.user.profile.role == Profile.ROLE_TEACHER
+        self.user.profile.team_member = self.cleaned_data.get("team_member") if is_teacher else None
+        self.user.profile.save(update_fields=["role", "team_member"])
         return self.user
 
 
@@ -537,6 +551,21 @@ class LessonForm(StyledFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["starts_at"].input_formats = ["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"]
+        self._style_fields()
+
+
+class TeacherLessonForm(StyledFormMixin, forms.ModelForm):
+    """What a teacher may change on their own session: the Zoom link, recording and notes (not the schedule)."""
+
+    class Meta:
+        model = Lesson
+        fields = ["zoom_url", "recording_url", "notes_ar", "notes_en"]
+        widgets = {"notes_ar": forms.Textarea(attrs={"rows": 3}), "notes_en": forms.Textarea(attrs={"rows": 3})}
+        labels = {"zoom_url": "رابط Zoom", "recording_url": "رابط التسجيل",
+                  "notes_ar": "ملاحظات للطلاب (عربي)", "notes_en": "ملاحظات للطلاب (إنجليزي)"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._style_fields()
 
 

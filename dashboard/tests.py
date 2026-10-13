@@ -381,3 +381,57 @@ class TeacherProfileTests(TestCase):
         support.profile.save()
         self.client.force_login(support)
         self.assertEqual(self.client.get(self.url).status_code, 403)
+
+
+class TeacherDashboardTests(TestCase):
+    def setUp(self):
+        import datetime
+        from django.utils import timezone
+        from courses.models import Attendance, Cohort, Course, Enrollment, Lesson
+        from team.models import TeamMember
+        self.member = TeamMember.objects.create(name_ar="مدرس", role_ar="مدرس")
+        self.other = TeamMember.objects.create(name_ar="آخر", role_ar="مدرس")
+        self.teacher = User.objects.create_user("t", "t@example.com", "pw", is_staff=True)
+        self.teacher.profile.role = "teacher"
+        self.teacher.profile.team_member = self.member
+        self.teacher.profile.save()
+        course = Course.objects.create(title_ar="كورس", is_published=True)
+        now = timezone.now()
+        self.cohort = Cohort.objects.create(course=course, mode="private", teacher=self.member)
+        self.theirs = Cohort.objects.create(course=course, mode="private", teacher=self.other)
+        student = User.objects.create_user("s", "s@example.com", "pw", first_name="طالب")
+        self.enrollment = Enrollment.objects.create(user=student, course=course, cohort=self.cohort)
+        self.past = Lesson.objects.create(cohort=self.cohort, number=1, starts_at=now - datetime.timedelta(days=1))
+        self.future = Lesson.objects.create(cohort=self.cohort, number=2, starts_at=now + datetime.timedelta(days=1),
+                                            zoom_url="https://zoom.example/z")
+        self.foreign = Lesson.objects.create(cohort=self.theirs, number=1, starts_at=now + datetime.timedelta(days=1))
+        self.client.force_login(self.teacher)
+
+    def test_home_shows_only_own_data(self):
+        resp = self.client.get(reverse("dashboard:index"))
+        self.assertContains(resp, "https://zoom.example/z")
+        self.assertEqual(len(resp.context["cohorts"]), 1)
+        self.assertEqual(len(resp.context["students"]), 1)
+        self.assertEqual(resp.context["needs_attendance_count"], 1)
+
+    def test_attendance_clears_the_pending_list(self):
+        from courses.models import Attendance
+        self.client.post(reverse("dashboard:teacher_attendance", args=[self.past.pk]), {"present": [self.enrollment.pk]})
+        self.assertTrue(Attendance.objects.filter(lesson=self.past, status="present").exists())
+        self.assertEqual(self.client.get(reverse("dashboard:index")).context["needs_attendance_count"], 0)
+
+    def test_teacher_edits_own_lesson_but_not_another_teachers(self):
+        url = reverse("dashboard:teacher_lesson", args=[self.future.pk])
+        resp = self.client.post(url, {"zoom_url": "https://zoom.example/new", "recording_url": "", "notes_ar": "", "notes_en": "",
+                                      "attachments-TOTAL_FORMS": 0, "attachments-INITIAL_FORMS": 0})
+        self.assertEqual(resp.status_code, 302)
+        self.future.refresh_from_db()
+        self.assertEqual(self.future.zoom_url, "https://zoom.example/new")
+        self.assertEqual(self.client.get(reverse("dashboard:teacher_lesson", args=[self.foreign.pk])).status_code, 404)
+        self.assertEqual(self.client.post(reverse("dashboard:teacher_attendance", args=[self.foreign.pk])).status_code, 404)
+
+    def test_unlinked_teacher_sees_notice(self):
+        self.teacher.profile.team_member = None
+        self.teacher.profile.save()
+        self.assertContains(self.client.get(reverse("dashboard:index")), "غير مربوط")
+        self.assertEqual(self.client.get(reverse("dashboard:teacher_lesson", args=[self.future.pk])).status_code, 404)

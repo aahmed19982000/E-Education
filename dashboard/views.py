@@ -91,6 +91,9 @@ def base_context(request, active=""):
 
 @dashboard_required
 def index(request):
+    if request.dashboard_role == Profile.ROLE_TEACHER:
+        from .teacher import teacher_home
+        return teacher_home(request)
     ctx = base_context(request, active="index")
     if ctx["can_view_articles"]:
         ctx["articles_count"] = Article.objects.count()
