@@ -175,9 +175,11 @@ class DashboardCourseTests(TestCase):
         self.client.force_login(self.student)
         self.assertEqual(self.client.get(reverse("dashboard:courses_list")).status_code, 302)
 
-    def test_teacher_is_read_only(self):
+    def test_teacher_has_no_access_to_the_admin_course_pages(self):
+        """They list students' phones and emails, so teachers only get their own dashboard."""
         self.client.force_login(self.teacher)
-        self.assertEqual(self.client.get(reverse("dashboard:courses_list")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("dashboard:courses_list")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("dashboard:all_cohorts")).status_code, 403)
         self.assertEqual(self.client.get(reverse("dashboard:course_create")).status_code, 403)
         resp = self.client.post(reverse("dashboard:enrollments_list", args=[self.course.pk]), {"email": "s@x.com"})
         self.assertEqual(resp.status_code, 403)

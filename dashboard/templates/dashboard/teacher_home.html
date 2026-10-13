@@ -1,5 +1,4 @@
 {% extends "dashboard/base.html" %}
-{% load whatsapp %}
 {% block title %}لوحة المدرّس{% endblock %}
 {% block page_title %}{% if member %}{{ greeting }}، {{ request.user.first_name|default:request.user.email }}{% else %}لوحة المدرّس{% endif %}{% endblock %}
 
@@ -93,7 +92,8 @@
     <div class="td-panel">
       <h3>طلاب يحتاجون متابعة</h3>
       {% if follow_up %}<ul class="td-list">{% for s in follow_up %}
-        <li><div><b>{{ s.name }}</b><small>{{ s.course }} · حضور {{ s.rate }}% · غياب {{ s.absences }}</small></div>{% whatsapp_link s.phone %}</li>{% endfor %}</ul>
+        <li><div><b>{{ s.name }}</b><small>{{ s.course }} · حضور {{ s.rate }}% · غياب {{ s.absences }}</small></div>
+          <span class="td-chip">{% if s.level is not None %}مستوى {{ s.level }}%{% else %}لم يختبر{% endif %}</span></li>{% endfor %}</ul>
       {% else %}<p class="td-empty">كل طلابك منتظمون في الحضور 👏</p>{% endif %}
     </div>
 

@@ -66,13 +66,15 @@ ROLE_PERMISSIONS = {
         SECTION_USERS: None,
         SECTION_SETTINGS: None,
     },
+    # Teachers only get their own dashboard (dashboard/teacher.py). The admin sections list
+    # students' phone numbers, emails and WhatsApp links, so none of them is open to teachers.
     ROLE_TEACHER: {
         SECTION_ARTICLES: None,
         SECTION_TEAM: None,
-        SECTION_QUESTIONS: "read",
-        SECTION_MESSAGES: "read",
-        SECTION_COURSES: "read",
-        SECTION_REQUESTS: "read",
+        SECTION_QUESTIONS: None,
+        SECTION_MESSAGES: None,
+        SECTION_COURSES: None,
+        SECTION_REQUESTS: None,
         SECTION_USERS: None,
         SECTION_SETTINGS: None,
     },

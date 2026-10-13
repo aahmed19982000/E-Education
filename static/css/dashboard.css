@@ -551,6 +551,9 @@ table.dash-table { width: 100%; border-collapse: collapse; }
 .td-student-body { flex: 1; display: grid; gap: 8px; min-width: 0; }
 .td-student-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; } .td-student-head b { color: var(--primary); }
 .td-student small { color: var(--muted); }
+.td-level { display: flex; justify-content: space-between; align-items: center; background: var(--cream); border: 1px solid var(--cream-border); border-radius: 10px; padding: 8px 12px; font-size: 13px; color: var(--primary); }
+.td-level b { font-size: 16px; font-weight: 800; }
+.td-level.none { background: #f6f6f6; border-color: #e6e6e6; color: var(--muted); } .td-level.none b { font-size: 13px; }
 .td-student-foot { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); }
 @media (max-width: 1100px) { .td-week { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .td-grid { grid-template-columns: 1fr; } }

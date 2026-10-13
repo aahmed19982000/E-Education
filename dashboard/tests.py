@@ -458,3 +458,24 @@ class TeacherDashboardTests(TestCase):
         html = self.client.get(reverse("dashboard:index")).content.decode()
         self.assertIn(reverse("dashboard:teacher_schedule"), html)
         self.assertNotIn(reverse("dashboard:requests_list"), html)
+
+    def test_teacher_sees_level_result_but_no_contact_details(self):
+        from quiz.models import PlacementResult
+        student = self.enrollment.user
+        student.profile.phone = "01099887766"
+        student.profile.save()
+        PlacementResult.objects.create(user=student, percent=64)
+        for name in ("dashboard:index", "dashboard:teacher_students", "dashboard:teacher_schedule"):
+            html = self.client.get(reverse(name)).content.decode()
+            for secret in ("s@example.com", "01099887766", "wa.me", "mailto:"):
+                self.assertNotIn(secret, html, f"{name} leaks {secret}")
+        self.assertContains(self.client.get(reverse("dashboard:teacher_students")), "64%")
+        attendance = self.client.get(reverse("dashboard:teacher_attendance", args=[self.past.pk])).content.decode()
+        self.assertIn("64%", attendance)
+        self.assertNotIn("s@example.com", attendance)
+
+    def test_teacher_cannot_reach_admin_pages_with_student_contacts(self):
+        for name, args in (("dashboard:requests_list", []), ("dashboard:messages_list", []), ("dashboard:all_cohorts", []),
+                           ("dashboard:cohort_detail", [self.cohort.pk]), ("dashboard:student_detail", [self.enrollment.user_id]),
+                           ("dashboard:courses_list", [])):
+            self.assertEqual(self.client.get(reverse(name, args=args)).status_code, 403, name)

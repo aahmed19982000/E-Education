@@ -53,13 +53,18 @@ def _state(lesson, now):
     return "live" if now <= end else "ended"
 
 
+def student_name(user):
+    """A student's name for teachers. Never falls back to the email: teachers get no contact details."""
+    return user.get_full_name() or user.first_name or f"طالب #{user.pk}"
+
+
 def _students(member):
     """Active students of the teacher's groups with attendance, level and a follow-up flag."""
     enrollments = list(Enrollment.objects.filter(cohort__teacher=member, status=Enrollment.STATUS_ACTIVE)
                        .select_related("user__profile", "course", "cohort"))
-    levels = {}
+    levels = {}  # latest level-test result per student
     for r in PlacementResult.objects.filter(user_id__in=[e.user_id for e in enrollments]).order_by("created_at"):
-        levels[r.user_id] = r.percent
+        levels[r.user_id] = r
     rows = []
     for e in enrollments:
         attended, total, percent = e.progress()
@@ -67,10 +72,12 @@ def _students(member):
         rate = round(marks.count(Attendance.PRESENT) / len(marks) * 100) if marks else None
         missed_last_two = len(marks) >= 2 and all(s == Attendance.ABSENT for s in marks[:2])
         rows.append({
-            "enrollment": e, "name": e.user.get_full_name() or e.user.email, "phone": e.user.profile.phone,
+            "enrollment": e, "name": student_name(e.user),
             "course": e.course.title_ar, "group": e.cohort.name or e.cohort.get_mode_display(),
             "attended": attended, "total": total, "progress": percent, "rate": rate,
-            "absences": marks.count(Attendance.ABSENT), "level": levels.get(e.user_id),
+            "absences": marks.count(Attendance.ABSENT),
+            "level": levels[e.user_id].percent if e.user_id in levels else None,
+            "level_date": levels[e.user_id].created_at if e.user_id in levels else None,
             "at_risk": missed_last_two or (rate is not None and len(marks) >= 2 and rate < AT_RISK_RATE),
         })
     return rows
@@ -202,7 +209,10 @@ def teacher_attendance(request, pk):
         messages.success(request, "تم حفظ الحضور.")
         return redirect("dashboard:index")
     marked = {a.enrollment_id: a.status for a in lesson.attendance.all()}
-    rows = [{"enrollment": e, "present": marked.get(e.pk, Attendance.PRESENT) == Attendance.PRESENT} for e in enrollments]
+    levels = {r.user_id: r.percent for r in PlacementResult.objects.filter(
+        user_id__in=[e.user_id for e in enrollments]).order_by("created_at")}
+    rows = [{"enrollment": e, "name": student_name(e.user), "level": levels.get(e.user_id),
+             "present": marked.get(e.pk, Attendance.PRESENT) == Attendance.PRESENT} for e in enrollments]
     ctx = _context(request, "t_schedule")
     ctx.update({"lesson": lesson, "cohort": lesson.cohort, "course": lesson.cohort.course, "rows": rows})
     return render(request, "dashboard/teacher_attendance.html", ctx)
