@@ -77,3 +77,52 @@ class DashboardWhatsappLinkTests(TestCase):
         EnrollmentRequest.objects.filter(pk=self.req.pk).update(phone="not a number")
         page = self.client.get(reverse("dashboard:request_detail", args=[self.req.pk]))
         self.assertNotContains(page, "wa.me")
+
+
+class StaffLoginRedirectTests(TestCase):
+    def test_teacher_lands_in_dashboard_and_student_on_home(self):
+        from django.contrib.auth.models import User
+        from django.urls import reverse
+        teacher = User.objects.create_user("t", "t@example.com", "pw12345!x", is_staff=True)
+        teacher.profile.role = "teacher"
+        teacher.profile.save()
+        User.objects.create_user("s", "s@example.com", "pw12345!x")
+        resp = self.client.post(reverse("accounts:login"), {"mode": "login", "email": "t@example.com", "password": "pw12345!x"})
+        self.assertRedirects(resp, reverse("dashboard:index"), fetch_redirect_response=False)
+        self.client.logout()
+        resp = self.client.post(reverse("accounts:login"), {"mode": "login", "email": "s@example.com", "password": "pw12345!x"})
+        self.assertRedirects(resp, reverse("core:home"), fetch_redirect_response=False)
+
+    def test_menu_shows_control_panel_link_for_staff_only(self):
+        from django.contrib.auth.models import User
+        from django.urls import reverse
+        User.objects.create_user("s", "s@example.com", "pw")
+        staff = User.objects.create_user("t", "t@example.com", "pw", is_staff=True)
+        self.client.login(username="s", password="pw")
+        self.assertNotContains(self.client.get(reverse("courses:list")), 'href="/dashboard/"')
+        self.client.login(username="t", password="pw")
+        self.assertContains(self.client.get(reverse("courses:list")), 'href="/dashboard/"')
+
+
+class DashboardSeparationTests(TestCase):
+    def setUp(self):
+        self.teacher = User.objects.create_user("t", "t@example.com", "pw", is_staff=True)
+        self.teacher.profile.role = "teacher"
+        self.teacher.profile.save()
+        self.student = User.objects.create_user("s", "s@example.com", "pw")
+
+    def test_teacher_cannot_use_the_student_dashboard(self):
+        self.client.force_login(self.teacher)
+        self.assertRedirects(self.client.get(reverse("courses:mine")), reverse("dashboard:index"), fetch_redirect_response=False)
+
+    def test_student_cannot_use_the_teacher_dashboard(self):
+        self.client.force_login(self.student)
+        for name, args in (("dashboard:index", []), ("dashboard:teacher_schedule", []), ("dashboard:teacher_students", []),
+                           ("dashboard:teacher_lesson", [1]), ("dashboard:teacher_attendance", [1])):
+            resp = self.client.get(reverse(name, args=args))
+            self.assertRedirects(resp, reverse("core:home"), fetch_redirect_response=False, msg_prefix=name)
+
+    def test_student_cannot_sign_in_through_the_dashboard_login(self):
+        resp = self.client.post(reverse("dashboard:login"), {"email": "s@example.com", "password": "pw"})
+        self.assertContains(resp, "ليس لديك صلاحية")
+        self.assertNotIn("_auth_user_id", self.client.session)

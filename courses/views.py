@@ -11,6 +11,8 @@ from core.models import SiteSettings
 from core.translations import get_translations
 from quiz.models import PlacementResult
 
+from dashboard.permissions import ROLE_TEACHER, get_dashboard_role
+
 from .access import can_view_lesson_material, has_active_enrollment, is_staff_user
 from .forms import ApplyForm
 from .models import Attendance, Course, Enrollment, EnrollmentRequest, Lesson, LessonAttachment
@@ -60,6 +62,8 @@ def course_detail(request, slug):
 @login_required
 def my_courses(request):
     """The student's dashboard: next session, stats, courses, homework, recordings and open requests."""
+    if get_dashboard_role(request.user) == ROLE_TEACHER:
+        return redirect("dashboard:index")  # teachers have their own dashboard
     lang = request.lang
     tr = get_translations(lang)["courses"]
     now = timezone.now()

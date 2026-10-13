@@ -5,6 +5,8 @@ from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 
+from dashboard.permissions import get_dashboard_role
+
 from .auth_utils import authenticate_by_email
 from .forms import EmailLoginForm, RegisterForm
 
@@ -45,7 +47,8 @@ def login_view(request):
                 user = authenticate_by_email(request, email, password)
                 if user is not None:
                     login(request, user)
-                    return redirect(next_url or "core:home")
+                    # Teachers and admins land in their dashboard, students on the site.
+                    return redirect(next_url or ("dashboard:index" if get_dashboard_role(user) else "core:home"))
                 login_form.add_error(None, "بيانات الدخول غير صحيحة / Invalid credentials.")
 
     return render(request, "accounts/auth.html", {

@@ -60,7 +60,7 @@ AR = {
     },
     "nav": {
         "home": "الرئيسية", "about": "عن الأكاديمية",
-        "team": "فريق العمل", "teachers": "ورش المدرسين", "test": "اختبار المستوى", "articles": "مقالات", "courses": "الكورسات", "mycourses": "لوحتي",
+        "team": "فريق العمل", "teachers": "ورش المدرسين", "test": "اختبار المستوى", "articles": "مقالات", "courses": "الكورسات", "mycourses": "لوحتي", "dashboard": "لوحة التحكم",
         "contact": "تواصل معنا", "login": "تسجيل الدخول", "logout": "تسجيل الخروج", "cta": "اختبار مجاني",
     },
     "home": {
@@ -217,7 +217,7 @@ EN = {
     },
     "nav": {
         "home": "Home", "about": "About",
-        "team": "Our Team", "teachers": "Teacher Track", "test": "Level Test", "articles": "Articles", "courses": "Courses", "mycourses": "My dashboard",
+        "team": "Our Team", "teachers": "Teacher Track", "test": "Level Test", "articles": "Articles", "courses": "Courses", "mycourses": "My dashboard", "dashboard": "Control panel",
         "contact": "Contact", "login": "Log in", "logout": "Log out", "cta": "Free level test",
     },
     "home": {
