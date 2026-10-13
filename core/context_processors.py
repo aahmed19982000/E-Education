@@ -8,6 +8,7 @@ def site_language(request):
     other_lang = "en" if lang == "ar" else "ar"
     return {
         "LANG": lang,
+        "LANG_LOCKED": getattr(request, "lang_locked", False),
         "OTHER_LANG": other_lang,
         "DIR": "rtl" if lang == "ar" else "ltr",
         "IS_RTL": lang == "ar",

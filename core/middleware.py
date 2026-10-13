@@ -1,3 +1,7 @@
+# The level test is taken in English only, whatever language the rest of the site is in.
+ENGLISH_ONLY_PREFIXES = ("/test/",)
+
+
 class LanguageMiddleware:
     """Reads the visitor's chosen UI language from the session.
 
@@ -13,5 +17,8 @@ class LanguageMiddleware:
         lang = request.session.get("lang", "ar")
         if lang not in ("ar", "en"):
             lang = "ar"
+        request.lang_locked = request.path.startswith(ENGLISH_ONLY_PREFIXES)
+        if request.lang_locked:
+            lang = "en"
         request.lang = lang
         return self.get_response(request)

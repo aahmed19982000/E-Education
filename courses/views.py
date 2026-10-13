@@ -134,10 +134,12 @@ def lesson_detail(request, pk):
     enrollment = Enrollment.objects.filter(user=request.user, cohort=lesson.cohort).first()
     attendance = None
     placement = None
+    first_lesson = False
     if enrollment:
         attendance = Attendance.objects.filter(lesson=lesson, enrollment=enrollment).first()
         # The test result is surfaced on the student's first session only.
         if lesson.cohort.lessons.first() == lesson:
+            first_lesson = True
             placement = PlacementResult.objects.filter(user=request.user).first()
     lang = request.lang
     return render(request, "courses/lesson.html", {
@@ -149,6 +151,7 @@ def lesson_detail(request, pk):
         "homework": lesson.attachments.filter(kind=LessonAttachment.KIND_HOMEWORK),
         "attendance": attendance,
         "placement": placement,
+        "ask_placement": first_lesson and placement is None,
     })
 
 

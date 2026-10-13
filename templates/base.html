@@ -42,7 +42,7 @@
           <a href="{% url 'contact:contact' %}" class="{% if request.resolver_match.namespace == 'contact' %}active{% endif %}">{{ t.nav.contact }}</a>
         </nav>
         <div class="header-actions">
-          <a class="btn btn-lang" href="{% url 'core:set_language' lang_code=OTHER_LANG %}?next={{ request.path|urlencode }}">{{ t.langToggle }}</a>
+          {% if not LANG_LOCKED %}<a class="btn btn-lang" href="{% url 'core:set_language' lang_code=OTHER_LANG %}?next={{ request.path|urlencode }}">{{ t.langToggle }}</a>{% endif %}
           {% if user.is_authenticated %}
             <a class="btn btn-outline" href="{% url 'accounts:logout' %}">{{ t.nav.logout }}</a>
           {% else %}

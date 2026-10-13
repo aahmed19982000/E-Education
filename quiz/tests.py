@@ -1,3 +1,4 @@
+import re
 import io
 import shutil
 import tempfile
@@ -200,8 +201,8 @@ class QuizFlowTests(TestCase):
     def test_intro_lists_question_count_and_time(self):
         self.set_settings(exam_time_minutes=15)
         resp = self.client.get(reverse("quiz:intro"))
-        self.assertIn("3 أسئلة", resp.context["info_items"])
-        self.assertIn("مدة الاختبار 15 دقيقة", resp.context["info_items"])
+        self.assertIn("3 questions", resp.context["info_items"])
+        self.assertIn("Test time: 15 minutes", resp.context["info_items"])
 
 
 class CategoryTests(TestCase):
@@ -256,3 +257,39 @@ class PlacementTestCommandTests(TestCase):
             call_command("load_placement_test", replace=True, stdout=io.StringIO())
         self.assertEqual(Question.objects.count(), 30)
         self.assertFalse(Question.objects.filter(text_ar="q1").exists())
+
+
+class EnglishOnlyTests(TestCase):
+    """The level test is always English, even when the visitor chose Arabic for the rest of the site."""
+
+    ARABIC = re.compile(r"[؀-ۿ]")
+
+    def main(self, resp):
+        html = resp.content.decode()
+        return html.split("<main>")[1].split("</main>")[0]
+
+    def setUp(self):
+        category = Category.objects.create(name_ar="قواعد", name_en="Grammar")
+        Question.objects.create(order=1, category=category, text_ar="اختر الإجابة الصحيحة: She ___ a doctor.",
+                                text_en="Choose the correct answer: She ___ a doctor.",
+                                options_ar=["is", "are"], correct_index=0)
+        session = self.client.session
+        session["lang"] = "ar"
+        session.save()
+
+    def test_test_pages_are_english_and_ltr(self):
+        intro = self.client.get(reverse("quiz:intro"))
+        self.assertContains(intro, '<html lang="en" dir="ltr">')
+        self.assertFalse(self.ARABIC.search(self.main(intro)))
+        self.client.post(reverse("quiz:start"))
+        question = self.client.get(reverse("quiz:question"))
+        self.assertFalse(self.ARABIC.search(self.main(question)), "question page has Arabic text")
+        self.assertContains(question, "Grammar")
+        self.client.post(reverse("quiz:question"), {"question": Question.objects.get().pk, "option": 0, "nav": "finish"})
+        result = self.client.get(reverse("quiz:result"))
+        self.assertFalse(self.ARABIC.search(self.main(result)), "result page has Arabic text")
+
+    def test_rest_of_the_site_stays_arabic_and_toggle_is_hidden_on_the_test(self):
+        self.assertContains(self.client.get(reverse("courses:list")), 'dir="rtl"')
+        self.assertNotContains(self.client.get(reverse("quiz:intro")), "btn-lang")
+        self.assertContains(self.client.get(reverse("courses:list")), "btn-lang")

@@ -25,6 +25,10 @@
       {% if placement %}
       <div class="c-panel"><h2>{{ t.courses.placementTitle }}</h2>
         <div class="c-placement"><span class="score">{{ placement.percent }}%</span></div></div>
+      {% elif ask_placement %}
+      <div class="c-panel"><h2>{{ t.courses.placementTitle }}</h2>
+        <p class="c-text">{{ t.courses.noPlacement }}</p>
+        <a class="c-btn primary" style="margin-top:14px;" href="{% url 'quiz:intro' %}">{{ t.courses.takeTest }}</a></div>
       {% endif %}
       <div class="c-panel"><a class="c-btn ghost" href="{% url 'courses:detail' slug=course.slug %}">{{ t.courses.back }}</a></div>
     </aside>

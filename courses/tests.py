@@ -161,6 +161,14 @@ class AccessTests(TestCase):
         self.assertContains(first_resp, "64%")
         self.assertNotContains(self.client.get(reverse("courses:lesson", args=[second.pk])), "64%")
 
+    def test_first_lesson_asks_a_student_who_has_not_taken_the_test(self):
+        second = Lesson.objects.create(cohort=self.cohort, number=2, starts_at=self.lesson.starts_at + datetime.timedelta(days=7))
+        self.client.force_login(self.student)
+        self.assertContains(self.client.get(reverse("courses:lesson", args=[self.lesson.pk])), "لم تُجرِ اختبار تحديد المستوى")
+        self.assertNotContains(self.client.get(reverse("courses:lesson", args=[second.pk])), "لم تُجرِ اختبار تحديد المستوى")
+        PlacementResult.objects.create(user=self.student, percent=64)
+        self.assertNotContains(self.client.get(reverse("courses:lesson", args=[self.lesson.pk])), "لم تُجرِ اختبار تحديد المستوى")
+
 
 class DashboardCourseTests(TestCase):
     def setUp(self):
