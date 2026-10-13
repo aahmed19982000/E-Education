@@ -773,3 +773,21 @@ class StudentDashboardTests(TestCase):
         resp = self.client.get(reverse("courses:mine"))
         self.assertEqual(resp.status_code, 200)
         self.assertIsNone(resp.context["stats"]["rate"])
+
+
+class StudentMenuTests(TestCase):
+    def test_signed_in_student_only_sees_relevant_menu_items(self):
+        user = User.objects.create_user("menu", "menu@example.com", "pw")
+        self.client.force_login(user)
+        html = self.client.get(reverse("courses:mine")).content.decode()
+        nav = html.split('<nav class="nav-links">')[1].split("</nav>")[0]
+        for shown in ("courses:list", "courses:mine", "quiz:intro", "contact:contact"):
+            self.assertIn(f'href="{reverse(shown)}"', nav)
+        for hidden in ("core:home", "core:about", "team:list", "core:teachers", "articles:list"):
+            self.assertNotIn(f'href="{reverse(hidden)}"', nav)
+
+    def test_visitors_and_staff_keep_the_full_menu(self):
+        self.assertContains(self.client.get(reverse("courses:list")), f'href="{reverse("core:about")}"')
+        staff = User.objects.create_user("st", "st@example.com", "pw", is_staff=True)
+        self.client.force_login(staff)
+        self.assertContains(self.client.get(reverse("courses:list")), f'href="{reverse("core:about")}"')
