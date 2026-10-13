@@ -59,23 +59,66 @@ def course_detail(request, slug):
 
 @login_required
 def my_courses(request):
+    """The student's dashboard: next session, stats, courses, homework, recordings and open requests."""
     lang = request.lang
+    tr = get_translations(lang)["courses"]
     now = timezone.now()
-    cards = []
+    today = timezone.localdate()
+    cards, cohort_ids = [], []
     enrollments = (Enrollment.objects.filter(user=request.user, status=Enrollment.STATUS_ACTIVE)
                    .select_related("course", "cohort__teacher"))
     for enrollment in enrollments:
         course = enrollment.course
         attended, total, percent = enrollment.progress()
         cohort = enrollment.cohort
+        if cohort:
+            cohort_ids.append(cohort.pk)
         nxt = cohort.lessons.filter(starts_at__gte=now).first() if cohort else None
         cards.append({
             "course": course.localized(lang), "teacher": cohort.teacher.localized(lang) if cohort and cohort.teacher else None,
             "placed": cohort is not None, "attended": attended, "total": total, "percent": percent,
-            "attended_label": get_translations(lang)["courses"]["attended"].format(a=attended, t=total),
+            "attended_label": tr["attended"].format(a=attended, t=total),
             "next": nxt.localized(lang) if nxt else None,
         })
-    return render(request, "courses/mine.html", {"cards": cards})
+
+    def lesson_row(lesson):
+        row = lesson.localized(lang)
+        day = timezone.localtime(lesson.starts_at).date()
+        row.update(course=lesson.cohort.course.localized(lang)["title"], zoom_url=lesson.zoom_url,
+                   recording_url=lesson.recording_url, is_today=day == today,
+                   is_tomorrow=(day - today).days == 1)
+        return row
+
+    lessons = Lesson.objects.filter(cohort_id__in=cohort_ids).select_related("cohort__course")
+    upcoming = [lesson_row(l) for l in lessons.filter(starts_at__gte=now)[:5]]
+    recordings = [lesson_row(l) for l in lessons.filter(starts_at__lt=now).exclude(recording_url="").order_by("-starts_at")[:4]]
+    homework = [
+        {"pk": a.pk, "title": a.title, "lesson": a.lesson.localized(lang)["title"],
+         "course": a.lesson.cohort.course.localized(lang)["title"]}
+        for a in LessonAttachment.objects.filter(lesson__cohort_id__in=cohort_ids, kind=LessonAttachment.KIND_HOMEWORK)
+        .select_related("lesson__cohort__course").order_by("-lesson__starts_at")[:5]
+    ]
+
+    marks = Attendance.objects.filter(enrollment__user=request.user, enrollment__status=Enrollment.STATUS_ACTIVE)
+    present = marks.filter(status=Attendance.PRESENT).count()
+    recorded = marks.count()
+
+    pending = (EnrollmentRequest.objects.filter(user=request.user, kind=EnrollmentRequest.KIND_STUDENT)
+               .exclude(status__in=[EnrollmentRequest.STATUS_ENROLLED, EnrollmentRequest.STATUS_CLOSED])
+               .select_related("course"))
+    requests_ = [{"course": r.course.localized(lang)["title"] if r.course else "", "paid": r.is_paid,
+                  "status": tr["dash"]["status"].get(r.status, "")} for r in pending]
+
+    placement = PlacementResult.objects.filter(user=request.user).first()
+    return render(request, "courses/mine.html", {
+        "hello": tr["dash"]["hello"].format(
+            name=request.user.first_name or request.user.get_full_name() or request.user.username),
+        "cards": cards, "next": upcoming[0] if upcoming else None, "upcoming": upcoming[1:],
+        "recordings": recordings, "homework": homework, "requests": requests_,
+        "stats": {"courses": len(cards), "attended": present,
+                  "rate": round(present / recorded * 100) if recorded else None},
+        "placement": placement,
+    })
 
 
 @login_required

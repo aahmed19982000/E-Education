@@ -737,3 +737,39 @@ class SemiPrivateTests(TestCase):
         self.assertEqual(Course.objects.get(title_ar="كورس semi").allowed_modes(), ["semi_private"])
         resp = self.client.post(reverse("dashboard:course_create"), {"title_ar": "لا شيء", "audience": "students"})
         self.assertEqual(resp.status_code, 200)
+
+
+class StudentDashboardTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("stu", "s@example.com", "pw", first_name="Sara")
+        self.course = make_course()
+        self.cohort = Cohort.objects.create(course=self.course, mode="private")
+        self.enrollment = Enrollment.objects.create(user=self.user, course=self.course, cohort=self.cohort)
+        now = timezone.now()
+        self.past = Lesson.objects.create(cohort=self.cohort, number=1, starts_at=now - datetime.timedelta(days=2),
+                                          recording_url="https://example.com/rec")
+        self.future = Lesson.objects.create(cohort=self.cohort, number=2, starts_at=now + datetime.timedelta(days=1),
+                                            zoom_url="https://zoom.example/j/1")
+        Attendance.objects.create(lesson=self.past, enrollment=self.enrollment, status=Attendance.PRESENT)
+        self.client.force_login(self.user)
+
+    def test_dashboard_shows_next_session_stats_and_recording(self):
+        resp = self.client.get(reverse("courses:mine"))
+        self.assertContains(resp, "Sara")
+        self.assertContains(resp, "https://zoom.example/j/1")
+        self.assertContains(resp, "https://example.com/rec")
+        self.assertEqual(resp.context["stats"], {"courses": 1, "attended": 1, "rate": 100})
+
+    def test_dashboard_lists_open_requests_but_not_enrolled_ones(self):
+        EnrollmentRequest.objects.create(user=self.user, course=self.course, full_name="Sara", email="s@example.com",
+                                         phone="1", status=EnrollmentRequest.STATUS_CONTACTED)
+        EnrollmentRequest.objects.create(user=self.user, course=self.course, full_name="Sara", email="s@example.com",
+                                         phone="1", status=EnrollmentRequest.STATUS_ENROLLED)
+        self.assertEqual(len(self.client.get(reverse("courses:mine")).context["requests"]), 1)
+
+    def test_dashboard_is_empty_for_new_student(self):
+        other = User.objects.create_user("new", "n@example.com", "pw")
+        self.client.force_login(other)
+        resp = self.client.get(reverse("courses:mine"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNone(resp.context["stats"]["rate"])
