@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from courses.models import Cohort
 from team.models import TeamMember
 
-EMAIL = "teacher@example.com"
+EMAIL = "teacher.demo@example.com"
 PASSWORD = "demo12345"
 
 
