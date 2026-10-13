@@ -71,6 +71,7 @@ def base_context(request, active=""):
     return {
         "active": active,
         "role": role,
+        "is_teacher": role == Profile.ROLE_TEACHER,
         "role_display": role_label(role),
         "can_write_articles": can_access(role, SECTION_ARTICLES, "write"),
         "can_view_articles": can_access(role, SECTION_ARTICLES),

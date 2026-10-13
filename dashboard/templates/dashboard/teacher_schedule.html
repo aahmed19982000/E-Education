@@ -1,0 +1,36 @@
+{% extends "dashboard/base.html" %}
+{% block title %}جدولي{% endblock %}
+{% block page_title %}جدولي{% endblock %}
+{% block content %}
+{% if not member %}
+<div class="dash-card"><p style="margin:0;">حسابك غير مربوط بملفك في فريق العمل بعد. اطلب من المدير ربطه.</p></div>
+{% else %}
+<div class="dash-toolbar">
+  <h2>{{ start|date:"j F" }} — {{ end|date:"j F Y" }} · {{ total }} جلسة</h2>
+  <div class="dash-table-actions">
+    <a class="btn btn-outline" href="?week={{ offset|add:'-1' }}">› الأسبوع السابق</a>
+    <a class="btn btn-outline" href="{% url 'dashboard:teacher_schedule' %}">هذا الأسبوع</a>
+    <a class="btn btn-outline" href="?week={{ offset|add:'1' }}">الأسبوع التالي ‹</a>
+  </div>
+</div>
+<div class="td-week">
+  {% for d in days %}
+  <div class="td-weekday {% if d.today %}today{% endif %}">
+    <div class="td-weekday-head"><b>{{ d.name }}</b><small>{{ d.day|date:"j/n" }}</small></div>
+    {% for l in d.items %}
+    <div class="td-session is-{{ l.state }}">
+      <time>{{ l.starts_at|date:"H:i" }}</time>
+      <b>{{ l.cohort.course.title_ar }}</b>
+      <small>{{ l.display_title_ar }} · {{ l.students }} طالب</small>
+      <div class="td-session-actions">
+        {% if l.state == "ended" %}{% elif l.zoom_url %}<a href="{{ l.zoom_url }}" target="_blank" rel="noopener">Zoom</a>{% else %}<a class="warn" href="{% url 'dashboard:teacher_lesson' l.pk %}">بدون رابط</a>{% endif %}
+        {% if l.state != "upcoming" %}<a href="{% url 'dashboard:teacher_attendance' l.pk %}">{% if l.has_marks %}الحضور ✓{% else %}سجّل الحضور{% endif %}</a>{% endif %}
+        <a href="{% url 'dashboard:teacher_lesson' l.pk %}">تعديل</a>
+      </div>
+    </div>
+    {% empty %}<p class="td-none">لا جلسات</p>{% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

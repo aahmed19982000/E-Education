@@ -1,0 +1,36 @@
+{% extends "dashboard/base.html" %}
+{% load whatsapp %}
+{% block title %}طلابي{% endblock %}
+{% block page_title %}طلابي{% endblock %}
+{% block content %}
+{% if not member %}
+<div class="dash-card"><p style="margin:0;">حسابك غير مربوط بملفك في فريق العمل بعد. اطلب من المدير ربطه.</p></div>
+{% else %}
+<form class="dash-toolbar" method="get">
+  <h2>{{ rows|length }} طالب{% if risk_count %} · <span style="color:#b00020">{{ risk_count }} يحتاجون متابعة</span>{% endif %}</h2>
+  <div class="dash-table-actions">
+    <select name="group" onchange="this.form.submit()" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;">
+      <option value="">كل المجموعات</option>
+      {% for pk, label in groups %}<option value="{{ pk }}" {% if group == pk|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <input type="search" name="q" value="{{ query }}" placeholder="ابحث بالاسم" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;">
+    <button class="btn btn-primary" type="submit">بحث</button>
+  </div>
+</form>
+{% if rows %}
+<div class="td-students">{% for s in rows %}
+  <div class="td-student {% if s.at_risk %}risk{% endif %}">
+    <div class="td-avatar">{{ s.name|slice:":1" }}</div>
+    <div class="td-student-body">
+      <div class="td-student-head"><b>{{ s.name }}</b>{% if s.at_risk %}<span class="td-chip risk">يحتاج متابعة</span>{% endif %}</div>
+      <small>{{ s.course }} · {{ s.group }}</small>
+      <div class="td-bar"><i style="width:{{ s.progress }}%"></i></div>
+      <div class="td-cohort-meta"><span>حضر {{ s.attended }} من {{ s.total }} جلسة</span>
+        <span>الحضور: {% if s.rate is not None %}{{ s.rate }}%{% else %}—{% endif %} · غياب {{ s.absences }}</span></div>
+      <div class="td-student-foot"><span>مستوى الاختبار: <b>{% if s.level is not None %}{{ s.level }}%{% else %}—{% endif %}</b></span>
+        {% whatsapp_link s.phone %}</div>
+    </div>
+  </div>{% endfor %}</div>
+{% else %}<div class="dash-card"><p class="td-empty" style="margin:0;">لا يوجد طلاب مطابقون.</p></div>{% endif %}
+{% endif %}
+{% endblock %}

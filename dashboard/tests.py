@@ -411,14 +411,14 @@ class TeacherDashboardTests(TestCase):
         resp = self.client.get(reverse("dashboard:index"))
         self.assertContains(resp, "https://zoom.example/z")
         self.assertEqual(len(resp.context["cohorts"]), 1)
-        self.assertEqual(len(resp.context["students"]), 1)
-        self.assertEqual(resp.context["needs_attendance_count"], 1)
+        self.assertEqual(resp.context["students_count"], 1)
+        self.assertEqual(resp.context["pending_count"], 1)
 
     def test_attendance_clears_the_pending_list(self):
         from courses.models import Attendance
         self.client.post(reverse("dashboard:teacher_attendance", args=[self.past.pk]), {"present": [self.enrollment.pk]})
         self.assertTrue(Attendance.objects.filter(lesson=self.past, status="present").exists())
-        self.assertEqual(self.client.get(reverse("dashboard:index")).context["needs_attendance_count"], 0)
+        self.assertEqual(self.client.get(reverse("dashboard:index")).context["pending_count"], 0)
 
     def test_teacher_edits_own_lesson_but_not_another_teachers(self):
         url = reverse("dashboard:teacher_lesson", args=[self.future.pk])
@@ -435,3 +435,26 @@ class TeacherDashboardTests(TestCase):
         self.teacher.profile.save()
         self.assertContains(self.client.get(reverse("dashboard:index")), "غير مربوط")
         self.assertEqual(self.client.get(reverse("dashboard:teacher_lesson", args=[self.future.pk])).status_code, 404)
+
+    def test_students_page_flags_students_who_keep_missing(self):
+        import datetime
+        from django.utils import timezone
+        from courses.models import Attendance, Lesson
+        earlier = Lesson.objects.create(cohort=self.cohort, number=3, starts_at=timezone.now() - datetime.timedelta(days=3))
+        Attendance.objects.create(lesson=self.past, enrollment=self.enrollment, status="absent")
+        Attendance.objects.create(lesson=earlier, enrollment=self.enrollment, status="absent")
+        rows = self.client.get(reverse("dashboard:teacher_students")).context["rows"]
+        self.assertEqual(len(rows), 1)
+        self.assertTrue(rows[0]["at_risk"])
+        self.assertEqual(len(self.client.get(reverse("dashboard:index")).context["follow_up"]), 1)
+
+    def test_schedule_shows_only_own_sessions(self):
+        resp = self.client.get(reverse("dashboard:teacher_schedule"))
+        shown = [l.pk for d in resp.context["days"] for l in d["items"]]
+        self.assertNotIn(self.foreign.pk, shown)
+        self.assertEqual(self.client.get(reverse("dashboard:teacher_schedule") + "?week=abc").status_code, 200)
+
+    def test_teacher_menu_hides_admin_sections(self):
+        html = self.client.get(reverse("dashboard:index")).content.decode()
+        self.assertIn(reverse("dashboard:teacher_schedule"), html)
+        self.assertNotIn(reverse("dashboard:requests_list"), html)

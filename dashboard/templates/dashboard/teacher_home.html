@@ -1,6 +1,7 @@
 {% extends "dashboard/base.html" %}
+{% load whatsapp %}
 {% block title %}لوحة المدرّس{% endblock %}
-{% block page_title %}أهلاً {{ request.user.first_name|default:request.user.email }}{% endblock %}
+{% block page_title %}{% if member %}{{ greeting }}، {{ request.user.first_name|default:request.user.email }}{% else %}لوحة المدرّس{% endif %}{% endblock %}
 
 {% block content %}
 {% if not member %}
@@ -8,78 +9,127 @@
   اطلب من المدير ربط حسابك من صفحة «أعضاء الفريق».</p></div>
 {% else %}
 
-<div class="dash-stats-grid">
-  <div class="dash-stat"><div class="value">{{ cohorts|length }}</div><div class="label">مجموعاتي</div></div>
-  <div class="dash-stat"><div class="value">{{ students|length }}</div><div class="label">طلابي النشطون</div></div>
-  <div class="dash-stat"><div class="value">{{ week_count }}</div><div class="label">جلسات الأسبوع القادم</div></div>
-  <div class="dash-stat"><div class="value" {% if needs_attendance_count %}style="color:#b00020"{% endif %}>{{ needs_attendance_count }}</div><div class="label">جلسات بانتظار تسجيل الحضور</div></div>
-  <div class="dash-stat"><div class="value">{% if rating_avg %}{{ rating_avg }} ★{% else %}—{% endif %}</div><div class="label">التقييم{% if rating_n %} ({{ rating_n }}){% endif %}</div></div>
+<div class="td-kpis">
+  <div class="td-kpi"><span>جلسات اليوم</span><b>{{ todays|length }}</b></div>
+  <div class="td-kpi"><span>جلسات الأسبوع</span><b>{{ week_count }}</b></div>
+  <div class="td-kpi"><span>طلابي النشطون</span><b>{{ students_count }}</b><a href="{% url 'dashboard:teacher_students' %}">عرض الكل</a></div>
+  <div class="td-kpi {% if pending_count %}warn{% endif %}"><span>حضور لم يُسجَّل</span><b>{{ pending_count }}</b></div>
+  <div class="td-kpi"><span>التقييم</span><b>{% if rating_avg %}{{ rating_avg }} ★{% else %}—{% endif %}</b>{% if rating_n %}<small>{{ rating_n }} تقييم</small>{% endif %}</div>
 </div>
 
-<div class="dash-card td-next" style="margin-bottom:16px;">
-  <h3 style="margin-top:0;">جلستي القادمة</h3>
-  {% if next %}
-    <div class="td-next-row">
-      <div class="td-when"><span>{% if next.starts_at.date == today %}اليوم{% else %}{{ next.starts_at|date:"l" }}{% endif %}</span><b>{{ next.starts_at|date:"H:i" }}</b><small>{{ next.starts_at|date:"Y-m-d" }}</small></div>
-      <div><b style="font-size:18px;">{{ next.cohort.course.title_ar }}</b>
-        <div style="color:var(--muted);font-size:14px;">{{ next.display_title_ar }} · {{ next.cohort.name|default:next.cohort.get_mode_display }} · {{ next.duration_minutes }} دقيقة</div></div>
-    </div>
-    <div class="dash-table-actions" style="margin-top:14px;">
-      {% if next.zoom_url %}<a class="btn btn-primary" href="{{ next.zoom_url }}" target="_blank" rel="noopener">بدء الجلسة (Zoom)</a>{% endif %}
-      <a class="btn btn-outline" href="{% url 'dashboard:teacher_lesson' next.pk %}">{% if next.zoom_url %}تعديل الجلسة{% else %}أضف رابط Zoom{% endif %}</a>
-    </div>
-  {% else %}<p style="margin:0;color:var(--muted);">لا توجد جلسات قادمة.</p>{% endif %}
-</div>
-
-{% if needs_attendance %}
-<div class="dash-card" style="margin-bottom:16px;border-color:#f0c9c9;">
-  <h3 style="margin-top:0;">سجّل الحضور</h3>
-  <div class="dash-table-wrap"><table class="dash-table"><tbody>
-    {% for l in needs_attendance %}
-    <tr><td>{{ l.cohort.course.title_ar }}</td><td>{{ l.display_title_ar }}</td><td>{{ l.starts_at|date:"Y-m-d H:i" }}</td>
-      <td><a href="{% url 'dashboard:teacher_attendance' l.pk %}">تسجيل الحضور</a></td></tr>
-    {% endfor %}
-  </tbody></table></div>
-</div>
+{% if no_link %}
+<div class="td-alert">⚠ {{ no_link|length }} جلسة قادمة بدون رابط Zoom — أضف الرابط قبل الموعد.
+  {% for l in no_link %}<a href="{% url 'dashboard:teacher_lesson' l.pk %}">{{ l.cohort.course.title_ar }} ({{ l.starts_at|date:"m-d H:i" }})</a>{% endfor %}</div>
 {% endif %}
 
-{% if upcoming %}
-<div class="dash-card" style="margin-bottom:16px;">
-  <h3 style="margin-top:0;">الجلسات القادمة</h3>
-  <div class="dash-table-wrap"><table class="dash-table"><tbody>
-    {% for l in upcoming %}
-    <tr><td>{{ l.cohort.course.title_ar }}</td><td>{{ l.display_title_ar }}</td><td>{{ l.starts_at|date:"Y-m-d H:i" }}</td>
-      <td>{% if l.zoom_url %}Zoom ✓{% else %}<span style="color:#b00020">بدون رابط</span>{% endif %}</td>
-      <td><a href="{% url 'dashboard:teacher_lesson' l.pk %}">تعديل</a></td></tr>
-    {% endfor %}
-  </tbody></table></div>
-</div>
-{% endif %}
+<div class="td-grid">
+  <div class="td-main">
 
-<div class="dash-card" style="margin-bottom:16px;">
-  <h3 style="margin-top:0;">مجموعاتي</h3>
-  {% if cohorts %}
-  <div class="dash-table-wrap"><table class="dash-table">
-    <thead><tr><th>الكورس</th><th>المجموعة</th><th>النوع</th><th>الطلاب</th><th>الجلسة القادمة</th></tr></thead>
-    <tbody>{% for c in cohorts %}
-      <tr><td>{{ c.course.title_ar }}</td><td>{{ c.name|default:"—" }}</td><td>{{ c.get_mode_display }}</td><td>{{ c.students }}</td>
-        <td>{% if c.next_lesson %}{{ c.next_lesson.starts_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}</td></tr>
-    {% endfor %}</tbody>
-  </table></div>
-  {% else %}<p style="margin:0;color:var(--muted);">لم تُسند لك مجموعات بعد.</p>{% endif %}
+    <div class="td-hero">
+      <h3>جلستي القادمة</h3>
+      {% if next %}
+        <div class="td-hero-row">
+          <div class="td-when"><span>{% if next.starts_at.date == today %}اليوم{% else %}{{ next.starts_at|date:"l" }}{% endif %}</span><b>{{ next.starts_at|date:"H:i" }}</b><small>{{ next.starts_at|date:"Y-m-d" }}</small></div>
+          <div class="td-hero-info"><b>{{ next.cohort.course.title_ar }}</b>
+            <small>{{ next.display_title_ar }} · {{ next.cohort.name|default:next.cohort.get_mode_display }} · {{ next.duration_minutes }} دقيقة · {{ next.students }} طالب</small>
+            <em class="td-countdown" data-ts="{{ next.starts_at.isoformat }}"></em></div>
+        </div>
+        <div class="td-actions">
+          {% if next.zoom_url %}<a class="btn btn-primary" href="{{ next.zoom_url }}" target="_blank" rel="noopener">بدء الجلسة (Zoom)</a>{% endif %}
+          <a class="btn btn-outline" href="{% url 'dashboard:teacher_lesson' next.pk %}">{% if next.zoom_url %}تعديل الجلسة{% else %}أضف رابط Zoom{% endif %}</a>
+        </div>
+      {% else %}<p style="margin:0;opacity:.85;">لا توجد جلسات قادمة.</p>{% endif %}
+    </div>
+
+    <div class="td-panel">
+      <h3>جدول اليوم</h3>
+      {% if todays %}<ol class="td-timeline">{% for l in todays %}
+        <li class="is-{{ l.state }}">
+          <time>{{ l.starts_at|date:"H:i" }}</time>
+          <div class="td-tl-body"><b>{{ l.cohort.course.title_ar }}</b><small>{{ l.display_title_ar }} · {{ l.cohort.name|default:l.cohort.get_mode_display }} · {{ l.students }} طالب</small></div>
+          <div class="td-tl-actions">
+            {% if l.state == "live" %}<span class="td-chip live">الآن</span>{% elif l.state == "upcoming" %}<span class="td-chip">قادمة</span>{% else %}<span class="td-chip done">انتهت</span>{% endif %}
+            {% if l.state != "upcoming" and not l.has_marks %}<a href="{% url 'dashboard:teacher_attendance' l.pk %}">سجّل الحضور</a>
+            {% elif l.has_marks %}<a href="{% url 'dashboard:teacher_attendance' l.pk %}">الحضور ✓</a>{% endif %}
+            {% if l.zoom_url and l.state != "ended" %}<a href="{{ l.zoom_url }}" target="_blank" rel="noopener">Zoom</a>{% endif %}
+            <a href="{% url 'dashboard:teacher_lesson' l.pk %}">تعديل</a>
+          </div>
+        </li>{% endfor %}</ol>
+      {% else %}<p class="td-empty">لا توجد جلسات اليوم. استمتع بيومك!</p>{% endif %}
+    </div>
+
+    {% if pending %}
+    <div class="td-panel warn">
+      <h3>جلسات تنتظر تسجيل الحضور</h3>
+      <ul class="td-list">{% for l in pending %}
+        <li><div><b>{{ l.cohort.course.title_ar }}</b><small>{{ l.display_title_ar }} · {{ l.starts_at|date:"Y-m-d H:i" }}</small></div>
+          <a class="btn btn-outline" href="{% url 'dashboard:teacher_attendance' l.pk %}">سجّل الحضور</a></li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    <div class="td-panel">
+      <h3>مجموعاتي</h3>
+      {% if cohorts %}<div class="td-cohorts">{% for c in cohorts %}
+        <div class="td-cohort">
+          <div class="td-cohort-head"><b>{{ c.course.title_ar }}</b><span class="td-chip">{{ c.get_mode_display }}</span></div>
+          <small>{{ c.name|default:"—" }} · {{ c.students }} طالب</small>
+          <div class="td-bar"><i style="width:{{ c.percent }}%"></i></div>
+          <div class="td-cohort-meta"><span>{{ c.done }} من {{ c.total }} جلسة</span>
+            <span>{% if c.next_lesson %}القادمة: {{ c.next_lesson.starts_at|date:"m-d H:i" }}{% else %}—{% endif %}</span></div>
+        </div>{% endfor %}</div>
+      {% else %}<p class="td-empty">لم تُسند لك مجموعات بعد.</p>{% endif %}
+    </div>
+  </div>
+
+  <aside class="td-side">
+    <div class="td-panel">
+      <h3>الأيام السبعة القادمة</h3>
+      <div class="td-strip">{% for d in strip %}
+        <a href="{% url 'dashboard:teacher_schedule' %}" class="td-day {% if d.today %}today{% endif %} {% if d.count %}has{% endif %}">
+          <small>{{ d.name }}</small><b>{{ d.day|date:"j" }}</b><span>{% if d.count %}{{ d.count }}{% else %}·{% endif %}</span></a>{% endfor %}</div>
+      <a class="td-more" href="{% url 'dashboard:teacher_schedule' %}">عرض الجدول الأسبوعي ‹</a>
+    </div>
+
+    <div class="td-panel">
+      <h3>طلاب يحتاجون متابعة</h3>
+      {% if follow_up %}<ul class="td-list">{% for s in follow_up %}
+        <li><div><b>{{ s.name }}</b><small>{{ s.course }} · حضور {{ s.rate }}% · غياب {{ s.absences }}</small></div>{% whatsapp_link s.phone %}</li>{% endfor %}</ul>
+      {% else %}<p class="td-empty">كل طلابك منتظمون في الحضور 👏</p>{% endif %}
+    </div>
+
+    {% if upcoming %}
+    <div class="td-panel">
+      <h3>بعد ذلك</h3>
+      <ul class="td-list">{% for l in upcoming %}
+        <li><div><b>{{ l.cohort.course.title_ar }}</b><small>{{ l.starts_at|date:"l Y-m-d H:i" }}</small></div>
+          <a href="{% url 'dashboard:teacher_lesson' l.pk %}">تعديل</a></li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    {% if no_recording %}
+    <div class="td-panel">
+      <h3>جلسات بدون تسجيل</h3>
+      <ul class="td-list">{% for l in no_recording %}
+        <li><div><b>{{ l.cohort.course.title_ar }}</b><small>{{ l.display_title_ar }} · {{ l.starts_at|date:"Y-m-d" }}</small></div>
+          <a href="{% url 'dashboard:teacher_lesson' l.pk %}">أضف الرابط</a></li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+  </aside>
 </div>
 
-<div class="dash-card">
-  <h3 style="margin-top:0;">طلابي</h3>
-  {% if students %}
-  <div class="dash-table-wrap"><table class="dash-table">
-    <thead><tr><th>الطالب</th><th>الكورس</th><th>الحضور</th><th>مستوى الاختبار</th></tr></thead>
-    <tbody>{% for s in students %}
-      <tr><td>{{ s.enrollment.user.get_full_name|default:s.enrollment.user.email }}</td><td>{{ s.enrollment.course.title_ar }}</td>
-        <td>{{ s.attended }} / {{ s.total }} ({{ s.percent }}%)</td><td>{% if s.level is not None %}{{ s.level }}%{% else %}—{% endif %}</td></tr>
-    {% endfor %}</tbody>
-  </table></div>
-  {% else %}<p style="margin:0;color:var(--muted);">لا يوجد طلاب في مجموعاتك بعد.</p>{% endif %}
-</div>
+<script>
+(function () {
+  var el = document.querySelector(".td-countdown");
+  if (!el) return;
+  function tick() {
+    var mins = Math.round((new Date(el.dataset.ts) - Date.now()) / 60000);
+    if (mins <= 0) { el.textContent = "الآن"; return; }
+    var d = Math.floor(mins / 1440), h = Math.floor(mins % 1440 / 60), m = mins % 60, out = [];
+    if (d) out.push(d + " يوم"); if (h) out.push(h + " ساعة"); if (!d && m) out.push(m + " دقيقة");
+    el.textContent = "تبدأ بعد " + out.join(" و");
+  }
+  tick(); setInterval(tick, 30000);
+})();
+</script>
 {% endif %}
 {% endblock %}
