@@ -860,3 +860,106 @@ class ZoomSyncTests(TestCase):
         with mock.patch.object(self.zoom, "_api", side_effect=self.zoom.ZoomError("boom")):
             self.assertEqual(self.cohort.generate_lessons(), 3)
         self.assertFalse(self.cohort.lessons.exclude(zoom_url="").exists())
+
+
+class FullFlowTests(TestCase):
+    """The whole journey: request → payment → placement → launch → sessions with a Zoom link."""
+
+    def setUp(self):
+        from unittest import mock
+        from django.test import Client
+        from . import zoom
+        self.Client = Client
+        self.admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
+        self.admin_client = Client()
+        self.admin_client.force_login(self.admin)
+        self.teacher = TeamMember.objects.create(name_ar="أ. منى", role_ar="مدرسة", specialties_ar="IELTS")
+        self.course = make_course(offers_group=True, offers_private=True, price_group=500, price_private=900)
+        self.meeting = 0
+
+        def fake_api(path, payload=None, method="GET"):
+            if method == "POST":
+                self.meeting += 1
+                return {"id": 1000 + self.meeting, "join_url": f"https://zoom.us/j/{1000 + self.meeting}"}
+            return {}
+
+        patcher = mock.patch.object(zoom, "_api", side_effect=fake_api)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        override = override_settings(**ZOOM)
+        override.enable()
+        self.addCleanup(override.disable)
+
+    def student_applies(self, n, mode):
+        """A guest registers, applies and lands on checkout, like a real visitor."""
+        client = self.Client()
+        apply_url = reverse("courses:apply", args=[self.course.slug])
+        form = {"full_name": f"Student {n}", "email": f"s{n}@x.com", "phone": "01012345678",
+                "mode": mode, "preferred_times": "Sat 7pm", "notes": ""}
+        resp = client.post(apply_url, form)
+        self.assertEqual(resp.status_code, 302)
+        req = EnrollmentRequest.objects.get(email=f"s{n}@x.com")
+        self.assertEqual((req.status, req.payment_status, req.user_id), ("new", "unpaid", None))
+        checkout = reverse("courses:checkout", args=[req.pk])
+        resp = client.post(reverse("accounts:login") + f"?mode=register&next={checkout}", {
+            "mode": "register", "full_name": f"Student {n}", "email": f"s{n}@x.com", "phone": "01012345678",
+            "password": "Str0ng-pass-99", "password2": "Str0ng-pass-99"})
+        self.assertRedirects(resp, checkout, fetch_redirect_response=False)
+        self.assertEqual(client.get(checkout).status_code, 200)
+        req.refresh_from_db()
+        self.assertIsNotNone(req.user_id)  # the request is now claimed by the new account
+        return client, req
+
+    def admin_marks_paid(self, req):
+        resp = self.admin_client.post(reverse("dashboard:request_detail", args=[req.pk]), {
+            "status": "teacher_assigned", "payment_status": "paid", "assigned_teacher": self.teacher.pk, "admin_notes": ""})
+        self.assertEqual(resp.status_code, 302)
+        req.refresh_from_db()
+        self.assertTrue(req.is_paid)
+
+    def test_group_journey(self):
+        cohort = make_cohort(course=self.course, mode="group", min_students=2, max_students=4, teacher=self.teacher)
+        CohortSlot.objects.create(cohort=cohort, weekday=0, start_time=datetime.time(19, 0))
+        students = []
+        for n in (1, 2):
+            client, req = self.student_applies(n, "group")
+            # An unpaid student cannot be placed.
+            self.admin_client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": cohort.pk})
+            req.refresh_from_db()
+            self.assertNotEqual(req.status, EnrollmentRequest.STATUS_WAITING)
+            self.admin_marks_paid(req)
+            self.admin_client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": cohort.pk})
+            req.refresh_from_db()
+            self.assertEqual(req.status, EnrollmentRequest.STATUS_WAITING)
+            students.append((client, req))
+        # Waiting: no enrollment, no sessions, no Zoom yet.
+        self.assertFalse(Enrollment.objects.exists())
+        self.assertFalse(cohort.lessons.exists())
+        # Launch.
+        self.admin_client.post(reverse("dashboard:cohort_confirm", args=[self.course.pk, cohort.pk]))
+        cohort.refresh_from_db()
+        self.assertIsNotNone(cohort.confirmed_at)
+        self.assertEqual(cohort.lessons.count(), 3)
+        self.assertFalse(cohort.lessons.filter(zoom_url="").exists())
+        for client, req in students:
+            req.refresh_from_db()
+            self.assertEqual(req.status, EnrollmentRequest.STATUS_ENROLLED)
+            first = cohort.lessons.first()
+            page = client.get(reverse("courses:lesson", args=[first.pk]))
+            self.assertEqual(page.status_code, 200)
+            self.assertContains(page, first.zoom_url)
+
+    def test_private_journey(self):
+        client, req = self.student_applies(9, "private")
+        self.admin_marks_paid(req)
+        cohort = make_cohort(course=self.course, mode="private", teacher=self.teacher)
+        CohortSlot.objects.create(cohort=cohort, weekday=2, start_time=datetime.time(17, 0))
+        self.admin_client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": cohort.pk})
+        req.refresh_from_db()
+        self.assertEqual(req.status, EnrollmentRequest.STATUS_ENROLLED)  # private is never held back
+        self.assertEqual(cohort.lessons.count(), 0)  # but sessions are made by staff
+        self.admin_client.post(reverse("dashboard:lessons_generate", args=[cohort.pk]))
+        self.assertEqual(cohort.lessons.count(), 3)
+        self.assertFalse(cohort.lessons.filter(zoom_url="").exists())
+        first = cohort.lessons.first()
+        self.assertContains(client.get(reverse("courses:lesson", args=[first.pk])), first.zoom_url)
