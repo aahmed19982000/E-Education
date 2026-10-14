@@ -7,6 +7,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from courses import zoom
 from courses.models import Attendance, Enrollment, Lesson
 from exams.models import Submission
 from quiz.models import PlacementResult
@@ -191,15 +192,26 @@ def teacher_students(request):
 @dashboard_required
 def teacher_lesson(request, pk):
     lesson = _own_lesson(request, pk)
+    if request.method == "POST" and "zoom_create" in request.POST:
+        changed, error = zoom.sync_lesson(lesson)
+        if error:
+            messages.error(request, f"تعذّر إنشاء اجتماع Zoom: {error}")
+        elif changed:
+            messages.success(request, "تم إنشاء اجتماع Zoom.")
+        else:
+            messages.info(request, "الجلسة لديها رابط بالفعل.")
+        return redirect("dashboard:teacher_lesson", pk=lesson.pk)
     form = TeacherLessonForm(request.POST or None, instance=lesson)
     files = AttachmentFormSet(request.POST or None, request.FILES or None, instance=lesson)
     if request.method == "POST" and form.is_valid() and files.is_valid():
+        if "zoom_url" in form.changed_data:
+            form.instance.zoom_meeting_id = ""
         form.save()
         files.save()
         messages.success(request, "تم حفظ الجلسة.")
         return redirect("dashboard:index")
     ctx = _context(request, "t_schedule")
-    ctx.update({"form": form, "files": files, "lesson": lesson, "cohort": lesson.cohort, "course": lesson.cohort.course})
+    ctx.update({"form": form, "files": files, "lesson": lesson, "zoom_ready": zoom.is_configured(), "cohort": lesson.cohort, "course": lesson.cohort.course})
     return render(request, "dashboard/teacher_lesson.html", ctx)
 
 

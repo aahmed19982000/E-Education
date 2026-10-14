@@ -158,3 +158,8 @@ BRAND_ACCENT_COLOR = '#D9A429'
 
 # Flip to True once a payment gateway (Daftar Cash / Binance Pay) is wired into the checkout.
 PAYMENTS_ENABLED = os.environ.get('PAYMENTS_ENABLED', 'False').lower() == 'true'
+
+# Zoom Server-to-Server OAuth app: sessions get their meeting link automatically once all three are set.
+ZOOM_ACCOUNT_ID = os.environ.get('ZOOM_ACCOUNT_ID', '')
+ZOOM_CLIENT_ID = os.environ.get('ZOOM_CLIENT_ID', '')
+ZOOM_CLIENT_SECRET = os.environ.get('ZOOM_CLIENT_SECRET', '')

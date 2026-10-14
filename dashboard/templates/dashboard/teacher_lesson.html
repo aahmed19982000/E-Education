@@ -3,6 +3,11 @@
 {% block page_title %}{{ course.title_ar }} — {{ lesson.display_title_ar }} ({{ lesson.starts_at|date:"Y-m-d H:i" }}){% endblock %}
 {% block content %}
 <div class="dash-card">
+  {% if zoom_ready and not lesson.zoom_url %}
+  <form method="post" style="margin-bottom:16px;">{% csrf_token %}
+    <button type="submit" name="zoom_create" value="1" class="btn btn-outline">إنشاء رابط Zoom تلقائيًا</button>
+  </form>
+  {% endif %}
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     <div class="dash-form-grid">

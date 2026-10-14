@@ -801,3 +801,62 @@ class StudentMenuTests(TestCase):
         staff = User.objects.create_user("st", "st@example.com", "pw", is_staff=True)
         self.client.force_login(staff)
         self.assertContains(self.client.get(reverse("courses:list")), f'href="{reverse("core:about")}"')
+
+
+ZOOM = dict(ZOOM_ACCOUNT_ID="a", ZOOM_CLIENT_ID="b", ZOOM_CLIENT_SECRET="c")
+
+
+class ZoomSyncTests(TestCase):
+    def setUp(self):
+        from unittest import mock
+        from . import zoom
+        self.zoom = zoom
+        self.calls = []
+
+        def fake_api(path, payload=None, method="GET"):
+            self.calls.append((method, path))
+            return {"id": 987, "join_url": "https://zoom.us/j/987"} if method == "POST" else {}
+
+        patcher = mock.patch.object(zoom, "_api", side_effect=fake_api)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.cohort = make_cohort()
+        CohortSlot.objects.create(cohort=self.cohort, weekday=0, start_time=datetime.time(18, 0))
+
+    def test_disabled_without_credentials(self):
+        self.cohort.generate_lessons()
+        self.assertEqual(self.calls, [])
+        self.assertFalse(self.cohort.lessons.exclude(zoom_url="").exists())
+
+    @override_settings(**ZOOM)
+    def test_generating_lessons_creates_meetings(self):
+        self.cohort.generate_lessons()
+        lessons = self.cohort.lessons.all()
+        self.assertEqual(len(self.calls), 3)
+        self.assertTrue(all(l.zoom_url == "https://zoom.us/j/987" and l.zoom_meeting_id == "987" for l in lessons))
+
+    @override_settings(**ZOOM)
+    def test_hand_pasted_link_is_kept(self):
+        self.cohort.generate_lessons()
+        lesson = self.cohort.lessons.first()
+        lesson.zoom_meeting_id, lesson.zoom_url = "", "https://zoom.us/j/manual"
+        lesson.save()
+        self.calls.clear()
+        self.assertEqual(self.zoom.sync_lesson(lesson), (False, ""))
+        self.assertEqual(self.calls, [])
+
+    @override_settings(**ZOOM)
+    def test_existing_meeting_is_updated_and_deleted(self):
+        self.cohort.generate_lessons()
+        lesson = self.cohort.lessons.first()
+        self.calls.clear()
+        self.zoom.sync_lesson(lesson)
+        self.zoom.delete_lesson_meeting(lesson)
+        self.assertEqual(self.calls, [("PATCH", "/meetings/987"), ("DELETE", "/meetings/987")])
+
+    @override_settings(**ZOOM)
+    def test_zoom_failure_does_not_break_generation(self):
+        from unittest import mock
+        with mock.patch.object(self.zoom, "_api", side_effect=self.zoom.ZoomError("boom")):
+            self.assertEqual(self.cohort.generate_lessons(), 3)
+        self.assertFalse(self.cohort.lessons.exclude(zoom_url="").exists())

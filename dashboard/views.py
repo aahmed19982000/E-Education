@@ -14,6 +14,7 @@ from accounts.auth_utils import authenticate_by_email
 from accounts.models import Profile
 from articles.models import Article
 from contact_us.models import ContactMessage
+from courses import zoom
 from courses.models import Attendance, Cohort, Course, Enrollment, EnrollmentRequest, Lesson
 from team.models import WEEKDAYS, TeamMember, TeamReview, split_list
 from quiz.grading import format_marks, question_marks
@@ -797,6 +798,9 @@ def lessons_generate(request, cohort_pk):
     else:
         n = cohort.generate_lessons()
         messages.success(request, f"تم توليد {n} جلسة." if n else "كل الجلسات موجودة بالفعل.")
+        _, zoom_errors = zoom.sync_cohort(cohort)  # also fills sessions that missed a link earlier
+        if zoom_errors:
+            messages.warning(request, f"تعذّر إنشاء اجتماعات Zoom: {zoom_errors[0]}")
     return redirect("dashboard:lessons_list", cohort_pk=cohort.pk)
 
 
@@ -809,11 +813,17 @@ def lesson_form(request, cohort_pk, pk=None):
     if request.method == "POST" and form.is_valid() and files.is_valid():
         lesson = form.save(commit=False)
         lesson.cohort = cohort
+        if "zoom_url" in form.changed_data:
+            lesson.zoom_meeting_id = ""  # a hand-pasted link replaces the generated meeting
         lesson.save()
         files.instance = lesson
         files.save()
         cohort._renumber()
+        lesson.refresh_from_db()
+        _, zoom_error = zoom.sync_lesson(lesson) if zoom.is_configured() else (False, "")
         messages.success(request, "تم حفظ الجلسة بنجاح.")
+        if zoom_error:
+            messages.warning(request, f"تعذّر تحديث اجتماع Zoom: {zoom_error}")
         return redirect("dashboard:lessons_list", cohort_pk=cohort.pk)
     ctx = base_context(request, active="courses")
     ctx.update({"form": form, "files": files, "cohort": cohort, "course": cohort.course, "instance": instance,
@@ -826,6 +836,7 @@ def lesson_delete(request, cohort_pk, pk):
     instance = get_object_or_404(Lesson.objects.select_related("cohort"), pk=pk, cohort_id=cohort_pk)
     if request.method == "POST":
         cohort = instance.cohort
+        zoom.delete_lesson_meeting(instance)
         instance.delete()
         cohort._renumber()
         messages.success(request, "تم حذف الجلسة.")

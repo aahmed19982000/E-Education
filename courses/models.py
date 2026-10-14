@@ -193,6 +193,9 @@ class Cohort(models.Model):
                     created += 1
                 day += datetime.timedelta(days=7)
         self._renumber()
+        if created:
+            from . import zoom
+            zoom.sync_cohort(self)
         return created
 
     def _renumber(self):
@@ -227,6 +230,7 @@ class Lesson(models.Model):
     duration_minutes = models.PositiveSmallIntegerField(default=60, validators=[MinValueValidator(5)])
 
     zoom_url = models.URLField(blank=True)
+    zoom_meeting_id = models.CharField(max_length=32, blank=True, editable=False)
     recording_url = models.URLField(blank=True)
     notes_ar = models.TextField(blank=True)
     notes_en = models.TextField(blank=True)
