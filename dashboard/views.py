@@ -748,6 +748,12 @@ def student_detail(request, user_pk):
     return render(request, "dashboard/student_detail.html", ctx)
 
 
+def _conflict_messages(cohort):
+    return [f"تعارض: المدرس {cohort.teacher} عنده مجموعة «{other}» يوم {a.get_weekday_display()} "
+            f"{a.start_time:%H:%M} (يتداخل مع {b.start_time:%H:%M})."
+            for other, a, b in cohort.teacher_conflicts()[:5]]
+
+
 @section_required(SECTION_COURSES, "write")
 def cohort_form(request, course_pk, pk=None):
     course = get_object_or_404(Course, pk=course_pk)
@@ -761,6 +767,8 @@ def cohort_form(request, course_pk, pk=None):
         slots.instance = cohort
         slots.save()
         messages.success(request, "تم حفظ المجموعة بنجاح.")
+        for message in _conflict_messages(cohort):
+            messages.warning(request, message)
         return redirect("dashboard:cohort_edit", course_pk=course.pk, pk=cohort.pk)
     ctx = base_context(request, active="courses")
     ctx.update({"form": form, "slots": slots, "course": course, "instance": instance,
@@ -1047,6 +1055,8 @@ def cohort_confirm(request, course_pk, pk):
         messages.error(request, "هذه المجموعة مُطلقة بالفعل.")
     elif not cohort.teacher_id:
         messages.error(request, "عيّن مدرسًا للمجموعة أولًا قبل إطلاقها.")
+    elif (conflicts := _conflict_messages(cohort)) and not request.POST.get("force_conflict"):
+        messages.error(request, " ".join(conflicts) + " غيّر الموعد أو المدرس قبل الإطلاق.")
     elif not cohort.is_ready_to_confirm and not request.POST.get("force"):
         messages.error(request, f"العدد لم يكتمل بعد ({cohort.seats_taken()} / {cohort.min_students}).")
     else:

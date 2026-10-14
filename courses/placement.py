@@ -48,6 +48,8 @@ def place_request(req, cohort):
     req.cohort = cohort
     req.status = EnrollmentRequest.STATUS_ENROLLED
     req.save(update_fields=["cohort", "status"])
+    if not cohort.lessons.exists() and cohort.start_date and cohort.slots.exists():
+        cohort.generate_lessons()  # a private student is never held back, so their sessions start now
     return None
 
 

@@ -167,6 +167,38 @@ class Cohort(models.Model):
         self.generate_lessons()
         return enrolled
 
+    @property
+    def end_date(self):
+        return self.start_date + datetime.timedelta(weeks=self.weeks) if self.start_date else None
+
+    def teacher_conflicts(self):
+        """Other groups of the same teacher that meet at an overlapping weekly time in overlapping weeks.
+
+        Returns [(other_cohort, my_slot, other_slot)]. Groups without a start date can't be compared.
+        """
+        if not (self.teacher_id and self.start_date and self.pk):
+            return []
+
+        def span(slot):
+            start = slot.start_time.hour * 60 + slot.start_time.minute
+            return start, start + slot.duration_minutes
+
+        mine = list(self.slots.all())
+        found = []
+        others = (Cohort.objects.filter(teacher_id=self.teacher_id, start_date__isnull=False)
+                  .exclude(pk=self.pk).prefetch_related("slots"))
+        for other in others:
+            if other.start_date >= self.end_date or self.start_date >= other.end_date:
+                continue
+            for a in mine:
+                for b in other.slots.all():
+                    if a.weekday != b.weekday:
+                        continue
+                    (a0, a1), (b0, b1) = span(a), span(b)
+                    if a0 < b1 and b0 < a1:
+                        found.append((other, a, b))
+        return found
+
     def generate_lessons(self):
         """Create the sessions for every weekly slot; returns how many were new.
 

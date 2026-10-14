@@ -957,9 +957,44 @@ class FullFlowTests(TestCase):
         self.admin_client.post(reverse("dashboard:request_enroll", args=[req.pk]), {"cohort": cohort.pk})
         req.refresh_from_db()
         self.assertEqual(req.status, EnrollmentRequest.STATUS_ENROLLED)  # private is never held back
-        self.assertEqual(cohort.lessons.count(), 0)  # but sessions are made by staff
-        self.admin_client.post(reverse("dashboard:lessons_generate", args=[cohort.pk]))
-        self.assertEqual(cohort.lessons.count(), 3)
+        self.assertEqual(cohort.lessons.count(), 3)  # and their sessions are made right away
         self.assertFalse(cohort.lessons.filter(zoom_url="").exists())
         first = cohort.lessons.first()
         self.assertContains(client.get(reverse("courses:lesson", args=[first.pk])), first.zoom_url)
+
+
+class TeacherConflictTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
+        self.teacher = TeamMember.objects.create(name_ar="أ. منى", role_ar="مدرسة", specialties_ar="IELTS")
+        self.a = make_cohort(teacher=self.teacher, confirmed_at=None)
+        CohortSlot.objects.create(cohort=self.a, weekday=0, start_time=datetime.time(18, 0), duration_minutes=60)
+
+    def other(self, hour, minute=0, weekday=0, **kw):
+        cohort = make_cohort(teacher=self.teacher, **kw)
+        CohortSlot.objects.create(cohort=cohort, weekday=weekday, start_time=datetime.time(hour, minute))
+        return cohort
+
+    def test_overlap_same_weekday_is_a_conflict(self):
+        b = self.other(18, 30)
+        self.assertEqual([c[0] for c in self.a.teacher_conflicts()], [b])
+
+    def test_back_to_back_other_day_other_teacher_and_other_weeks_are_fine(self):
+        self.other(19, 0)  # starts exactly when the first ends
+        self.other(18, 0, weekday=1)
+        other_teacher = TeamMember.objects.create(name_ar="أ. سارة", role_ar="مدرسة", specialties_ar="x")
+        c = make_cohort(teacher=other_teacher)
+        CohortSlot.objects.create(cohort=c, weekday=0, start_time=datetime.time(18, 0))
+        self.other(18, 0, start_date=datetime.date(2031, 1, 6))
+        self.assertEqual(self.a.teacher_conflicts(), [])
+
+    def test_launch_is_blocked_by_a_conflict_unless_forced(self):
+        self.other(18, 30)
+        self.client.force_login(self.admin)
+        url = reverse("dashboard:cohort_confirm", args=[self.a.course.pk, self.a.pk])
+        self.client.post(url, {"force": "1"})
+        self.a.refresh_from_db()
+        self.assertIsNone(self.a.confirmed_at)
+        self.client.post(url, {"force": "1", "force_conflict": "1"})
+        self.a.refresh_from_db()
+        self.assertIsNotNone(self.a.confirmed_at)
