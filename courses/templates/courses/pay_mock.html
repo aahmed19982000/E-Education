@@ -1,0 +1,5 @@
+{% extends "courses/_base.html" %}
+{% block content %}<div class="c-wrap c-body"><div class="c-panel c-success">
+<h2>Demo checkout (development only)</h2><p class="c-text">{{ payment.reference }} — {{ payment.amount }} {{ payment.currency }}</p>
+<form method="post">{% csrf_token %}<button class="c-btn primary" name="result" value="paid">Simulate successful payment</button>
+<button class="c-btn" name="result" value="failed">Cancel</button></form></div></div>{% endblock %}

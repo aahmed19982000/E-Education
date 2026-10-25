@@ -1,35 +1,37 @@
 {% extends "dashboard/base.html" %}
 {% block title %}{{ title }}{% endblock %}
-{% block page_title %}{{ title }} — {{ cohort.course.title_ar }}{% endblock %}
+{% block page_title %}{{ title }} — {{ level.course.title_ar }} / {{ level.name_ar }}{% endblock %}
 {% block content %}
 <div class="dash-card">
   <form method="post">
     {% csrf_token %}
     {{ form.non_field_errors }}
+    <p class="td-empty" style="margin-bottom:12px;">هذا الامتحان لكل مجموعات «{{ level.name_ar }}». اكتب كل الأسئلة في المربع ثم احفظ مرة واحدة.</p>
+    <div class="dash-field"><label>{{ form.questions_text.label }}</label>{{ form.questions_text }}{{ form.questions_text.errors }}</div>
+    <details style="margin:8px 0 18px;"><summary style="cursor:pointer;">كيف أكتب الأسئلة؟</summary>
+<pre style="direction:ltr;text-align:left;background:var(--bg,#f6f6f6);padding:12px;border-radius:8px;white-space:pre-wrap;">What is the past tense of "go"?  [2]
+- goed
++ went
+- gone
+
+Write a sentence about your day.  [3]
+
+[صوت] Say your name and where you live.</pre>
+      <ul style="margin:8px 0 0;padding-inline-start:20px;color:var(--muted);font-size:13px;">
+        <li>افصل بين الأسئلة بسطر فارغ.</li>
+        <li>سؤال اختيار من متعدد: اكتب اختياراته تحته، كل اختيار في سطر، وضع <b>+</b> قبل الإجابة الصحيحة و<b>-</b> قبل الباقي.</li>
+        <li>بدون اختيارات يصبح السؤال إجابة كتابية، أو صوتية لو بدأته بـ <b>[صوت]</b>.</li>
+        <li><b>[2]</b> في آخر السؤال هي درجته (1 إذا لم تكتبها).</li>
+        <li>يمكنك نسخ الأسئلة من Word أو Google Docs ولصقها هنا مباشرة.</li>
+      </ul></details>
+    {% if answered %}<div class="td-alert">طلاب سلّموا هذا الامتحان بالفعل: تعديل الأسئلة يغيّر امتحانهم أيضًا، ولا يمكن حذف سؤال أجابوا عنه.</div>{% endif %}
     <div class="dash-form-grid">
-      <div class="dash-field"><label>{{ form.title.label }}</label>{{ form.title }}{{ form.title.errors }}</div>
       <div class="dash-field" style="align-self:end;"><label>{{ form.is_published }} {{ form.is_published.label }}</label><small style="color:var(--muted)">{{ form.is_published.help_text }}</small></div>
     </div>
-    <div class="dash-form-grid full"><div class="dash-field"><label>{{ form.instructions.label }}</label>{{ form.instructions }}</div></div>
-
-    <h3 style="margin:24px 0 8px;">الأسئلة</h3>
-    <p class="td-empty" style="margin-bottom:12px;">الاختيار من متعدد يُصحَّح تلقائيًا. الأسئلة الصوتية والكتابية تُقيَّم يدويًا. اترك الأسئلة الفارغة كما هي ولن تُحفظ.</p>
-    {{ formset.management_form }}{{ formset.non_form_errors }}
-    {% for f in formset %}
-      <div class="td-panel" style="margin-bottom:14px;">
-        {{ f.id }}{{ f.non_field_errors }}
-        <div class="dash-form-grid">
-          <div class="dash-field"><label>{{ f.kind.label }}</label>{{ f.kind }}{{ f.kind.errors }}</div>
-          <div class="dash-field"><label>{{ f.points.label }}</label>{{ f.points }}{{ f.points.errors }}</div>
-        </div>
-        <div class="dash-form-grid full"><div class="dash-field"><label>{{ f.text.label }}</label>{{ f.text }}{{ f.text.errors }}</div></div>
-        <div class="dash-form-grid ex-mcq-fields">
-          <div class="dash-field"><label>{{ f.options_text.label }}</label>{{ f.options_text }}{{ f.options_text.errors }}</div>
-          <div class="dash-field"><label>{{ f.correct_number.label }}</label>{{ f.correct_number }}{{ f.correct_number.errors }}</div>
-        </div>
-        {% if f.instance.pk %}<label style="color:#b00020;">{{ f.DELETE }} حذف هذا السؤال</label>{% endif %}
-      </div>
-    {% endfor %}
+    <details style="margin:8px 0;"{% if form.title.value or form.instructions.value %} open{% endif %}><summary style="cursor:pointer;">عنوان وتعليمات (اختياري)</summary>
+      <div class="dash-form-grid"><div class="dash-field"><label>{{ form.title.label }}</label>{{ form.title }}{{ form.title.errors }}</div></div>
+      <div class="dash-form-grid full"><div class="dash-field"><label>{{ form.instructions.label }}</label>{{ form.instructions }}</div></div>
+    </details>
     <div class="dash-form-actions">
       <button type="submit" class="btn btn-primary">حفظ</button>
       {% if exam %}<a class="btn btn-outline" href="{% url 'dashboard:exam_results' exam.pk %}">النتائج</a>{% endif %}
@@ -37,12 +39,4 @@
     </div>
   </form>
 </div>
-<script>
-document.querySelectorAll(".td-panel").forEach(function (box) {
-  var kind = box.querySelector("select[name$='-kind']"), fields = box.querySelector(".ex-mcq-fields");
-  if (!kind || !fields) return;
-  function sync() { fields.style.display = kind.value === "mcq" ? "" : "none"; }
-  kind.addEventListener("change", sync); sync();
-});
-</script>
 {% endblock %}

@@ -1,0 +1,14 @@
+{% extends "courses/_base.html" %}
+{% block title %}{% if LANG == "ar" %}التحقق من شهادة{% else %}Verify certificate{% endif %} · {{ t.brand }}{% endblock %}
+{% block content %}
+<section class="c-hero"><div class="c-wrap"><h1>{% if LANG == "ar" %}التحقق من الشهادة{% else %}Certificate verification{% endif %}</h1></div></section>
+<div class="c-wrap c-body"><div class="c-panel c-success">
+  {% if cert %}
+    <div class="tick">✓</div>
+    <h2>{% if LANG == "ar" %}شهادة صحيحة{% else %}Valid certificate{% endif %}</h2>
+    <p class="c-text"><b>{{ student }}</b><br>{{ course.title }} · {{ cert.final_percent }}%<br>{{ cert.issued_at|date:"Y-m-d" }}<br><span dir="ltr">{{ cert.code }}</span></p>
+  {% else %}
+    <h2>{% if LANG == "ar" %}لم نجد شهادة بهذا الرمز.{% else %}No certificate found for this code.{% endif %}</h2>
+  {% endif %}
+</div></div>
+{% endblock %}

@@ -21,7 +21,7 @@ from quiz.grading import format_marks, question_marks
 from django.db.models import Avg, Count
 import datetime
 from django.utils import timezone
-from courses.models import CohortSlot
+from courses.models import CohortSlot, CourseLevel
 from courses import placement
 from quiz.models import PlacementResult
 
@@ -30,7 +30,7 @@ from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Questi
 from .decorators import dashboard_required, section_required
 from core.models import SiteSettings
 from .forms import (SiteSettingsForm,
-    ArticleForm, AttachmentFormSet, CategoryForm, CohortForm, CourseForm, EnrollForm, LessonForm, RequestForm, SlotFormSet, DashboardLoginForm, AvailabilityFormSet, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
+    ArticleForm, AttachmentFormSet, CategoryForm, CohortForm, CourseForm, CourseLevelFormSet, EnrollForm, LessonForm, RequestForm, SlotFormSet, DashboardLoginForm, AvailabilityFormSet, QuestionForm, QuizSettingsForm, StaffUserCreateForm, TeamMemberForm, TeamReviewForm, StaffUserEditForm,
 )
 from .permissions import (
     SECTION_ARTICLES, SECTION_COURSES, SECTION_MESSAGES, SECTION_QUESTIONS, SECTION_REQUESTS, SECTION_SETTINGS, SECTION_TEAM, SECTION_USERS,
@@ -550,12 +550,20 @@ def courses_list(request):
 def course_form(request, pk=None):
     instance = get_object_or_404(Course, pk=pk) if pk else None
     form = CourseForm(request.POST or None, instance=instance)
-    if request.method == "POST" and form.is_valid():
+    sent_levels = request.method == "POST" and "levels-TOTAL_FORMS" in request.POST
+    levels = CourseLevelFormSet(request.POST if sent_levels else None, instance=instance or Course())
+    if request.method == "POST" and form.is_valid() and (levels.is_valid() or not sent_levels):
         course = form.save()
+        if sent_levels:
+            levels.instance = course
+            levels.save()
+            for i, level in enumerate(course.levels.order_by("pk")):
+                if level.order != i:
+                    CourseLevel.objects.filter(pk=level.pk).update(order=i)
         messages.success(request, "تم حفظ الكورس بنجاح.")
         return redirect("dashboard:course_edit", pk=course.pk)
     ctx = base_context(request, active="courses")
-    ctx.update({"form": form, "instance": instance, "title": "تعديل كورس" if instance else "إضافة كورس"})
+    ctx.update({"form": form, "levels": levels, "instance": instance, "title": "تعديل كورس" if instance else "إضافة كورس"})
     return render(request, "dashboard/course_form.html", ctx)
 
 
@@ -758,7 +766,7 @@ def _conflict_messages(cohort):
 def cohort_form(request, course_pk, pk=None):
     course = get_object_or_404(Course, pk=course_pk)
     instance = get_object_or_404(Cohort, pk=pk, course=course) if pk else None
-    form = CohortForm(request.POST or None, instance=instance)
+    form = CohortForm(request.POST or None, instance=instance, course=course)
     slots = SlotFormSet(request.POST or None, instance=instance)
     if request.method == "POST" and form.is_valid() and slots.is_valid():
         cohort = form.save(commit=False)

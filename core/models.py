@@ -56,3 +56,19 @@ class SiteSettings(models.Model):
             return ""
         url = f"https://wa.me/{digits}"
         return f"{url}?text={quote(self.whatsapp_message)}" if self.whatsapp_message.strip() else url
+
+
+class NotificationLog(models.Model):
+    """One row per email already sent for an event, so reminders and notices are never sent twice."""
+
+    kind = models.CharField(max_length=40)
+    key = models.CharField(max_length=120, help_text="What the email was about, e.g. lesson:12")
+    email = models.EmailField()
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("kind", "key", "email")]
+        ordering = ["-sent_at"]
+
+    def __str__(self):
+        return f"{self.kind} {self.key} → {self.email}"

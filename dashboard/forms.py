@@ -5,9 +5,10 @@ from django.db import models
 
 from accounts.models import Profile
 from articles.models import Article
-from courses.models import Attendance, Cohort, CohortSlot, EnrollmentRequest, Course, Enrollment, Lesson, LessonAttachment
+from courses.models import Attendance, Cohort, CohortSlot, CourseLevel, EnrollmentRequest, Course, Enrollment, Lesson, LessonAttachment
 from core.models import SiteSettings
-from exams.models import Exam, ExamQuestion
+from exams import bulk
+from exams.models import Exam
 from team.models import VIDEO_MAX_MB, TeacherAvailability, TeamMember, TeamReview
 from quiz.audio import AudioDecodeError, compress_audio
 from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
@@ -504,17 +505,21 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
 
 
 class CohortForm(StyledFormMixin, forms.ModelForm):
+    def __init__(self, *args, course=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        course = course or (self.instance.course if self.instance.pk else None)
+        self.fields["level"].queryset = course.levels.all() if course else CourseLevel.objects.none()
+        self.fields["level"].empty_label = "— بدون مستوى —"
+        self.fields["level"].help_text = "امتحانات المجموعة تأتي من مستواها. أضف المستويات من صفحة الامتحانات."
+        self._style_fields()
+
     class Meta:
         model = Cohort
-        fields = ["name", "mode", "teacher", "start_date", "weeks", "min_students", "max_students"]
+        fields = ["name", "mode", "level", "teacher", "start_date", "weeks", "min_students", "max_students"]
         widgets = {"start_date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
-        labels = {"name": "اسم المجموعة (اختياري)", "mode": "النوع", "teacher": "المدرس",
+        labels = {"name": "اسم المجموعة (اختياري)", "mode": "النوع", "level": "المستوى", "teacher": "المدرس",
                   "start_date": "تاريخ بداية الجلسات", "weeks": "عدد الأسابيع",
                   "min_students": "الحد الأدنى للبدء", "max_students": "الحد الأقصى للطلاب"}
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._style_fields()
 
 
 class SlotForm(StyledFormMixin, forms.ModelForm):
@@ -642,54 +647,44 @@ AvailabilityFormSet = forms.inlineformset_factory(TeamMember, TeacherAvailabilit
 # --- Exams ----------------------------------------------------------------------
 
 class ExamForm(StyledFormMixin, forms.ModelForm):
+    """Every question goes in one text box (see exams/bulk.py for the format)."""
+    questions_text = forms.CharField(label="الأسئلة", required=False, widget=forms.Textarea(attrs={"rows": 18, "dir": "auto"}))
+
     class Meta:
         model = Exam
         fields = ["title", "instructions", "is_published"]
-        widgets = {"instructions": forms.Textarea(attrs={"rows": 3})}
+        widgets = {"instructions": forms.Textarea(attrs={"rows": 2})}
         labels = {"title": "عنوان الامتحان (اختياري)", "instructions": "تعليمات للطلاب (اختياري)",
                   "is_published": "نشر الامتحان للطلاب"}
-        help_texts = {"is_published": "يظهر للطلاب بعد انتهاء الجلسة فقط، حتى لو كان منشورًا الآن."}
+        help_texts = {"is_published": "يظهر لكل مجموعات المستوى بعد انتهاء جلستها فقط، حتى لو كان منشورًا الآن."}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.instance.pk and not self.is_bound:
+            self.fields["questions_text"].initial = bulk.dump(self.instance)
+        self.parsed = []
         self._style_fields()
 
+    def clean_questions_text(self):
+        text = self.cleaned_data["questions_text"]
+        try:
+            self.parsed = bulk.parse(text)
+        except bulk.BulkError as exc:
+            raise forms.ValidationError(exc.errors)
+        if self.data.get("is_published") and not self.parsed:
+            raise forms.ValidationError("اكتب سؤالًا واحدًا على الأقل قبل النشر.")
+        return text
 
-class ExamQuestionForm(StyledFormMixin, forms.ModelForm):
-    options_text = forms.CharField(
-        label="الاختيارات (اختيار في كل سطر)", required=False, widget=forms.Textarea(attrs={"rows": 4}))
-    correct_number = forms.IntegerField(label="رقم الاختيار الصحيح", required=False, min_value=1)
 
+class CourseLevelForm(StyledFormMixin, forms.ModelForm):
     class Meta:
-        model = ExamQuestion
-        fields = ["kind", "text", "points"]
-        widgets = {"text": forms.Textarea(attrs={"rows": 2})}
-        labels = {"kind": "نوع السؤال", "text": "نص السؤال", "points": "الدرجة"}
+        model = CourseLevel
+        fields = ["name_ar", "name_en"]
+        labels = {"name_ar": "اسم المستوى", "name_en": "الاسم بالإنجليزية (اختياري)"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance.pk and self.instance.kind == ExamQuestion.KIND_MCQ:
-            self.fields["options_text"].initial = "\n".join(self.instance.options)
-            if self.instance.correct_index is not None:
-                self.fields["correct_number"].initial = self.instance.correct_index + 1
         self._style_fields()
 
-    def clean(self):
-        cleaned = super().clean()
-        if cleaned.get("kind") == ExamQuestion.KIND_MCQ and not self.errors:
-            options = [line.strip() for line in cleaned.get("options_text", "").splitlines() if line.strip()]
-            number = cleaned.get("correct_number")
-            if len(options) < 2:
-                self.add_error("options_text", "أضف اختيارين على الأقل (اختيار في كل سطر).")
-            elif number is None or not 1 <= number <= len(options):
-                self.add_error("correct_number", f"اكتب رقم الإجابة الصحيحة من 1 إلى {len(options)}.")
-            else:
-                self.instance.options = options
-                self.instance.correct_index = number - 1
-        elif cleaned.get("kind") in (ExamQuestion.KIND_VOICE, ExamQuestion.KIND_TEXT):
-            self.instance.options, self.instance.correct_index = [], None
-        return cleaned
 
-
-ExamQuestionFormSet = forms.inlineformset_factory(
-    Exam, ExamQuestion, form=ExamQuestionForm, extra=3, can_delete=True)
+CourseLevelFormSet = forms.inlineformset_factory(Course, CourseLevel, form=CourseLevelForm, extra=2, can_delete=True)

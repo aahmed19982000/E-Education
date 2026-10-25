@@ -13,7 +13,9 @@
       <div class="tick">✓</div>
       <h2>{{ t.courses.received }}</h2>
       {% if req.is_paid %}<div class="c-notice">{{ t.courses.paid }}</div>
-      {% elif payments_enabled %}<button type="button" class="c-btn primary" disabled>{{ t.courses.pay }}</button>
+      {% elif payments_enabled %}
+        {% if payment_pending %}<div class="c-notice">{% if LANG == "ar" %}لديك عملية دفع قيد المعالجة. سيصلك تأكيد بالبريد فور اكتمالها.{% else %}You have a payment in progress. You will get an email as soon as it completes.{% endif %}</div>{% endif %}
+        <form method="post" action="{% url 'courses:pay' pk=req.pk %}">{% csrf_token %}<button type="submit" class="c-btn primary">{{ t.courses.pay }}</button></form>
       {% else %}<div class="c-notice">{{ t.courses.paymentSoon }}</div>{% endif %}
       <p class="c-text" style="margin:20px 0;">{{ t.courses.next }}</p>
       <a class="c-btn" href="{% url 'quiz:intro' %}">{{ t.courses.takeTest }}</a>

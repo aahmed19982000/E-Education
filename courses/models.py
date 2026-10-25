@@ -83,6 +83,23 @@ class Course(models.Model):
         return {"private": self.price_private, "semi_private": self.price_semi_private}.get(mode, self.price_group)
 
 
+class CourseLevel(models.Model):
+    """A level inside a course (e.g. "المستوى الأول", "Level A"). Exams belong to a level, so every
+    group at that level gets the same questions."""
+
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="levels")
+    name_ar = models.CharField(max_length=100)
+    name_en = models.CharField(max_length=100, blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "pk"]
+        constraints = [models.UniqueConstraint(fields=["course", "name_ar"], name="unique_level_name_per_course")]
+
+    def __str__(self):
+        return f"{self.course} — {self.name_ar}"
+
+
 class Cohort(models.Model):
     """A teacher + schedule + students for one course.
 
@@ -95,6 +112,8 @@ class Cohort(models.Model):
     MODE_CHOICES = [("group", "Group"), ("semi_private", "Semi private"), ("private", "Private")]
     mode = models.CharField(max_length=15, choices=MODE_CHOICES, default="group")
     teacher = models.ForeignKey(TeamMember, null=True, blank=True, on_delete=models.SET_NULL, related_name="cohorts")
+    level = models.ForeignKey("CourseLevel", null=True, blank=True, on_delete=models.SET_NULL, related_name="cohorts",
+                              help_text="The level this group studies; its exams come from the level")
     start_date = models.DateField(null=True, blank=True, help_text="First day sessions are generated from")
     weeks = models.PositiveSmallIntegerField(default=8, validators=[MinValueValidator(1)],
                                              help_text="How many weeks of sessions to generate")
@@ -165,6 +184,9 @@ class Cohort(models.Model):
         self.confirmed_at = timezone.now()
         self.save(update_fields=["confirmed_at"])
         self.generate_lessons()
+        from core import notify
+        for enrollment in self.enrollments.filter(status=Enrollment.STATUS_ACTIVE).select_related("user", "cohort__course"):
+            notify.enrolled(enrollment.user, self)
         return enrolled
 
     @property
@@ -277,6 +299,14 @@ class Lesson(models.Model):
     @property
     def course(self):
         return self.cohort.course
+
+    @property
+    def exam(self):
+        """The exam of this group's level that follows this session (None when there is none)."""
+        if not self.cohort.level_id:
+            return None
+        from exams.models import Exam
+        return Exam.objects.filter(level_id=self.cohort.level_id, kind="session", number=self.number).first()
 
     @property
     def display_title_ar(self):
@@ -439,3 +469,53 @@ class EnrollmentRequest(models.Model):
     @property
     def price(self):
         return self.course.price_for(self.mode) if self.course else None
+
+
+class Certificate(models.Model):
+    """Completion certificate: issued once the student passes the group's end-of-level exam."""
+
+    enrollment = models.OneToOneField(Enrollment, on_delete=models.CASCADE, related_name="certificate")
+    code = models.CharField(max_length=16, unique=True, editable=False)
+    final_percent = models.PositiveSmallIntegerField()
+    issued_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-issued_at"]
+
+    def __str__(self):
+        return f"{self.code} — {self.enrollment}"
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            import secrets
+            while True:
+                code = secrets.token_hex(4).upper()
+                if not Certificate.objects.filter(code=code).exists():
+                    self.code = code
+                    break
+        super().save(*args, **kwargs)
+
+
+class Payment(models.Model):
+    """One online payment attempt for an enrollment request (hosted checkout + webhook)."""
+
+    STATUS_PENDING = "pending"
+    STATUS_PAID = "paid"
+    STATUS_FAILED = "failed"
+    STATUS_CHOICES = [(STATUS_PENDING, "قيد الدفع"), (STATUS_PAID, "مدفوع"), (STATUS_FAILED, "فشل")]
+
+    request = models.ForeignKey(EnrollmentRequest, on_delete=models.CASCADE, related_name="payments")
+    provider = models.CharField(max_length=20)
+    reference = models.CharField(max_length=40, unique=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=5, default="EGP")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    raw = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.reference} {self.status}"

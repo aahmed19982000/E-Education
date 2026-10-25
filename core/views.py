@@ -1,3 +1,4 @@
+from . import notify
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -24,7 +25,8 @@ def teachers(request):
     if request.method == "POST":
         form = WorkshopBookingForm(request.POST)
         if form.is_valid():
-            form.save()
+            booking = form.save()
+            notify.request_received(booking)
             submitted = True
             form = WorkshopBookingForm()
     else:

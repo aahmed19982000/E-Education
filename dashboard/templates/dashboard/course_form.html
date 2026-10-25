@@ -18,6 +18,37 @@
       <div class="dash-field"><label>{{ form.description_en.label }}</label>{{ form.description_en }}</div>
     </div>
 
+    <h3 style="margin:24px 0 4px;">مستويات الكورس</h3>
+    <p class="td-empty" style="margin-bottom:12px;">اكتب اسم كل مستوى في صف (مثل: المستوى الأول، المستوى الثاني، المستوى A). لكل مستوى امتحاناته الخاصة، وكل مجموعة تختار مستواها. اترك الصف فارغًا لتجاهله. حذف مستوى يحذف امتحاناته.</p>
+    {{ levels.management_form }}{{ levels.non_form_errors }}
+    {% for lf in levels %}
+      <div class="dash-form-grid">
+        {{ lf.id }}{{ lf.non_field_errors }}
+        <div class="dash-field"><label>{{ lf.name_ar.label }}</label>{{ lf.name_ar }}{{ lf.name_ar.errors }}</div>
+        <div class="dash-field"><label>{{ lf.name_en.label }}</label>{{ lf.name_en }}{{ lf.name_en.errors }}</div>
+        {% if lf.instance.pk %}<div class="dash-field"><label>حذف</label>{{ lf.DELETE }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <div id="level-rows"></div>
+    <button type="button" class="btn btn-outline" id="add-level">+ مستوى آخر</button>
+    <template id="level-row-tpl">
+      <div class="dash-form-grid">
+        {{ levels.empty_form.id }}
+        <div class="dash-field"><label>{{ levels.empty_form.name_ar.label }}</label>{{ levels.empty_form.name_ar }}</div>
+        <div class="dash-field"><label>{{ levels.empty_form.name_en.label }}</label>{{ levels.empty_form.name_en }}</div>
+      </div>
+    </template>
+    <script>
+    document.getElementById("add-level").addEventListener("click", function () {
+      var total = document.getElementById("id_levels-TOTAL_FORMS");
+      var html = document.getElementById("level-row-tpl").innerHTML.replace(/__prefix__/g, total.value);
+      document.getElementById("level-rows").insertAdjacentHTML("beforeend", html);
+      total.value = parseInt(total.value, 10) + 1;
+      var inputs = document.querySelectorAll("#level-rows input[type=text]");
+      inputs[inputs.length - 2].focus();
+    });
+    </script>
+
     <div class="dash-form-actions">
       <button type="submit" class="btn btn-primary">حفظ</button>
       <a class="btn btn-outline" href="{% url 'dashboard:courses_list' %}">إلغاء</a>

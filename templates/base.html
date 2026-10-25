@@ -5,6 +5,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ t.brand }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ META_DESCRIPTION }}{% endblock %}">
+  <link rel="canonical" href="{{ CANONICAL_URL }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ t.brand }}">
+  <meta property="og:title" content="{% block og_title %}{{ t.brand }}{% endblock %}">
+  <meta property="og:description" content="{{ META_DESCRIPTION }}">
+  <meta property="og:url" content="{{ CANONICAL_URL }}">
+  <meta property="og:image" content="{{ SITE_URL }}{% static 'images/logo.jpg' %}">
+  <meta property="og:locale" content="{% if LANG == 'ar' %}ar_AR{% else %}en_US{% endif %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">

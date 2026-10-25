@@ -1,4 +1,4 @@
-"""Exams a teacher sets for a group: one after each session, and one at the end of the level.
+"""Exams set per course level: one after each session, and one at the end of the level.
 
 Multiple-choice answers are marked automatically; recorded/uploaded voice answers and written
 answers wait for the teacher to give them marks. A student must hand a session exam in before the
@@ -14,7 +14,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-from courses.models import Cohort, Lesson, private_storage
+from courses.models import Cohort, CourseLevel, private_storage
 from quiz.models import AUDIO_EXTENSIONS
 
 
@@ -23,9 +23,10 @@ class Exam(models.Model):
     KIND_LEVEL = "level"
     KIND_CHOICES = [(KIND_SESSION, "امتحان الجلسة"), (KIND_LEVEL, "اختبار نهاية المستوى")]
 
-    cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE, related_name="exams")
-    # Set for a session exam; empty for the end-of-level exam (it belongs to the whole group).
-    lesson = models.OneToOneField(Lesson, null=True, blank=True, on_delete=models.CASCADE, related_name="exam")
+    # The questions belong to a course level, so every group at that level gets the same exam.
+    level = models.ForeignKey(CourseLevel, on_delete=models.CASCADE, related_name="exams")
+    # Which session of the level this follows (1, 2, ...); empty for the end-of-level exam.
+    number = models.PositiveSmallIntegerField(null=True, blank=True)
     kind = models.CharField(max_length=10, choices=KIND_CHOICES, default=KIND_SESSION)
     title = models.CharField(max_length=200, blank=True)
     instructions = models.TextField(blank=True)
@@ -33,19 +34,18 @@ class Exam(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ["level", "kind", "number"]
         constraints = [
-            models.UniqueConstraint(fields=["cohort"], condition=Q(kind="level"), name="one_level_exam_per_cohort"),
+            models.UniqueConstraint(fields=["level", "number"], condition=Q(kind="session"), name="one_session_exam_per_level_number"),
+            models.UniqueConstraint(fields=["level"], condition=Q(kind="level"), name="one_final_exam_per_level"),
         ]
 
     def __str__(self):
-        return self.display_title
+        return f"{self.level} / {self.display_title}"
 
     def clean(self):
-        if self.kind == self.KIND_SESSION and not self.lesson_id:
-            raise ValidationError({"lesson": "امتحان الجلسة لازم يكون مرتبطًا بجلسة."})
-        if self.lesson_id and self.lesson.cohort_id != self.cohort_id:
-            raise ValidationError({"lesson": "الجلسة تابعة لمجموعة أخرى."})
+        if self.kind == self.KIND_SESSION and not self.number:
+            raise ValidationError({"number": "امتحان الجلسة لازم يكون له رقم جلسة."})
 
     @property
     def display_title(self):
@@ -53,33 +53,39 @@ class Exam(models.Model):
             return self.title
         if self.kind == self.KIND_LEVEL:
             return "اختبار نهاية المستوى"
-        return f"امتحان الجلسة {self.lesson.number}" if self.lesson_id else "امتحان"
+        return f"امتحان الجلسة {self.number}" if self.number else "امتحان"
 
     @property
     def course(self):
-        return self.cohort.course
+        return self.level.course
 
-    def _lesson_end(self, lesson):
+    @staticmethod
+    def _lesson_end(lesson):
         return lesson.starts_at + datetime.timedelta(minutes=lesson.duration_minutes)
 
-    @property
-    def opens_at(self):
-        """When students may start: after the session ends (or after the group's last session)."""
-        if self.kind == self.KIND_LEVEL:
-            last = self.cohort.lessons.order_by("-starts_at").first()
-            return self._lesson_end(last) if last else None
-        return self._lesson_end(self.lesson) if self.lesson_id else None
+    def lesson_for(self, cohort):
+        """The session of this group the exam follows (None for the end-of-level exam)."""
+        return cohort.lessons.filter(number=self.number).first() if self.kind == self.KIND_SESSION else None
 
-    @property
-    def deadline(self):
-        """A session exam is due before the next session starts; the level exam has no deadline."""
-        if self.kind != self.KIND_SESSION or not self.lesson_id:
+    # Timing differs per group because every group has its own session dates.
+    def opens_at(self, cohort):
+        """When the group's students may start: after the session ends (or after the group's last session)."""
+        if self.kind == self.KIND_LEVEL:
+            last = cohort.lessons.order_by("-starts_at").first()
+            return self._lesson_end(last) if last else None
+        lesson = self.lesson_for(cohort)
+        return self._lesson_end(lesson) if lesson else None
+
+    def deadline(self, cohort):
+        """A session exam is due before the group's next session starts; the level exam has no deadline."""
+        lesson = self.lesson_for(cohort)
+        if lesson is None:
             return None
-        nxt = self.cohort.lessons.filter(starts_at__gt=self.lesson.starts_at).order_by("starts_at").first()
+        nxt = cohort.lessons.filter(starts_at__gt=lesson.starts_at).order_by("starts_at").first()
         return nxt.starts_at if nxt else None
 
-    def is_open(self, now=None):
-        opens = self.opens_at
+    def is_open(self, cohort, now=None):
+        opens = self.opens_at(cohort)
         return self.is_published and opens is not None and (now or timezone.now()) >= opens
 
     def total_points(self):
@@ -116,6 +122,8 @@ class ExamQuestion(models.Model):
 class Submission(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="submissions")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="exam_submissions")
+    # The group the student was in when they handed in (its teacher marks the answers).
+    cohort = models.ForeignKey(Cohort, null=True, blank=True, on_delete=models.SET_NULL, related_name="exam_submissions")
     submitted_at = models.DateTimeField(auto_now_add=True)
     is_late = models.BooleanField(default=False)
     graded_at = models.DateTimeField(null=True, blank=True)
@@ -154,6 +162,9 @@ class Submission(models.Model):
         elif not graded:
             self.graded_at = None
         self.save(update_fields=["graded_at"])
+        if graded:
+            from courses.certificates import issue_if_eligible
+            issue_if_eligible(self)
 
 
 class Answer(models.Model):

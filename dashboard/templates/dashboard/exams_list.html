@@ -2,29 +2,41 @@
 {% block title %}الامتحانات{% endblock %}
 {% block page_title %}الامتحانات{% endblock %}
 {% block content %}
-{% for g in groups %}
+{% if unassigned and can_edit %}
+<div class="td-alert">{{ unassigned|length }} مجموعة بدون مستوى، فلن يرى طلابها أي امتحان. اختر مستواها من صفحة تعديل المجموعة:
+  {% for c in unassigned %}<a href="{% url 'dashboard:cohort_edit' c.course_id c.pk %}">{{ c.course.title_ar }} #{{ c.pk }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}</div>
+{% endif %}
+{% for course, levels in courses %}
 <div class="dash-card" style="margin-bottom:16px;">
   <div class="dash-toolbar" style="margin-bottom:10px;">
-    <h2>{{ g.cohort.course.title_ar }} — {{ g.cohort.name|default:g.cohort.get_mode_display }} #{{ g.cohort.pk }}</h2>
-    <div class="dash-table-actions">
-      {% if g.level %}<a class="btn btn-outline" href="{% url 'dashboard:exam_results' g.level.pk %}">نتائج اختبار نهاية المستوى</a>{% endif %}
-      {% if can_edit %}<a class="btn btn-primary" href="{% url 'dashboard:exam_for_level' g.cohort.pk %}">{% if g.level %}تعديل{% else %}+ اختبار{% endif %} نهاية المستوى</a>{% endif %}
-    </div>
+    <h2>{{ course.title_ar }}</h2>
+    {% if can_edit %}<div class="dash-table-actions"><a class="btn btn-outline" href="{% url 'dashboard:course_levels' course.pk %}">{% if levels %}إدارة المستويات{% else %}+ أضف المستويات{% endif %}</a></div>{% endif %}
   </div>
-  {% if g.rows %}
-  <div class="dash-table-wrap"><table class="dash-table">
-    <thead><tr><th>الجلسة</th><th>الموعد</th><th>الامتحان</th><th>التسليمات</th><th></th></tr></thead>
-    <tbody>{% for r in g.rows %}
-      <tr><td>{{ r.lesson.display_title_ar }}</td><td>{{ r.lesson.starts_at|date:"Y-m-d H:i" }}</td>
-        <td>{% if r.exam %}{{ r.exam.questions.all|length }} سؤال · {% if r.exam.is_published %}منشور{% else %}مسودة{% endif %}{% else %}—{% endif %}</td>
-        <td>{% if r.exam %}{{ r.exam.subs }}{% if r.exam.pending %} <span class="td-chip risk">{{ r.exam.pending }} بانتظار التقييم</span>{% endif %}{% else %}—{% endif %}</td>
-        <td><div class="dash-table-actions">
-          {% if r.exam %}<a href="{% url 'dashboard:exam_results' r.exam.pk %}">النتائج</a>{% endif %}
-          {% if can_edit %}<a href="{% url 'dashboard:exam_for_lesson' r.lesson.pk %}">{% if r.exam %}تعديل{% else %}إنشاء امتحان{% endif %}</a>{% endif %}
-        </div></td></tr>
-    {% endfor %}</tbody>
-  </table></div>
-  {% else %}<p class="td-empty">لا توجد جلسات لهذه المجموعة بعد.</p>{% endif %}
+  {% for item in levels %}
+  <div class="td-panel" style="margin-bottom:14px;">
+    <div class="dash-toolbar" style="margin-bottom:8px;">
+      <h3 style="margin:0;">{{ item.level.name_ar }}
+        <small style="color:var(--muted);font-weight:400;">· {{ item.cohorts|length }} مجموعة</small></h3>
+      <div class="dash-table-actions">
+        {% if item.final %}<a class="btn btn-outline" href="{% url 'dashboard:exam_results' item.final.pk %}">نتائج اختبار نهاية المستوى</a>{% endif %}
+        {% if can_edit %}<a class="btn btn-primary" href="{% url 'dashboard:exam_for_final' item.level.pk %}">{% if item.final %}تعديل{% else %}+ اختبار{% endif %} نهاية المستوى</a>{% endif %}
+      </div>
+    </div>
+    <div class="dash-table-wrap"><table class="dash-table">
+      <thead><tr><th>الجلسة</th><th>الامتحان</th><th>التسليمات</th><th></th></tr></thead>
+      <tbody>{% for r in item.rows %}
+        <tr><td>الجلسة {{ r.number }}</td>
+          <td>{% if r.exam %}{{ r.exam.questions.all|length }} سؤال · {% if r.exam.is_published %}منشور{% else %}مسودة{% endif %}{% else %}—{% endif %}</td>
+          <td>{% if r.exam %}{{ r.exam.subs }}{% if r.exam.pending %} <span class="td-chip risk">{{ r.exam.pending }} بانتظار التقييم</span>{% endif %}{% else %}—{% endif %}</td>
+          <td><div class="dash-table-actions">
+            {% if r.exam %}<a href="{% url 'dashboard:exam_results' r.exam.pk %}">النتائج</a>{% endif %}
+            {% if can_edit %}<a href="{% url 'dashboard:exam_for_session' item.level.pk r.number %}">{% if r.exam %}تعديل{% else %}إنشاء امتحان{% endif %}</a>{% endif %}
+          </div></td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endfor %}
+  {% if not levels %}<p class="td-empty" style="margin:0;">لا توجد مستويات لهذا الكورس بعد. أضف المستويات (مثل: المستوى الأول، المستوى الثاني) ثم اكتب امتحان كل مستوى.</p>{% endif %}
 </div>
-{% empty %}<div class="dash-card"><p class="td-empty" style="margin:0;">لا توجد مجموعات.</p></div>{% endfor %}
+{% empty %}<div class="dash-card"><p class="td-empty" style="margin:0;">لا توجد مستويات أو مجموعات.</p></div>{% endfor %}
 {% endblock %}

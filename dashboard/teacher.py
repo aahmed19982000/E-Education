@@ -123,8 +123,8 @@ def teacher_home(request):
     for c in cohorts:
         c.percent = round(c.done / c.total * 100) if c.total else 0
         c.next_lesson = c.lessons.filter(starts_at__gte=now).first()
-    to_grade = list(Submission.objects.filter(exam__cohort__teacher=member, graded_at__isnull=True)
-                    .select_related("exam__cohort__course", "exam__lesson", "user").order_by("submitted_at"))
+    to_grade = list(Submission.objects.filter(cohort__teacher=member, graded_at__isnull=True)
+                    .select_related("exam__level__course", "user").order_by("submitted_at"))
     for sub in to_grade:
         sub.student_name = student_name(sub.user)
     rating = member.reviews.aggregate(avg=Avg("rating"), n=Count("id"))

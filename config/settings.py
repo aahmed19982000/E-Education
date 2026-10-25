@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',
 
     'core',
     'levels',  # migrations only: quiz/courses migrations depend on it
@@ -63,6 +64,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.LanguageMiddleware',
+    'core.middleware.NoIndexMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -163,3 +165,32 @@ PAYMENTS_ENABLED = os.environ.get('PAYMENTS_ENABLED', 'False').lower() == 'true'
 ZOOM_ACCOUNT_ID = os.environ.get('ZOOM_ACCOUNT_ID', '')
 ZOOM_CLIENT_ID = os.environ.get('ZOOM_CLIENT_ID', '')
 ZOOM_CLIENT_SECRET = os.environ.get('ZOOM_CLIENT_SECRET', '')
+
+
+# Public address of the site: used for absolute links in emails, the sitemap and certificate verification.
+SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000').rstrip('/')
+
+# Email: prints to the console until SMTP details are provided (set EMAIL_HOST to send real mail).
+EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
+if EMAIL_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'E-Education Academy <no-reply@e-education.academy>')
+# Staff address that is told about every new enrollment request / payment (optional).
+ADMIN_NOTIFY_EMAIL = os.environ.get('ADMIN_NOTIFY_EMAIL', '')
+
+# Hosted-checkout payment gateway. The provider sends the student back and calls our webhook,
+# signed with HMAC-SHA256 using PAYMENT_WEBHOOK_SECRET (header X-Signature).
+# PAYMENT_PROVIDER: "" (off) | "hosted" (redirect to PAYMENT_CHECKOUT_URL) | "mock" (local demo, DEBUG only).
+PAYMENT_PROVIDER = os.environ.get('PAYMENT_PROVIDER', '')
+PAYMENT_CHECKOUT_URL = os.environ.get('PAYMENT_CHECKOUT_URL', '')
+PAYMENT_WEBHOOK_SECRET = os.environ.get('PAYMENT_WEBHOOK_SECRET', '')
+PAYMENT_CURRENCY = os.environ.get('PAYMENT_CURRENCY', 'EGP')
+
+# Minimum end-of-level exam percentage for a completion certificate.
+CERTIFICATE_PASS_PERCENT = int(os.environ.get('CERTIFICATE_PASS_PERCENT', '60'))

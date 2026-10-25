@@ -25,6 +25,13 @@
   </div>
   {% endif %}
 
+  {% if certificates %}
+  <div class="c-panel sd-requests"><h2>{% if LANG == "ar" %}شهاداتي{% else %}My certificates{% endif %}</h2>
+    <ul class="sd-list">{% for c in certificates %}
+      <li><div><b>{{ c.enrollment.course.title_ar }}</b><small>{{ c.final_percent }}% · {{ c.issued_at|date:"Y-m-d" }}</small></div>
+        <a class="c-btn" href="{% url 'courses:certificate' code=c.code %}">{% if LANG == "ar" %}عرض الشهادة{% else %}View certificate{% endif %}</a></li>{% endfor %}
+    </ul></div>
+  {% endif %}
   {% if exams %}
   <div class="c-panel sd-requests"><h2>{{ t.exams.title }}{% if exams_due %} <span class="sd-state late">{{ exams_due }}</span>{% endif %}</h2>
     <ul class="sd-list">{% for r in exams %}

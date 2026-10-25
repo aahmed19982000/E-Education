@@ -17,8 +17,9 @@ urlpatterns = [
     path("teacher/lessons/<int:pk>/attendance/", views_teacher.teacher_attendance, name="teacher_attendance"),
 
     path("exams/", exam_views.exams_list, name="exams_list"),
-    path("exams/lesson/<int:lesson_pk>/", exam_views.exam_for_lesson, name="exam_for_lesson"),
-    path("exams/level/<int:cohort_pk>/", exam_views.exam_for_level, name="exam_for_level"),
+    path("exams/course/<int:course_pk>/levels/", exam_views.course_levels, name="course_levels"),
+    path("exams/level/<int:level_pk>/session/<int:number>/", exam_views.exam_for_session, name="exam_for_session"),
+    path("exams/level/<int:level_pk>/final/", exam_views.exam_for_final, name="exam_for_final"),
     path("exams/<int:pk>/results/", exam_views.exam_results, name="exam_results"),
     path("exams/submissions/<int:pk>/", exam_views.submission_grade, name="submission_grade"),
 

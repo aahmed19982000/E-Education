@@ -1,12 +1,15 @@
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseBadRequest
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
 from core.translations import get_translations
+from core import notify
 from core.models import SiteSettings
 from core.translations import get_translations
 from quiz.models import PlacementResult
@@ -16,8 +19,9 @@ from dashboard.permissions import ROLE_TEACHER, get_dashboard_role
 from exams.services import student_exams
 
 from .access import can_view_lesson_material, has_active_enrollment, is_staff_user
+from . import payments
 from .forms import ApplyForm
-from .models import Attendance, Course, Enrollment, EnrollmentRequest, Lesson, LessonAttachment
+from .models import Attendance, Certificate, Course, Payment, Enrollment, EnrollmentRequest, Lesson, LessonAttachment
 
 
 def course_list(request):
@@ -126,6 +130,7 @@ def my_courses(request):
         "stats": {"courses": len(cards), "attended": present,
                   "rate": round(present / recorded * 100) if recorded else None},
         "placement": placement,
+        "certificates": Certificate.objects.filter(enrollment__user=request.user).select_related("enrollment__course"),
     })
 
 
@@ -156,7 +161,7 @@ def lesson_detail(request, pk):
         "attendance": attendance,
         "placement": placement,
         "ask_placement": first_lesson and placement is None,
-        "exam": next((r for r in student_exams(request.user) if r["exam"].lesson_id == lesson.pk), None) if enrollment else None,
+        "exam": next((r for r in student_exams(request.user) if r["exam"].number == lesson.number and r["cohort"].pk == lesson.cohort_id and r["exam"].kind == "session"), None) if enrollment else None,
     })
 
 
@@ -193,6 +198,7 @@ def apply(request, slug):
         if request.user.is_authenticated:
             enrollment_request.user = request.user
         enrollment_request.save()
+        notify.request_received(enrollment_request)
         # Remember it so a guest who signs in next can claim it at checkout.
         request.session[SESSION_REQUESTS] = request.session.get(SESSION_REQUESTS, []) + [enrollment_request.pk]
         checkout_url = reverse("courses:checkout", args=[enrollment_request.pk])
@@ -218,5 +224,95 @@ def checkout(request, pk):
     return render(request, "courses/checkout.html", {
         "req": enrollment_request,
         "course": enrollment_request.course.localized(request.lang) if enrollment_request.course else None,
-        "payments_enabled": settings.PAYMENTS_ENABLED,
+        "payments_enabled": payments.enabled(),
+        "payment_pending": enrollment_request.payments.filter(status=Payment.STATUS_PENDING).exists(),
     })
+
+
+def _own_request(request, pk):
+    req = get_object_or_404(EnrollmentRequest.objects.select_related("course"), pk=pk)
+    if req.user_id != request.user.pk:
+        raise Http404
+    return req
+
+
+@login_required
+@require_POST
+def pay(request, pk):
+    """Start an online payment: create the attempt and send the student to the provider's checkout."""
+    req = _own_request(request, pk)
+    if req.is_paid or not payments.enabled():
+        return redirect("courses:checkout", pk=req.pk)
+    payment = payments.create_payment(req)
+    if payment is None:
+        return redirect("courses:checkout", pk=req.pk)
+    return redirect(payments.checkout_url(payment, request.build_absolute_uri))
+
+
+@login_required
+def pay_mock(request, reference):
+    """Local demo checkout (PAYMENT_PROVIDER=mock and DEBUG only): confirm or cancel a fake payment."""
+    if settings.PAYMENT_PROVIDER != "mock" or not settings.DEBUG:
+        raise Http404
+    payment = get_object_or_404(Payment.objects.select_related("request"), reference=reference)
+    if payment.request.user_id != request.user.pk:
+        raise Http404
+    if request.method == "POST":
+        if request.POST.get("result") == "paid":
+            payments.mark_paid(payment, {"mock": True})
+        else:
+            payments.mark_failed(payment, {"mock": True})
+        return redirect("courses:checkout", pk=payment.request_id)
+    return render(request, "courses/pay_mock.html", {"payment": payment})
+
+
+@csrf_exempt
+@require_POST
+def payment_webhook(request):
+    """The provider reports a payment result. Must carry a valid X-Signature (HMAC-SHA256 of the body)."""
+    body = request.body
+    if not payments.valid_signature(body, request.headers.get("X-Signature", "")):
+        return HttpResponse(status=403)
+    parsed = payments.parse_webhook(body)
+    if parsed is None:
+        return HttpResponseBadRequest("bad payload")
+    reference, paid, payload = parsed
+    payment = Payment.objects.select_related("request").filter(reference=reference).first()
+    if payment is None:
+        return HttpResponse(status=404)
+    if paid:
+        payments.mark_paid(payment, payload)
+    else:
+        payments.mark_failed(payment, payload)
+    return HttpResponse("ok")
+
+
+def _certificate_context(cert, lang):
+    enrollment = cert.enrollment
+    cohort = enrollment.cohort
+    return {
+        "cert": cert, "course": enrollment.course.localized(lang),
+        "student": enrollment.user.get_full_name() or enrollment.user.first_name or enrollment.user.username,
+        "teacher": cohort.teacher.localized(lang) if cohort and cohort.teacher else None,
+        "verify_url": f"{settings.SITE_URL}{reverse('courses:verify_certificate', args=[cert.code])}",
+    }
+
+
+@login_required
+def certificate(request, code):
+    """The student's printable certificate (staff may open any)."""
+    cert = get_object_or_404(Certificate.objects.select_related("enrollment__user", "enrollment__course",
+                                                                "enrollment__cohort__teacher"), code=code.upper())
+    if cert.enrollment.user_id != request.user.pk and not is_staff_user(request.user):
+        raise Http404
+    return render(request, "courses/certificate.html", _certificate_context(cert, request.lang))
+
+
+def verify_certificate(request, code):
+    """Public page: anyone holding a certificate can check it is genuine."""
+    cert = Certificate.objects.select_related("enrollment__user", "enrollment__course",
+                                              "enrollment__cohort__teacher").filter(code=code.upper()).first()
+    ctx = {"cert": cert}
+    if cert:
+        ctx.update(_certificate_context(cert, request.lang))
+    return render(request, "courses/verify_certificate.html", ctx)

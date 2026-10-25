@@ -50,6 +50,8 @@ def place_request(req, cohort):
     req.save(update_fields=["cohort", "status"])
     if not cohort.lessons.exists() and cohort.start_date and cohort.slots.exists():
         cohort.generate_lessons()  # a private student is never held back, so their sessions start now
+    from core import notify
+    notify.enrolled(req.user, cohort)
     return None
 
 

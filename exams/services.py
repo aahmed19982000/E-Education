@@ -18,37 +18,46 @@ STATE_GRADED = "graded"
 
 
 def active_enrollment(user, exam):
-    return Enrollment.objects.filter(user=user, cohort_id=exam.cohort_id, status=Enrollment.STATUS_ACTIVE).first()
+    """The student's active place in a group at the exam's level (None: not their exam)."""
+    return (Enrollment.objects.filter(user=user, cohort__level_id=exam.level_id, status=Enrollment.STATUS_ACTIVE)
+            .select_related("cohort").first())
 
 
-def state_for(exam, user, submission=None, now=None):
-    """Where one student stands on one exam."""
+def state_for(exam, user, submission=None, now=None, cohort=None):
+    """Where one student stands on one exam; `cohort` is their group (looked up when left out)."""
     now = now or timezone.now()
     if submission is None:
         submission = exam.submissions.filter(user=user).first()
     if submission is not None:
         return STATE_GRADED if submission.is_graded else STATE_SUBMITTED
-    if not exam.is_open(now):
+    if cohort is None:
+        enrollment = active_enrollment(user, exam)
+        cohort = enrollment.cohort if enrollment else None
+    if cohort is None or not exam.is_open(cohort, now):
         return STATE_NOT_OPEN
-    deadline = exam.deadline
+    deadline = exam.deadline(cohort)
     return STATE_LATE if deadline and now > deadline else STATE_TODO
 
 
 def student_exams(user, now=None):
     """Published exams that are open for the student, newest first, each with their state."""
     now = now or timezone.now()
-    cohort_ids = list(Enrollment.objects.filter(user=user, status=Enrollment.STATUS_ACTIVE, cohort__isnull=False)
-                      .values_list("cohort_id", flat=True))
-    exams = (Exam.objects.filter(cohort_id__in=cohort_ids, is_published=True)
-             .select_related("cohort__course", "lesson").prefetch_related("questions"))
+    cohorts = {e.cohort.level_id: e.cohort for e in
+               Enrollment.objects.filter(user=user, status=Enrollment.STATUS_ACTIVE, cohort__level__isnull=False)
+               .select_related("cohort__course")}
+    exams = (Exam.objects.filter(level_id__in=cohorts, is_published=True)
+             .select_related("level__course").prefetch_related("questions"))
     subs = {s.exam_id: s for s in Submission.objects.filter(user=user, exam__in=exams).prefetch_related("answers")}
     rows = []
     for exam in exams:
-        if not exam.is_open(now) and exam.pk not in subs:
+        cohort = cohorts[exam.level_id]
+        if not exam.is_open(cohort, now) and exam.pk not in subs:
             continue
         sub = subs.get(exam.pk)
-        rows.append({"exam": exam, "submission": sub, "state": state_for(exam, user, sub, now), "deadline": exam.deadline})
-    rows.sort(key=lambda r: r["exam"].opens_at or now, reverse=True)
+        rows.append({"exam": exam, "cohort": cohort, "submission": sub,
+                     "state": state_for(exam, user, sub, now, cohort), "deadline": exam.deadline(cohort),
+                     "opens_at": exam.opens_at(cohort)})
+    rows.sort(key=lambda r: r["opens_at"] or now, reverse=True)
     return rows
 
 
@@ -57,11 +66,12 @@ class SubmitError(Exception):
 
 
 @transaction.atomic
-def submit(exam, user, post, files):
+def submit(exam, user, post, files, cohort):
     """Save a student's answers; multiple choice is marked now, the rest waits for the teacher."""
     now = timezone.now()
-    deadline = exam.deadline
-    submission = Submission.objects.create(exam=exam, user=user, is_late=bool(deadline and now > deadline))
+    deadline = exam.deadline(cohort)
+    submission = Submission.objects.create(exam=exam, user=user, cohort=cohort,
+                                           is_late=bool(deadline and now > deadline))
     for question in exam.questions.all():
         key = f"q{question.pk}"
         answer = Answer(submission=submission, question=question)
@@ -90,8 +100,8 @@ def submit(exam, user, post, files):
     return submission
 
 
-def can_review(user, exam):
-    """Teachers of the exam's group and dashboard admins may open submissions; nobody else."""
+def can_review(user, submission):
+    """The teacher of the student's group and dashboard admins may open a submission; nobody else."""
     from dashboard.permissions import ROLE_TEACHER, get_dashboard_role
     role = get_dashboard_role(user)
     if role is None:
@@ -99,4 +109,5 @@ def can_review(user, exam):
     if role != ROLE_TEACHER:
         return True
     profile = getattr(user, "profile", None)
-    return bool(profile and profile.team_member_id and exam.cohort.teacher_id == profile.team_member_id)
+    cohort = submission.cohort
+    return bool(profile and profile.team_member_id and cohort and cohort.teacher_id == profile.team_member_id)

@@ -3,17 +3,20 @@
 {% block page_title %}{{ exam.display_title }} — {{ exam.course.title_ar }}{% endblock %}
 {% block content %}
 <div class="dash-toolbar">
-  <h2>{% if opens_at %}يُفتح: {{ opens_at|date:"Y-m-d H:i" }}{% endif %}{% if deadline %} · آخر موعد: {{ deadline|date:"Y-m-d H:i" }}{% endif %} · الدرجة الكاملة {{ total|floatformat:"-2" }}</h2>
+  <h2>{{ exam.level.name_ar }} · الدرجة الكاملة {{ total|floatformat:"-2" }}</h2>
   <div class="dash-table-actions">
-    {% if can_edit %}<a class="btn btn-outline" href="{% if exam.lesson_id %}{% url 'dashboard:exam_for_lesson' exam.lesson_id %}{% else %}{% url 'dashboard:exam_for_level' exam.cohort_id %}{% endif %}">تعديل الامتحان</a>{% endif %}
+    {% if can_edit %}<a class="btn btn-outline" href="{% if exam.number %}{% url 'dashboard:exam_for_session' exam.level_id exam.number %}{% else %}{% url 'dashboard:exam_for_final' exam.level_id %}{% endif %}">تعديل الامتحان</a>{% endif %}
     <a class="btn btn-outline" href="{% url 'dashboard:exams_list' %}">كل الامتحانات</a>
   </div>
 </div>
 {% if not exam.is_published %}<div class="td-alert">هذا الامتحان مسودة ولا يراه الطلاب. انشره من «تعديل الامتحان».</div>{% endif %}
+{% for g in groups %}
+<h3 style="margin:18px 0 6px;">{{ g.cohort.name|default:g.cohort.get_mode_display }} #{{ g.cohort.pk }}
+  <small style="color:var(--muted);font-weight:400;">{% if g.opens_at %}· يُفتح: {{ g.opens_at|date:"Y-m-d H:i" }}{% endif %}{% if g.deadline %} · آخر موعد: {{ g.deadline|date:"Y-m-d H:i" }}{% endif %}</small></h3>
 <div class="dash-table-wrap">
   <table class="dash-table">
     <thead><tr><th>الطالب</th><th>الحالة</th><th>الدرجة</th><th>وقت التسليم</th><th></th></tr></thead>
-    <tbody>{% for r in rows %}
+    <tbody>{% for r in g.rows %}
       <tr><td>{{ r.name }}</td>
         <td>{% if r.state == "submitted" %}<span class="td-chip risk">بانتظار التقييم</span>
           {% elif r.state == "graded" %}<span class="td-chip live">تم التقييم</span>
@@ -27,4 +30,5 @@
     {% empty %}<tr><td colspan="5">لا يوجد طلاب نشطون في هذه المجموعة.</td></tr>{% endfor %}</tbody>
   </table>
 </div>
+{% empty %}<div class="dash-card"><p class="td-empty" style="margin:0;">لا توجد مجموعات في هذا المستوى بعد.</p></div>{% endfor %}
 {% endblock %}

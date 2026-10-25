@@ -1,0 +1,31 @@
+{% load static %}<!DOCTYPE html>
+<html lang="{{ LANG }}" dir="{{ DIR }}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{% if LANG == "ar" %}شهادة إتمام{% else %}Certificate of completion{% endif %} · {{ cert.code }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+@page{size:A4 landscape;margin:0}
+*{box-sizing:border-box}body{margin:0;background:#e9ebf2;font-family:"Tajawal",sans-serif;color:#14275b}
+.bar{text-align:center;padding:14px}.bar button,.bar a{font:700 15px Tajawal,sans-serif;background:#14275b;color:#fff;border:0;border-radius:8px;padding:10px 22px;cursor:pointer;text-decoration:none;margin:0 6px}
+.page{width:297mm;height:210mm;margin:0 auto 20px;background:#fff;padding:12mm;position:relative}
+.frame{height:100%;border:3px solid #d9a428;outline:1px solid #14275b;outline-offset:-10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10mm 20mm}
+.brand{font-weight:800;color:#d9a428;letter-spacing:1px;font-size:20px}
+h1{font-size:46px;margin:6px 0 4px}.sub{font-size:20px;opacity:.8}
+.name{font-size:44px;font-weight:800;margin:18px 0 6px;border-bottom:2px solid #d9a428;padding:0 30px 6px}
+.course{font-size:28px;font-weight:700;margin:8px 0}.meta{font-size:17px;margin-top:6px}
+.foot{display:flex;justify-content:space-between;width:100%;margin-top:26px;font-size:15px;align-items:flex-end}
+.code{direction:ltr;font-family:monospace;font-size:15px}.verify{font-size:12px;direction:ltr;opacity:.8}
+@media print{body{background:#fff}.bar{display:none}.page{margin:0}}
+</style></head><body>
+<div class="bar"><button onclick="window.print()">{% if LANG == "ar" %}طباعة / حفظ كـ PDF{% else %}Print / Save as PDF{% endif %}</button><a href="{% url 'courses:mine' %}">{% if LANG == "ar" %}رجوع{% else %}Back{% endif %}</a></div>
+<div class="page"><div class="frame">
+  <div class="brand">E-EDUCATION ACADEMY · {{ t.brand }}</div>
+  <h1>{% if LANG == "ar" %}شهادة إتمام المستوى{% else %}Certificate of Completion{% endif %}</h1>
+  <div class="sub">{% if LANG == "ar" %}تشهد الأكاديمية بأن{% else %}This certifies that{% endif %}</div>
+  <div class="name">{{ student }}</div>
+  <div class="sub">{% if LANG == "ar" %}أتمّ بنجاح كورس{% else %}has successfully completed{% endif %}</div>
+  <div class="course">{{ course.title }}</div>
+  <div class="meta">{% if LANG == "ar" %}بنتيجة اختبار نهاية المستوى{% else %}with an end-of-level exam result of{% endif %} <b>{{ cert.final_percent }}%</b>{% if teacher %} · {% if LANG == "ar" %}المدرّس{% else %}Instructor{% endif %}: <b>{{ teacher.name }}</b>{% endif %}</div>
+  <div class="foot"><div>{% if LANG == "ar" %}تاريخ الإصدار{% else %}Issued{% endif %}: {{ cert.issued_at|date:"Y-m-d" }}</div>
+    <div><div class="code">{{ cert.code }}</div><div class="verify">{{ verify_url }}</div></div></div>
+</div></div></body></html>

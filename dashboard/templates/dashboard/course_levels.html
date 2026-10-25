@@ -1,0 +1,24 @@
+{% extends "dashboard/base.html" %}
+{% block title %}مستويات {{ course.title_ar }}{% endblock %}
+{% block page_title %}مستويات {{ course.title_ar }}{% endblock %}
+{% block content %}
+<div class="dash-card">
+  <form method="post">
+    {% csrf_token %}
+    {{ formset.management_form }}{{ formset.non_form_errors }}
+    <p class="td-empty" style="margin-bottom:12px;">اكتب اسم كل مستوى في صف (مثل: المستوى الأول، المستوى الثاني، المستوى A). اترك الصف فارغًا لتجاهله. حذف مستوى يحذف امتحاناته.</p>
+    {% for f in formset %}
+      <div class="dash-form-grid">
+        {{ f.id }}{{ f.non_field_errors }}
+        <div class="dash-field"><label>{{ f.name_ar.label }}</label>{{ f.name_ar }}{{ f.name_ar.errors }}</div>
+        <div class="dash-field"><label>{{ f.name_en.label }}</label>{{ f.name_en }}{{ f.name_en.errors }}</div>
+        {% if f.instance.pk %}<div class="dash-field"><label>حذف</label>{{ f.DELETE }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="dash-form-actions">
+      <button type="submit" class="btn btn-primary">حفظ</button>
+      <a class="btn btn-outline" href="{% url 'dashboard:exams_list' %}">رجوع</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

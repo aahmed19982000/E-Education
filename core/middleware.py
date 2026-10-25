@@ -22,3 +22,20 @@ class LanguageMiddleware:
             lang = "en"
         request.lang = lang
         return self.get_response(request)
+
+
+NOINDEX_PREFIXES = ("/dashboard/", "/admin/", "/accounts/", "/exams/", "/courses/mine/", "/courses/checkout/",
+                    "/courses/lesson/", "/courses/attachment/", "/courses/payments/", "/courses/certificate/")
+
+
+class NoIndexMiddleware:
+    """Private pages (dashboard, student area, checkout) must never appear in search results."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        if request.path.startswith(NOINDEX_PREFIXES):
+            response["X-Robots-Tag"] = "noindex, nofollow"
+        return response
