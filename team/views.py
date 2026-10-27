@@ -8,7 +8,9 @@ def team_list(request):
     members = [m.localized(lang) for m in TeamMember.objects.all()]
     owner = next((m for m in members if m["is_owner"]), None)
     others = [m for m in members if not m["is_owner"]]
-    return render(request, "team/list.html", {"owner": owner, "members": others})
+    admins = [m for m in others if m["kind"] == "admin"]
+    teachers = [m for m in others if m["kind"] != "admin"]
+    return render(request, "team/list.html", {"owner": owner, "admins": admins, "members": teachers})
 
 
 def team_detail(request, slug):

@@ -19,6 +19,8 @@ class Profile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     phone = models.CharField(max_length=30, blank=True)
+    # A signed-in student sits the level test once; a teacher or admin can allow one more attempt.
+    placement_retake_allowed = models.BooleanField(default=False)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, blank=True)
     # A teacher's account points at their public team profile; that is how the teacher
     # dashboard knows which groups and sessions are theirs.

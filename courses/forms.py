@@ -32,7 +32,7 @@ class WorkshopBookingForm(forms.ModelForm):
 
     class Meta:
         model = EnrollmentRequest
-        fields = ["full_name", "email", "phone", "mode", "payment_method", "notes"]
+        fields = ["full_name", "email", "phone", "mode", "payment_method", "add_private_session", "notes"]
         widgets = {"mode": forms.RadioSelect, "payment_method": forms.RadioSelect}
 
     def __init__(self, *args, **kwargs):

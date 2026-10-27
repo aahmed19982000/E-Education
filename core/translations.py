@@ -78,7 +78,7 @@ AR = {
     "home": {
         "eyebrow": "تعلّم الإنجليزية بخطة واضحة",
         "title": "ارتقِ بلغتك الإنجليزية بخطوات مضمونة، من مستواك الحالي حتى الاحتراف",
-        "subtitle": "دورات تفاعلية للطلاب، وورش تخصصية للمدرسين الراغبين في الانتقال للمدارس الدولية. ابدأ باختبار تحديد مستوى مجاني.",
+        "subtitle": "دورات تفاعلية للطلاب والبالغين والأطفال، لمن يريدون الانتقال إلى مدارس دولية، أو العمل والدراسة والسفر، وورش تخصصية للمدرسين. ابدأ باختبار تحديد مستوى مجاني.",
         "cta1": "ابدأ اختبار تحديد المستوى", "cta2": "تصفح الكورسات",
         "chips": ["جلسات لايف عبر Zoom", "جروب أو خصوصي", "اختبار تحديد مستوى مجاني"],
         "visual": [{"icon": "🎥", "title": "جلسات لايف", "desc": "تفاعل مباشر مع مدرسك عبر Zoom"}, {"icon": "👥", "title": "جروب أو خصوصي", "desc": "اختر النظام الذي يناسبك"}, {"icon": "📈", "title": "متابعة مستمرة", "desc": "تسجيلات وملفات وواجبات في صفحتك"}],
@@ -86,7 +86,9 @@ AR = {
         "why": [{"title": "مدرسون متخصصون", "desc": "مدرسون مؤهلون يخضعون لتدريب داخلي مستمر."}, {"title": "مرونة كاملة", "desc": "جروب أو خصوصي، ومواعيد تناسب جدولك."}, {"title": "تعلّم تفاعلي", "desc": "جلسات لايف مع تسجيلات وملفات وواجبات."}, {"title": "محتوى داعم", "desc": "مقالات ومصادر مجانية بين الجلسات."}],
         "coursesTitle": "كورسات مختارة", "coursesAll": "عرض كل الكورسات", "from": "تبدأ من",
         "students": {"title": "أنا طالب أريد تعلّم الإنجليزية", "desc": "اختبر مستواك مجانًا، واشترك في الكورس المناسب لك بشكل فردي أو جماعي، وتابع تقدمك خطوة بخطوة.", "cta": "شاهد الكورسات"},
-        "teachers": {"title": "أنا مدرس وأريد التطور مهنيًا", "desc": "ورشة متخصصة للمدرسين الراغبين في الانتقال من المدارس المحلية إلى المدارس الدولية، بشهادة معتمدة.", "cta": "تعرف على الورشة"},
+        "adults": {"title": "أنا شخص بالغ وأريد تحدث اللغة الإنجليزية", "desc": "كورسات محادثة وتأسيس للبالغين بمواعيد مرنة، سواء للعمل أو السفر أو الحياة اليومية، جروب أو خصوصي.", "cta": "كورسات البالغين"},
+        "kids": {"title": "أريد تعليم طفلي اللغة الإنجليزية", "desc": "كورسات للأطفال بأسلوب ممتع وتفاعلي مع مدرسين متخصصين، ومتابعة مستمرة لولي الأمر.", "cta": "كورسات الأطفال"},
+        "teachers": {"title": "أنا مدرس وأريد الالتحاق بالمدارس الدولية", "desc": "ورشة متخصصة للمدرسين الراغبين في الانتقال من المدارس المحلية إلى المدارس الدولية، بشهادة معتمدة.", "cta": "تعرف على الورشة"},
         "howTitle": "كيف تبدأ؟",
         "steps": [
             {"n": "1", "title": "اختبار تحديد المستوى", "desc": "اختبار مجاني قصير يحدد مستواك الحالي بدقة."},
@@ -110,14 +112,14 @@ AR = {
     },
     "teachers": {
         "title": "ورشة المدرسين: من المحلي إلى الدولي",
-        "intro": "ورشة متخصصة لمدرسي اللغة الإنجليزية الراغبين في الانتقال من مدارس محلية إلى مدارس دولية (IB، بريطاني، أمريكي). تغطي الورشة المناهج الدولية، أساليب التدريس التفاعلي، ومهارات التقديم للوظائف الدولية.",
+        "intro": "ورشة متخصصة لجميع المدرسين، في أي مادة، الراغبين في الانتقال من مدارس محلية إلى مدارس دولية (IB، بريطاني، أمريكي). تغطي الورشة المناهج الدولية، أساليب التدريس التفاعلي، ومهارات التقديم للوظائف الدولية.",
         "cta": "احجز مكانك في الورشة",
         "bookTitle": "احجز مكانك في الورشة", "bookDesc": "اترك بياناتك وسيتواصل معك فريقنا لتأكيد الحجز والموعد.",
         "plansTitle": "اختر نظام الورشة", "planGroup": "جروب", "planGroupDesc": "ورشة مع مجموعة من المدرّسين، تبادل خبرات ونقاش مباشر.",
         "planPrivate": "خصوصي", "planPrivateDesc": "جلسات فردية بمواعيد مرنة تناسبك وتركيز كامل على احتياجك.",
         "planPrivatePrice": "السعر بعد التواصل", "bookNow": "احجز الآن", "modeLabel": "نظام الورشة", "payTitle": "طريقة الدفع", "payOnline": "دفع أونلاين", "payContact": "التواصل معي لترتيب الدفع",
         "payNote": "الدفع الإلكتروني قيد التفعيل؛ عند اختياره سيتواصل معك فريقنا لإتمام الدفع بعد تأكيد الحجز.", "whyTitle": "ماذا ستحصل عليه",
-        "bookNotes": "ملاحظات (اختياري)", "bookSubmit": "إرسال طلب الحجز",
+        "addPrivate": "أريد إضافة جلسة برايفت مع المدرب", "addPrivateHint": "جلسة فردية إضافية بعد الورشة، يحدد فريقنا موعدها وسعرها معك.", "bookNotes": "ملاحظات (اختياري)", "bookSubmit": "إرسال طلب الحجز",
         "bookSuccessTitle": "تم استلام طلب الحجز", "bookSuccessDesc": "سيتواصل معك فريقنا في أقرب وقت لتأكيد الحجز.",
         "details": [
             {"label": "المدة", "value": "6 أسابيع"},
@@ -130,6 +132,7 @@ AR = {
         "curriculum": ["مناهج دولية (IB / British / American)", "استراتيجيات تدريس تفاعلي", "معايير تقييم الطلاب دوليًا", "تحضير سيرة ذاتية دولية", "مهارات المقابلات الدولية"],
     },
     "test": {
+        "alreadyTaken": "لقد أجريت اختبار تحديد المستوى من قبل، ويمكن إجراؤه مرة واحدة فقط. إن أردت إعادته تواصل مع مدرّسك أو الإدارة ليسمحوا لك بمحاولة جديدة.",
         "introTitle": "اختبار تحديد المستوى المجاني",
         "introDesc": "أسئلة متدرجة من المستوى المبتدئ حتى المتقدم تغطي القواعد والمفردات والقراءة والاستماع، وتعطيك تقديرًا فوريًا لمستواك.",
         "infoItems": ["مجاني بالكامل", "نتيجة فورية"],
@@ -154,7 +157,7 @@ AR = {
     },
     "team": {
         "title": "فريق العمل", "subtitle": "تعرّف على الفريق الذي يقف وراء الأكاديمية ومدرسينا وتخصصاتهم.",
-        "ownerBadge": "المالك والمدير", "teachersTitle": "المدرسون", "viewProfile": "عرض الصفحة الشخصية ‹",
+        "ownerBadge": "المالك والمدير", "teachersTitle": "المدرسون", "adminsTitle": "الإدارة", "viewProfile": "عرض الصفحة الشخصية ‹",
         "back": "‹ رجوع لفريق العمل", "specialties": "التخصصات", "about": "نبذة تعريفية", "reviews": "آراء الطلاب", "reviewsCount": "تقييم", "empty": "لا يوجد أعضاء بعد.",
     },
     "contact": {
@@ -247,7 +250,7 @@ EN = {
     "home": {
         "eyebrow": "Learn English with a clear plan",
         "title": "Advance your English with a guaranteed path, from where you are now to fluency",
-        "subtitle": "Interactive courses for students, and specialized workshops for teachers moving to international schools. Start with a free level test.",
+        "subtitle": "Interactive courses for students, adults and children, for moving to an international school, or for work, study and travel, plus specialized workshops for teachers. Start with a free level test.",
         "cta1": "Start the level test", "cta2": "Browse courses",
         "chips": ["Live sessions on Zoom", "Group or private", "Free level test"],
         "visual": [{"icon": "🎥", "title": "Live sessions", "desc": "Interact directly with your teacher on Zoom"}, {"icon": "👥", "title": "Group or private", "desc": "Pick the format that suits you"}, {"icon": "📈", "title": "Ongoing follow-up", "desc": "Recordings, files and homework on your page"}],
@@ -255,7 +258,9 @@ EN = {
         "why": [{"title": "Specialist teachers", "desc": "Qualified teachers with continuous internal training."}, {"title": "Full flexibility", "desc": "Group or private, at times that fit your schedule."}, {"title": "Interactive learning", "desc": "Live sessions with recordings, files and homework."}, {"title": "Supporting content", "desc": "Free articles and resources between sessions."}],
         "coursesTitle": "Featured courses", "coursesAll": "View all courses", "from": "From",
         "students": {"title": "I'm a student learning English", "desc": "Test your level for free, join the right course in a group or private track, and track your progress step by step.", "cta": "See courses"},
-        "teachers": {"title": "I'm a teacher growing my career", "desc": "A dedicated workshop for teachers moving from local to international schools, with a certificate.", "cta": "See the workshop"},
+        "adults": {"title": "I'm an adult who wants to speak English", "desc": "Speaking and foundation courses for adults at flexible times, for work, travel or everyday life, in a group or private.", "cta": "Adult courses"},
+        "kids": {"title": "I want my child to learn English", "desc": "Fun, interactive courses for children with specialist teachers, and ongoing follow-up for parents.", "cta": "Kids courses"},
+        "teachers": {"title": "I'm a teacher who wants to join international schools", "desc": "A dedicated workshop for teachers moving from local to international schools, with a certificate.", "cta": "See the workshop"},
         "howTitle": "How it works",
         "steps": [
             {"n": "1", "title": "Free level test", "desc": "A short free test that pinpoints your current level."},
@@ -279,14 +284,14 @@ EN = {
     },
     "teachers": {
         "title": "Teacher Track: Local to International",
-        "intro": "A dedicated workshop for English teachers moving from local schools to international ones (IB, British, American). It covers international curricula, interactive teaching methods, and international job application skills.",
+        "intro": "A dedicated workshop for teachers of any subject moving from local schools to international ones (IB, British, American). It covers international curricula, interactive teaching methods, and international job application skills.",
         "cta": "Book your seat",
         "bookTitle": "Book your seat in the workshop", "bookDesc": "Leave your details and our team will contact you to confirm the booking and date.",
         "plansTitle": "Choose your workshop format", "planGroup": "Group", "planGroupDesc": "Join a cohort of teachers: shared experience and live discussion.",
         "planPrivate": "Private", "planPrivateDesc": "One-to-one sessions at flexible times, fully focused on your needs.",
         "planPrivatePrice": "Price on request", "bookNow": "Book now", "modeLabel": "Workshop format", "payTitle": "Payment method", "payOnline": "Pay online", "payContact": "Contact me to arrange payment",
         "payNote": "Online payment is being enabled; if you choose it, our team will contact you to complete payment once the booking is confirmed.", "whyTitle": "What you get",
-        "bookNotes": "Notes (optional)", "bookSubmit": "Send booking request",
+        "addPrivate": "Add a private session with the trainer", "addPrivateHint": "An extra one-to-one session after the workshop; our team will agree its time and price with you.", "bookNotes": "Notes (optional)", "bookSubmit": "Send booking request",
         "bookSuccessTitle": "Booking request received", "bookSuccessDesc": "Our team will contact you shortly to confirm your booking.",
         "details": [
             {"label": "Duration", "value": "6 weeks"},
@@ -299,6 +304,7 @@ EN = {
         "curriculum": ["International curricula (IB / British / American)", "Interactive teaching strategies", "International assessment standards", "International CV preparation", "International interview skills"],
     },
     "test": {
+        "alreadyTaken": "You have already taken the level test, and it can be taken only once. If you want to retake it, ask your teacher or the admin team to allow a new attempt.",
         "introTitle": "Free level test",
         "introDesc": "Questions from beginner to advanced covering grammar, vocabulary, reading and listening, with an instant estimate of your level.",
         "infoItems": ["Completely free", "Instant result"],
@@ -323,7 +329,7 @@ EN = {
     },
     "team": {
         "title": "Our Team", "subtitle": "Meet the people behind the academy, our teachers and their specialties.",
-        "ownerBadge": "Owner & Director", "teachersTitle": "Teachers", "viewProfile": "View profile ›",
+        "ownerBadge": "Owner & Director", "teachersTitle": "Teachers", "adminsTitle": "Administration", "viewProfile": "View profile ›",
         "back": "‹ Back to team", "specialties": "Specialties", "about": "About", "reviews": "Student reviews", "reviewsCount": "reviews", "empty": "No team members yet.",
     },
     "contact": {

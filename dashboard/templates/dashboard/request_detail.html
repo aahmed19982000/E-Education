@@ -19,6 +19,7 @@
       {% if obj.kind == 'teacher' %}
         <div><dt>الطلب</dt><dd>حجز مكان في ورشة المدرّسين — {{ obj.get_mode_display }}</dd></div>
         <div><dt>طريقة الدفع</dt><dd>{{ obj.get_payment_method_display }}</dd></div>
+        {% if obj.kind == 'teacher' %}<div><dt>جلسة برايفت إضافية</dt><dd>{% if obj.add_private_session %}نعم، يريد إضافتها{% else %}لا{% endif %}</dd></div>{% endif %}
       {% else %}
         <div><dt>الكورس</dt><dd>{{ obj.course.title_ar|default:"—" }}</dd></div>
         <div><dt>النظام</dt><dd>{{ obj.get_mode_display }}{% if obj.price %} — {{ obj.price }} ج.م{% endif %}</dd></div>

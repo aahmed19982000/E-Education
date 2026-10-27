@@ -26,6 +26,9 @@ from .models import Attendance, Certificate, Course, Payment, Enrollment, Enroll
 
 def course_list(request):
     courses = Course.objects.filter(is_published=True, audience=Course.AUDIENCE_STUDENTS)
+    age = request.GET.get("for")
+    if age in (Course.AGE_ADULTS, Course.AGE_KIDS):
+        courses = courses.filter(age_group__in=[age, Course.AGE_ALL])
     tr = get_translations(request.lang)["courses"]
     features = SiteSettings.load().plan_features(request.lang)
     plan_meta = [  # (mode, label, hint)

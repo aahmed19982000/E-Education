@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="dash-card">
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     <div class="dash-form-grid">
       <div class="dash-field"><label>{{ form.order.label }}</label>{{ form.order }}{{ form.order.errors }}</div>
@@ -16,10 +16,13 @@
       <div class="dash-field"><label>{{ form.title_en.label }}</label>{{ form.title_en }}{{ form.title_en.errors }}</div>
     </div>
     <div class="dash-form-grid full">
+      <div class="dash-field"><label>{{ form.thumbnail.label }}</label>
+        {% if instance and instance.thumbnail %}<img src="{{ instance.thumbnail.url }}" alt="" style="max-width:220px;border-radius:10px;display:block;margin-bottom:8px;">{% endif %}
+        {{ form.thumbnail }}{{ form.thumbnail.errors }}</div>
       <div class="dash-field"><label>{{ form.excerpt_ar.label }}</label>{{ form.excerpt_ar }}{{ form.excerpt_ar.errors }}</div>
       <div class="dash-field"><label>{{ form.excerpt_en.label }}</label>{{ form.excerpt_en }}{{ form.excerpt_en.errors }}</div>
-      <div class="dash-field"><label>{{ form.body_ar.label }}</label>{{ form.body_ar }}{{ form.body_ar.errors }}</div>
-      <div class="dash-field"><label>{{ form.body_en.label }}</label>{{ form.body_en }}{{ form.body_en.errors }}</div>
+      <div class="dash-field"><label>{{ form.body_ar.label }}</label><div class="rte" data-rte>{{ form.body_ar }}</div>{{ form.body_ar.errors }}</div>
+      <div class="dash-field"><label>{{ form.body_en.label }}</label><div class="rte" data-rte>{{ form.body_en }}</div>{{ form.body_en.errors }}</div>
     </div>
     <div class="dash-form-actions">
       <button type="submit" class="btn btn-primary">حفظ</button>
@@ -27,4 +30,38 @@
     </div>
   </form>
 </div>
+<style>
+.rte-bar{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.rte-bar button{border:1px solid var(--border);background:#fff;border-radius:6px;padding:4px 10px;font:inherit;cursor:pointer}
+.rte-area{min-height:200px;border:1px solid var(--border);border-radius:8px;padding:12px;background:#fff;line-height:1.9;overflow:auto}
+.rte-area:focus{outline:2px solid var(--primary)}
+</style>
+<script>
+(function(){
+  var TOOLS=[["B","bold","غامق"],["I","italic","مائل"],["U","underline","تسطير"],["H2","formatBlock:h2","عنوان"],["H3","formatBlock:h3","عنوان فرعي"],["¶","formatBlock:p","فقرة"],["• قائمة","insertUnorderedList","قائمة نقطية"],["1. قائمة","insertOrderedList","قائمة مرقمة"],["❝","formatBlock:blockquote","اقتباس"],["رابط","link","إضافة رابط"],["مسح التنسيق","removeFormat","إزالة التنسيق"]];
+  document.querySelectorAll('[data-rte]').forEach(function(box){
+    var ta=box.querySelector('textarea'); ta.style.display='none';
+    var bar=document.createElement('div'); bar.className='rte-bar';
+    var area=document.createElement('div'); area.className='rte-area'; area.contentEditable='true';
+    if(ta.value.indexOf('<')>-1){ area.innerHTML=ta.value; }
+    else { ta.value.split(/\n{2,}/).filter(Boolean).forEach(function(t){var d=document.createElement('p'); d.textContent=t; area.appendChild(d);}); }
+    function sync(){ta.value=area.innerHTML;}
+    TOOLS.forEach(function(t){
+      var b=document.createElement('button'); b.type='button'; b.textContent=t[0]; b.title=t[2];
+      b.addEventListener('mousedown',function(e){e.preventDefault();});
+      b.addEventListener('click',function(){
+        area.focus();
+        if(t[1]==='link'){var u=prompt('الرابط (https://...)'); if(u) document.execCommand('createLink',false,u);}
+        else if(t[1].indexOf(':')>-1){var p=t[1].split(':'); document.execCommand(p[0],false,p[1]);}
+        else document.execCommand(t[1],false,null);
+        sync();
+      });
+      bar.appendChild(b);
+    });
+    area.addEventListener('input',sync);
+    box.appendChild(bar); box.appendChild(area);
+    box.closest('form').addEventListener('submit',sync);
+  });
+})();
+</script>
 {% endblock %}

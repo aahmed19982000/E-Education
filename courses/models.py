@@ -24,6 +24,11 @@ class Course(models.Model):
     AUDIENCE_TEACHERS = "teachers"
     AUDIENCE_CHOICES = [(AUDIENCE_STUDENTS, "طلاب / أشخاص عاديون"), (AUDIENCE_TEACHERS, "مدرّسون")]
 
+    AGE_ALL = "all"
+    AGE_ADULTS = "adults"
+    AGE_KIDS = "kids"
+    AGE_CHOICES = [(AGE_ALL, "الجميع"), (AGE_ADULTS, "بالغون"), (AGE_KIDS, "أطفال")]
+
     slug = models.SlugField(max_length=255, unique=True, blank=True, allow_unicode=True)
     title_ar = models.CharField(max_length=200)
     title_en = models.CharField(max_length=200, blank=True)
@@ -31,6 +36,8 @@ class Course(models.Model):
     description_en = models.TextField(blank=True)
 
     audience = models.CharField(max_length=10, choices=AUDIENCE_CHOICES, default=AUDIENCE_STUDENTS)
+    # Who a student course is for; the home page sends adults and parents to their own list.
+    age_group = models.CharField(max_length=10, choices=AGE_CHOICES, default=AGE_ALL)
     offers_group = models.BooleanField(default=True)
     offers_semi_private = models.BooleanField(default=False)
     offers_private = models.BooleanField(default=True)
@@ -446,6 +453,8 @@ class EnrollmentRequest(models.Model):
     mode = models.CharField(max_length=15, choices=MODE_CHOICES, default=MODE_GROUP)
     preferred_times = models.TextField(blank=True)
     notes = models.TextField(blank=True)
+    # Workshop bookings: the teacher also wants a private session on top of the workshop.
+    add_private_session = models.BooleanField(default=False)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_NEW)
     payment_status = models.CharField(max_length=10, choices=PAYMENT_CHOICES, default=PAYMENT_UNPAID)

@@ -10,7 +10,7 @@
     <div class="articles-grid" style="text-align:start;">
       {% for a in articles %}
         <a class="article-card lg" href="{% url 'articles:detail' slug=a.slug %}">
-          <div class="thumb"></div>
+          <div class="thumb"{% if a.thumbnail_url %} style="background-image:url('{{ a.thumbnail_url }}');background-size:cover;background-position:center;"{% endif %}></div>
           <div class="body">
             <div class="cat">{{ a.category }}</div>
             <div class="title">{{ a.title }}</div>

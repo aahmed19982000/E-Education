@@ -24,6 +24,22 @@
       </a>
     {% endif %}
 
+    {% if admins %}
+      <h2 class="team-section-title">{{ t.team.adminsTitle }}</h2>
+      <div class="team-grid">
+        {% for m in admins %}
+          <a class="team-card" href="{% url 'team:detail' slug=m.slug %}">
+            <div class="team-avatar">
+              {% if m.photo_url %}<img src="{{ m.photo_url }}" alt="{{ m.name }}">{% else %}<span>{{ m.name|slice:":1" }}</span>{% endif %}
+            </div>
+            <div class="team-name">{{ m.name }}</div>
+            <div class="team-role">{{ m.role }}</div>
+            {% if m.bio %}<p class="team-bio">{{ m.bio|truncatechars:120 }}</p>{% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     {% if members %}
       <h2 class="team-section-title">{{ t.team.teachersTitle }}</h2>
       <div class="team-grid">
@@ -40,7 +56,7 @@
           </a>
         {% endfor %}
       </div>
-    {% elif not owner %}
+    {% elif not owner and not admins %}
       <p class="footnote">{{ t.team.empty }}</p>
     {% endif %}
   </div>

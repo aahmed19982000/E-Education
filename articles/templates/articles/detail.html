@@ -8,10 +8,10 @@
     <div class="article-detail-cat">{{ article.category }}</div>
     <h1 class="article-detail-title">{{ article.title }}</h1>
     <div class="article-detail-meta">{{ article.read_time }}</div>
-    <div class="article-detail-cover"></div>
+    <div class="article-detail-cover"{% if article.thumbnail_url %} style="background-image:url('{{ article.thumbnail_url }}');background-size:cover;background-position:center;"{% endif %}></div>
     <div class="article-detail-body">
       <p>{{ article.excerpt }}</p>
-      <p>{{ article.body|default:t.articles.bodyPlaceholder }}</p>
+      {% if article.body %}{{ article.body_html }}{% else %}<p>{{ t.articles.bodyPlaceholder }}</p>{% endif %}
     </div>
   </div>
 {% endblock %}

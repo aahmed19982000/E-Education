@@ -29,6 +29,12 @@
       <div class="td-level {% if s.level is None %}none{% endif %}">
         <span>نتيجة اختبار تحديد المستوى</span>
         <b>{% if s.level is not None %}{{ s.level }}%{% else %}لم يختبر بعد{% endif %}</b></div>
+      {% if s.level is not None %}
+      <form method="post" action="{% url 'dashboard:placement_retake' s.enrollment.user_id %}" onsubmit="return confirm('السماح للطالب بإعادة الاختبار مرة واحدة؟')">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button class="btn btn-outline" type="submit">السماح بإعادة الاختبار</button>
+      </form>
+      {% endif %}
     </div>
   </div>{% endfor %}</div>
 {% else %}<div class="dash-card"><p class="td-empty" style="margin:0;">لا يوجد طلاب مطابقون.</p></div>{% endif %}

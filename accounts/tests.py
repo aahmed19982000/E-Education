@@ -98,6 +98,8 @@ class StaffLoginRedirectTests(TestCase):
         from django.urls import reverse
         User.objects.create_user("s", "s@example.com", "pw")
         staff = User.objects.create_user("t", "t@example.com", "pw", is_staff=True)
+        staff.profile.role = "manager"  # the link follows real dashboard access, not just is_staff
+        staff.profile.save()
         self.client.login(username="s", password="pw")
         self.assertNotContains(self.client.get(reverse("courses:list")), 'href="/dashboard/"')
         self.client.login(username="t", password="pw")

@@ -30,8 +30,14 @@ WEEKDAYS = [
 
 
 class TeamMember(models.Model):
+    KIND_TEACHER = "teacher"
+    KIND_ADMIN = "admin"
+    KIND_CHOICES = [(KIND_TEACHER, "مدرّس"), (KIND_ADMIN, "إداري")]
+
     slug = models.SlugField(max_length=255, unique=True, blank=True, allow_unicode=True)
     order = models.PositiveIntegerField(default=0)
+    # Administrators get their own section on the public team page, with photo and details.
+    kind = models.CharField(max_length=10, choices=KIND_CHOICES, default=KIND_TEACHER)
     is_owner = models.BooleanField(default=False)
 
     name_ar = models.CharField(max_length=150)
@@ -82,6 +88,7 @@ class TeamMember(models.Model):
         return {
             "slug": self.slug,
             "is_owner": self.is_owner,
+            "kind": self.kind,
             "name": pick(self.name_ar, self.name_en),
             "role": pick(self.role_ar, self.role_en),
             "specialties": split_list(pick(self.specialties_ar, self.specialties_en)),

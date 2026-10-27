@@ -1,6 +1,8 @@
 from decimal import Decimal
 
 from django import forms
+
+from core.richtext import clean_html
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.db import models
@@ -45,7 +47,7 @@ class ArticleForm(StyledFormMixin, forms.ModelForm):
             "title_ar", "title_en",
             "excerpt_ar", "excerpt_en",
             "body_ar", "body_en",
-            "read_time_ar", "read_time_en",
+            "read_time_ar", "read_time_en", "thumbnail",
         ]
         widgets = {
             "excerpt_ar": forms.Textarea(attrs={"rows": 3}),
@@ -60,18 +62,25 @@ class ArticleForm(StyledFormMixin, forms.ModelForm):
             "excerpt_ar": "مقتطف (عربي)", "excerpt_en": "مقتطف (إنجليزي)",
             "body_ar": "نص المقال (عربي)", "body_en": "نص المقال (إنجليزي)",
             "read_time_ar": "مدة القراءة (عربي)", "read_time_en": "مدة القراءة (إنجليزي)",
+            "thumbnail": "الصورة المصغرة",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._style_fields()
 
+    def clean_body_ar(self):
+        return clean_html(self.cleaned_data["body_ar"]) if "<" in self.cleaned_data["body_ar"] else self.cleaned_data["body_ar"]
+
+    def clean_body_en(self):
+        return clean_html(self.cleaned_data["body_en"]) if "<" in self.cleaned_data["body_en"] else self.cleaned_data["body_en"]
+
 
 class TeamMemberForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = TeamMember
         fields = [
-            "is_owner", "order",
+            "is_owner", "kind", "order",
             "name_ar", "name_en",
             "role_ar", "role_en",
             "specialties_ar", "specialties_en",
@@ -91,7 +100,7 @@ class TeamMemberForm(StyledFormMixin, forms.ModelForm):
             "youtube_url": forms.URLInput(attrs={"placeholder": "https://www.youtube.com/watch?v=..."}),
         }
         labels = {
-            "is_owner": "المالك والمدير", "order": "الترتيب",
+            "is_owner": "المالك والمدير", "kind": "فئة العضو (إداري / مدرّس)", "order": "الترتيب",
             "name_ar": "الاسم (عربي)", "name_en": "الاسم (إنجليزي)",
             "role_ar": "المسمى الوظيفي (عربي)", "role_en": "المسمى الوظيفي (إنجليزي)",
             "specialties_ar": "التخصصات (عربي)", "specialties_en": "التخصصات (إنجليزي)",
@@ -486,7 +495,7 @@ class SiteSettingsForm(StyledFormMixin, forms.ModelForm):
 class CourseForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Course
-        fields = ["title_ar", "title_en", "description_ar", "description_en", "audience",
+        fields = ["title_ar", "title_en", "description_ar", "description_en", "audience", "age_group",
                   "offers_group", "offers_semi_private", "offers_private",
                   "price_group", "price_semi_private", "price_private", "is_published"]
         widgets = {
@@ -496,7 +505,7 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
         labels = {
             "title_ar": "اسم الكورس (عربي)", "title_en": "اسم الكورس (إنجليزي — اختياري)",
             "description_ar": "الوصف (عربي)", "description_en": "الوصف (إنجليزي — اختياري)",
-            "audience": "نوع الكورس", "offers_group": "متاح Group", "offers_semi_private": "متاح Semi private", "offers_private": "متاح Private",
+            "audience": "نوع الكورس", "age_group": "الفئة العمرية", "offers_group": "متاح Group", "offers_semi_private": "متاح Semi private", "offers_private": "متاح Private",
             "price_group": "سعر Group (ج.م)", "price_semi_private": "سعر Semi private (ج.م)", "price_private": "سعر Private (ج.م)",
             "is_published": "منشور على الموقع",
         }
@@ -504,6 +513,10 @@ class CourseForm(StyledFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._style_fields()
+        self.fields["age_group"].required = False
+
+    def clean_age_group(self):
+        return self.cleaned_data.get("age_group") or Course.AGE_ALL
 
     def clean(self):
         cleaned = super().clean()

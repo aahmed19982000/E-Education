@@ -1,3 +1,4 @@
+from core.richtext import render_body
 from django.db import models
 from django.utils.text import slugify
 
@@ -17,6 +18,8 @@ class Article(models.Model):
 
     body_ar = models.TextField(blank=True)
     body_en = models.TextField(blank=True)
+
+    thumbnail = models.ImageField(upload_to="articles/", blank=True)
 
     read_time_ar = models.CharField(max_length=50)
     read_time_en = models.CharField(max_length=50)
@@ -42,5 +45,7 @@ class Article(models.Model):
             "title": self.title_ar if lang == "ar" else self.title_en,
             "excerpt": self.excerpt_ar if lang == "ar" else self.excerpt_en,
             "body": self.body_ar if lang == "ar" else self.body_en,
+            "body_html": render_body(self.body_ar if lang == "ar" else self.body_en),
+            "thumbnail_url": self.thumbnail.url if self.thumbnail else "",
             "read_time": self.read_time_ar if lang == "ar" else self.read_time_en,
         }

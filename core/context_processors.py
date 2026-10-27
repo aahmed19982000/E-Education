@@ -1,5 +1,7 @@
 from django.conf import settings
 
+from dashboard.permissions import get_dashboard_role
+
 from .models import SiteSettings
 from .translations import get_translations
 
@@ -24,6 +26,8 @@ def site_language(request):
         "SITE_URL": settings.SITE_URL,
         "CANONICAL_URL": settings.SITE_URL + request.path,
         "META_DESCRIPTION": META_DESCRIPTION[lang],
+        # Only real admins / teachers get the dashboard link; students never see it.
+        "HAS_DASHBOARD": get_dashboard_role(getattr(request, "user", None)) is not None,
         "SITE_WHATSAPP_URL": site.whatsapp_url,
         "PLAN_FEATURES": site.plan_features(lang),
     }

@@ -11,6 +11,7 @@ urlpatterns = [
     path("", views.index, name="index"),
 
 
+    path("students/<int:user_pk>/placement-retake/", views.placement_retake, name="placement_retake"),
     path("teacher/schedule/", views_teacher.teacher_schedule, name="teacher_schedule"),
     path("teacher/students/", views_teacher.teacher_students, name="teacher_students"),
     path("teacher/lessons/<int:pk>/", views_teacher.teacher_lesson, name="teacher_lesson"),

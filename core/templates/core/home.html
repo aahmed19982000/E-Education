@@ -64,6 +64,16 @@
       <a class="hm-btn accent" href="{% url 'courses:list' %}">{{ t.home.students.cta }}</a>
     </div>
     <div class="hm-aud light">
+      <h3>{{ t.home.adults.title }}</h3>
+      <p>{{ t.home.adults.desc }}</p>
+      <a class="hm-btn primary" href="{% url 'courses:list' %}?for=adults">{{ t.home.adults.cta }}</a>
+    </div>
+    <div class="hm-aud dark">
+      <h3>{{ t.home.kids.title }}</h3>
+      <p>{{ t.home.kids.desc }}</p>
+      <a class="hm-btn accent" href="{% url 'courses:list' %}?for=kids">{{ t.home.kids.cta }}</a>
+    </div>
+    <div class="hm-aud light">
       <h3>{{ t.home.teachers.title }}</h3>
       <p>{{ t.home.teachers.desc }}</p>
       <a class="hm-btn primary" href="{% url 'core:teachers' %}">{{ t.home.teachers.cta }}</a>
@@ -88,7 +98,7 @@
     <div class="cards-grid">
       {% for a in home_articles %}
         <a class="article-card" href="{% url 'articles:detail' slug=a.slug %}">
-          <div class="thumb"></div>
+          <div class="thumb"{% if a.thumbnail_url %} style="background-image:url('{{ a.thumbnail_url }}');background-size:cover;background-position:center;"{% endif %}></div>
           <div class="body">
             <div class="cat">{{ a.category }}</div>
             <div class="title">{{ a.title }}</div>

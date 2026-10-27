@@ -293,3 +293,39 @@ class EnglishOnlyTests(TestCase):
         self.assertContains(self.client.get(reverse("courses:list")), 'dir="rtl"')
         self.assertNotContains(self.client.get(reverse("quiz:intro")), "btn-lang")
         self.assertContains(self.client.get(reverse("courses:list")), "btn-lang")
+
+
+class PlacementOnceTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        from .models import PlacementResult
+        self.student = User.objects.create_user("stu", "stu@x.com", "pw")
+        self.teacher = User.objects.create_user("tea", "tea@x.com", "pw", is_staff=True)
+        self.admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
+        PlacementResult.objects.create(user=self.student, percent=50)
+
+    def test_second_attempt_is_blocked(self):
+        self.client.force_login(self.student)
+        self.assertContains(self.client.get(reverse("quiz:intro")), "can be taken only once")
+        resp = self.client.post(reverse("quiz:start"))
+        self.assertRedirects(resp, reverse("quiz:intro"), fetch_redirect_response=False)
+
+    def test_admin_allows_one_more_attempt_and_it_is_used_up(self):
+        self.client.force_login(self.admin)
+        self.client.post(reverse("dashboard:placement_retake", args=[self.student.pk]))
+        self.student.profile.refresh_from_db()
+        self.assertTrue(self.student.profile.placement_retake_allowed)
+        self.client.force_login(self.student)
+        make_question(1)
+        self.client.post(reverse("quiz:start"))
+        self.client.post(reverse("quiz:question"), {"nav": "finish"})
+        self.client.get(reverse("quiz:result"))
+        self.student.profile.refresh_from_db()
+        self.assertFalse(self.student.profile.placement_retake_allowed)
+
+    def test_teacher_cannot_allow_a_student_who_is_not_theirs(self):
+        self.teacher.profile.role = "teacher"
+        self.teacher.profile.save()
+        self.client.force_login(self.teacher)
+        resp = self.client.post(reverse("dashboard:placement_retake", args=[self.student.pk]))
+        self.assertEqual(resp.status_code, 403)

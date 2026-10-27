@@ -145,3 +145,51 @@ class OffersLayoutTests(TestCase):
         self.assertContains(page, "غير متاح لهذا الكورس", count=2)
         self.assertEqual(html.count("c-plan-tab is-active"), 1)
         self.assertNotIn("c-plan-tab is-active is-off", html)
+
+
+class AudienceAndDashboardMenuTests(TestCase):
+    def test_home_offers_adults_and_kids_paths(self):
+        page = self.client.get(reverse("core:home"))
+        self.assertContains(page, "courses/?for=adults")
+        self.assertContains(page, "courses/?for=kids")
+
+    def test_courses_list_filters_by_age_group(self):
+        from courses.models import Course
+        Course.objects.create(title_ar="للأطفال", is_published=True, age_group="kids")
+        Course.objects.create(title_ar="للكبار", is_published=True, age_group="adults")
+        Course.objects.create(title_ar="للجميع", is_published=True)
+        page = self.client.get(reverse("courses:list") + "?for=kids")
+        self.assertContains(page, "للأطفال")
+        self.assertContains(page, "للجميع")
+        self.assertNotContains(page, "للكبار")
+
+    def test_student_never_gets_the_dashboard_link_or_access(self):
+        student = User.objects.create_user("stu", "stu@x.com", "pw")
+        self.client.force_login(student)
+        self.assertNotContains(self.client.get(reverse("core:home")), 'href="/dashboard/"')
+        self.assertRedirects(self.client.get(reverse("dashboard:index")), reverse("core:home"), fetch_redirect_response=False)
+
+
+class RichTextTests(TestCase):
+    def test_scripts_and_unsafe_links_are_stripped(self):
+        from .richtext import clean_html
+        out = clean_html('<p onclick="x()">Hi <script>alert(1)</script><a href="javascript:alert(1)">bad</a> <strong>ok</strong></p>')
+        self.assertNotIn("script", out)
+        self.assertNotIn("javascript", out)
+        self.assertNotIn("onclick", out)
+        self.assertIn("<strong>ok</strong>", out)
+
+    def test_plain_text_becomes_paragraphs(self):
+        from .richtext import render_body
+        self.assertIn("<p>one</p>", render_body("one\n\ntwo"))
+
+
+class TeamKindTests(TestCase):
+    def test_admins_get_their_own_section_with_details(self):
+        from team.models import TeamMember
+        TeamMember.objects.create(name_ar="مديرة العمليات", role_ar="إدارة", bio_ar="نبذة عن الإدارية", kind="admin")
+        TeamMember.objects.create(name_ar="مدرس واحد", role_ar="مدرس")
+        page = self.client.get(reverse("team:list"))
+        self.assertContains(page, "الإدارة")
+        self.assertContains(page, "نبذة عن الإدارية")
+        self.assertContains(page, "مدرس واحد")

@@ -91,6 +91,10 @@
           </div>
           <p class="ws-pay-note">{{ t.teachers.payNote }}</p>
         </div>
+        <label class="ws-mode" style="display:flex;gap:10px;align-items:flex-start;text-align:start;">
+          <input type="checkbox" name="add_private_session" value="on" {% if form.add_private_session.value %}checked{% endif %}>
+          <span><b>{{ t.teachers.addPrivate }}</b><br><small>{{ t.teachers.addPrivateHint }}</small></span>
+        </label>
         <textarea class="field" name="notes" rows="4" placeholder="{{ t.teachers.bookNotes }}">{{ form.notes.value|default:'' }}</textarea>
         <button class="ws-btn primary" type="submit">{{ t.teachers.bookSubmit }}</button>
       </form>

@@ -11,9 +11,14 @@
       {% for i in info_items %}<div>{{ i }}</div>{% endfor %}
     </div>
 
+    {% if already_tested %}
+      <p class="lead" style="margin-inline:auto;"><b>{{ t.test.alreadyTaken }}</b></p>
+      <a class="btn btn-lg btn-primary" href="{% url 'courses:mine' %}">{{ t.nav.mycourses }}</a>
+    {% else %}
     <form method="post" action="{% url 'quiz:start' %}">
       {% csrf_token %}
       <button class="btn btn-lg btn-primary" type="submit">{{ t.test.startBtn }}</button>
     </form>
+    {% endif %}
   </div>
 {% endblock %}

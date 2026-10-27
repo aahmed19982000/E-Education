@@ -11,6 +11,15 @@ from .grading import format_marks, grade
 from .models import PlacementResult, Question, QuizSettings
 
 
+def _already_tested(request):
+    """A signed-in student who already has a result may not retake the test unless staff allowed it."""
+    user = request.user
+    if not user.is_authenticated or not PlacementResult.objects.filter(user=user).exists():
+        return False
+    profile = getattr(user, "profile", None)
+    return not (profile and profile.placement_retake_allowed)
+
+
 def intro(request):
     settings = QuizSettings.load()
     lang = request.lang
@@ -22,6 +31,7 @@ def intro(request):
     else:
         time_item = t["noTimeLimit"]
     return render(request, "quiz/intro.html", {
+        "already_tested": _already_tested(request),
         "info_items": [
             t["infoItems"][0],
             count_phrase(Question.objects.count(), "question", lang),
@@ -33,6 +43,8 @@ def intro(request):
 
 @require_POST
 def start(request):
+    if _already_tested(request):
+        return redirect("quiz:intro")
     Attempt.start(request)
     return redirect("quiz:question")
 
@@ -141,6 +153,10 @@ def result(request):
     # Remember a signed-in student's result (once per attempt) for their course pages.
     if request.user.is_authenticated and not attempt.data.get("recorded"):
         PlacementResult.objects.create(user=request.user, percent=score["percent"])
+        profile = getattr(request.user, "profile", None)
+        if profile and profile.placement_retake_allowed:
+            profile.placement_retake_allowed = False  # the extra attempt is used up
+            profile.save(update_fields=["placement_retake_allowed"])
         attempt.data["recorded"] = True
         attempt.save()
 

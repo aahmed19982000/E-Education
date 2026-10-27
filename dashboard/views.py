@@ -146,7 +146,7 @@ def articles_list(request):
 def article_form(request, pk=None):
     instance = get_object_or_404(Article, pk=pk) if pk else None
     if request.method == "POST":
-        form = ArticleForm(request.POST, instance=instance)
+        form = ArticleForm(request.POST, request.FILES, instance=instance)
         if form.is_valid():
             form.save()
             messages.success(request, "تم حفظ المقال بنجاح.")
@@ -754,6 +754,25 @@ def student_detail(request, user_pk):
     ctx.update({"student": student, "phone": getattr(getattr(student, "profile", None), "phone", ""),
                 "items": items, "placements": student.placement_results.all(), "latest": results.get(student.pk)})
     return render(request, "dashboard/student_detail.html", ctx)
+
+
+@dashboard_required
+@require_POST
+def placement_retake(request, user_pk):
+    """Let a student sit the level test once more. Admins: any student; teachers: only their own."""
+    student = get_object_or_404(User, pk=user_pk, is_staff=False)
+    role = request.dashboard_role
+    if role == Profile.ROLE_TEACHER:
+        member = getattr(getattr(request.user, "profile", None), "team_member", None)
+        if member is None or not Enrollment.objects.filter(user=student, cohort__teacher=member).exists():
+            raise PermissionDenied
+    elif not can_access(role, SECTION_COURSES, "write"):
+        raise PermissionDenied
+    profile, _ = Profile.objects.get_or_create(user=student)
+    profile.placement_retake_allowed = True
+    profile.save(update_fields=["placement_retake_allowed"])
+    messages.success(request, "تم السماح للطالب بإعادة اختبار تحديد المستوى مرة واحدة.")
+    return redirect(_safe_next(request, reverse("dashboard:index")))
 
 
 def _conflict_messages(cohort):
