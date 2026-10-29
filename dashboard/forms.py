@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
@@ -7,8 +9,7 @@ from accounts.models import Profile
 from articles.models import Article
 from courses.models import Attendance, Cohort, CohortSlot, CourseLevel, EnrollmentRequest, Course, Enrollment, Lesson, LessonAttachment
 from core.models import SiteSettings
-from exams import bulk
-from exams.models import Exam
+from exams.models import Exam, ExamQuestion
 from team.models import VIDEO_MAX_MB, TeacherAvailability, TeamMember, TeamReview
 from quiz.audio import AudioDecodeError, compress_audio
 from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS, Category, Question, QuizSettings
@@ -647,8 +648,7 @@ AvailabilityFormSet = forms.inlineformset_factory(TeamMember, TeacherAvailabilit
 # --- Exams ----------------------------------------------------------------------
 
 class ExamForm(StyledFormMixin, forms.ModelForm):
-    """Every question goes in one text box (see exams/bulk.py for the format)."""
-    questions_text = forms.CharField(label="الأسئلة", required=False, widget=forms.Textarea(attrs={"rows": 18, "dir": "auto"}))
+    """The exam's own settings; its questions are added one by one (ExamQuestionForm)."""
 
     class Meta:
         model = Exam
@@ -660,20 +660,187 @@ class ExamForm(StyledFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance.pk and not self.is_bound:
-            self.fields["questions_text"].initial = bulk.dump(self.instance)
-        self.parsed = []
         self._style_fields()
 
-    def clean_questions_text(self):
-        text = self.cleaned_data["questions_text"]
+    def clean(self):
+        cleaned = super().clean()
+        has_questions = self.instance.pk and self.instance.questions.exists()
+        if cleaned.get("is_published") and not has_questions:
+            self.add_error("is_published", "أضف سؤالًا واحدًا على الأقل قبل النشر.")
+        return cleaned
+
+
+class ExamQuestionForm(StyledFormMixin, forms.ModelForm):
+    """One exam question, built like a placement-test question: a type (normal / reading / listening),
+    the question, and its answer (multiple choice with option rows, written, or spoken)."""
+
+    content = forms.ChoiceField(
+        label="نوع السؤال",
+        choices=[
+            (ExamQuestion.CONTENT_STANDARD, "سؤال عادي"),
+            (ExamQuestion.CONTENT_READING, "قراءة (مع نص)"),
+            (ExamQuestion.CONTENT_LISTENING, "استماع (مع مقطع صوتي)"),
+        ],
+        initial=ExamQuestion.CONTENT_STANDARD,
+        widget=forms.RadioSelect,
+    )
+    kind = forms.ChoiceField(label="طريقة الإجابة", choices=ExamQuestion.KIND_CHOICES,
+                             initial=ExamQuestion.KIND_MCQ, widget=forms.RadioSelect)
+    correct_index = forms.IntegerField(min_value=0, max_value=MAX_OPTIONS - 1, widget=forms.HiddenInput, required=False)
+    position = forms.ChoiceField(
+        label="مكان السؤال في الامتحان", required=False,
+        error_messages={"invalid_choice": "هذا المكان لم يعد موجودًا، اختر مكانًا آخر."},
+    )
+
+    class Meta:
+        model = ExamQuestion
+        fields = ["points", "passage", "audio_file", "audio_label", "text"]
+        widgets = {
+            "passage": forms.Textarea(attrs={"rows": 5, "dir": "auto"}),
+            "text": forms.Textarea(attrs={"rows": 2, "dir": "auto"}),
+            "audio_file": forms.FileInput(attrs={"accept": "audio/*"}),
+            "points": forms.NumberInput(attrs={"step": "0.5", "min": "0"}),
+        }
+        labels = {"points": "درجة السؤال", "passage": "نص القراءة", "audio_file": "المقطع الصوتي",
+                  "audio_label": "وصف المقطع", "text": "نص السؤال"}
+
+    def __init__(self, *args, exam, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.exam = exam
+        self.instance.exam = exam
+        self.remove_audio = False
+        # Students already answered it: changing the way it is answered would break their answers.
+        self.answered = bool(self.instance.pk and self.instance.answers.exists())
+        self._init_position()
+        instance = self.instance
+        if instance.pk:
+            self.fields["content"].initial = instance.content
+            self.fields["kind"].initial = instance.kind
+            self.fields["correct_index"].initial = instance.correct_index or 0
+            options = list(instance.options or [])
+        else:
+            options = []
+            self.fields["correct_index"].initial = 0
+        self.initial_options = [options[i] if i < len(options) else "" for i in range(max(len(options), 4))]
+        self._style_fields()
+
+    def _ordered(self):
+        return list(self.exam.questions.order_by("order", "pk")) if self.exam.pk else []
+
+    def _init_position(self):
+        """Position dropdown: "at the start" or "after question N" for every other question."""
+        ordered = self._ordered()
+        others = [q for q in ordered if q.pk != self.instance.pk]
+        choices = [("start", "في بداية الامتحان")]
+        for number, q in enumerate(ordered, start=1):
+            if q.pk == self.instance.pk:
+                continue
+            text = q.text if len(q.text) <= 60 else q.text[:60] + "…"
+            choices.append((str(q.pk), f"بعد السؤال {number}: {text}"))
+        self.fields["position"].choices = choices
+        if self.instance.pk:
+            before = [q for q in others if (q.order, q.pk) < (self.instance.order, self.instance.pk)]
+            self.fields["position"].initial = str(before[-1].pk) if before else "start"
+        else:
+            self.fields["position"].initial = str(others[-1].pk) if others else "start"
+
+    def _place(self, instance):
+        """Put `instance` at the chosen position and renumber the exam's questions 1..n."""
+        position = self.cleaned_data.get("position")
+        others = [q for q in self._ordered() if q.pk != instance.pk]
+        if position == "start":
+            index = 0
+        elif position:
+            pks = [q.pk for q in others]
+            index = pks.index(int(position)) + 1 if int(position) in pks else len(others)
+        else:
+            index = len(others)
+        ordered = others[:index] + [instance] + others[index:]
+        changed = []
+        for number, q in enumerate(ordered, start=1):
+            if q.order != number:
+                q.order = number
+                changed.append(q)
+        ExamQuestion.objects.bulk_update(changed, ["order"])
+
+    def option_rows(self):
+        """Rows for the template: submitted values on a re-render, else the saved ones."""
+        rows = self.data.getlist("option_ar") if self.is_bound else list(self.initial_options)
+        while len(rows) < MIN_OPTIONS:
+            rows.append("")
+        return [{"index": i, "ar": a} for i, a in enumerate(rows[:MAX_OPTIONS])]
+
+    def clean_audio_file(self):
+        audio = self.cleaned_data.get("audio_file")
+        if not audio or "audio_file" not in self.files:
+            return audio  # nothing new uploaded
+        if audio.size > AUDIO_MAX_MB * 1024 * 1024:
+            raise forms.ValidationError(f"حجم الملف أكبر من {AUDIO_MAX_MB} ميجابايت.")
         try:
-            self.parsed = bulk.parse(text)
-        except bulk.BulkError as exc:
-            raise forms.ValidationError(exc.errors)
-        if self.data.get("is_published") and not self.parsed:
-            raise forms.ValidationError("اكتب سؤالًا واحدًا على الأقل قبل النشر.")
-        return text
+            return compress_audio(audio)
+        except AudioDecodeError:
+            raise forms.ValidationError("تعذّرت قراءة الملف. تأكد أنه مقطع صوتي سليم.")
+
+    def clean(self):
+        cleaned = super().clean()
+        content, kind = cleaned.get("content"), cleaned.get("kind")
+        if self.answered and kind and kind != self.instance.kind:
+            self.add_error("kind", "طلاب أجابوا عن هذا السؤال بالفعل، فلا يمكن تغيير طريقة الإجابة.")
+
+        options, new_correct = [], None
+        if kind == ExamQuestion.KIND_MCQ:
+            # Drop blank rows and keep the "correct" pointer aligned with what's left.
+            raw = [v.strip() for v in self.data.getlist("option_ar")][:MAX_OPTIONS]
+            correct = cleaned.get("correct_index")
+            for i, text in enumerate(raw):
+                if not text:
+                    continue
+                if i == correct:
+                    new_correct = len(options)
+                options.append(text)
+            if len(options) < MIN_OPTIONS:
+                self.add_error(None, f"أضف {MIN_OPTIONS} اختيارات على الأقل.")
+            elif new_correct is None:
+                self.add_error(None, "حدد الإجابة الصحيحة (يجب أن تكون اختيارًا غير فارغ).")
+        cleaned["options"], cleaned["correct_index"] = options, new_correct
+
+        self.remove_audio = self.data.get("remove_audio") == "1"
+        if content == ExamQuestion.CONTENT_READING and not (cleaned.get("passage") or "").strip():
+            self.add_error("passage", "أدخل نص القراءة.")
+        if content == ExamQuestion.CONTENT_LISTENING:
+            has_audio = cleaned.get("audio_file") or (self.instance.audio_file and not self.remove_audio)
+            if not has_audio:
+                self.add_error("audio_file", "ارفع مقطعًا صوتيًا أو سجّل واحدًا.")
+        return cleaned
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        data = self.cleaned_data
+        content = data["content"]
+        # Clear whatever doesn't belong to the chosen type so hidden fields never reach the students.
+        if content != ExamQuestion.CONTENT_READING:
+            instance.passage = ""
+        if content != ExamQuestion.CONTENT_LISTENING or (self.remove_audio and not self.files.get("audio_file")):
+            instance.audio_file = ""
+        if content != ExamQuestion.CONTENT_LISTENING:
+            instance.audio_label = ""
+        instance.kind = data["kind"]
+        instance.options = data["options"]
+        instance.correct_index = data["correct_index"]
+        if not instance.pk:
+            last = self.exam.questions.aggregate(m=models.Max("order"))["m"]
+            instance.order = (last or 0) + 1  # default: end of the exam
+        if commit:
+            instance.save()
+            self._place(instance)
+            if self.answered and instance.is_auto:
+                # A changed right answer or mark re-marks the choices already handed in.
+                for a in instance.answers.all():
+                    marks = instance.points if a.choice_index == instance.correct_index else Decimal(0)
+                    if a.points_awarded != marks:
+                        a.points_awarded = marks
+                        a.save(update_fields=["points_awarded"])
+        return instance
 
 
 class CourseLevelForm(StyledFormMixin, forms.ModelForm):

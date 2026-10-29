@@ -1,32 +1,76 @@
 {% extends "dashboard/base.html" %}
+{% load static %}
 {% block title %}{{ title }}{% endblock %}
 {% block page_title %}{{ title }} — {{ level.course.title_ar }} / {{ level.name_ar }}{% endblock %}
 {% block content %}
-<div class="dash-card">
-  <form method="post">
+<div class="dash-toolbar">
+  <h2>الأسئلة ({{ questions|length }})</h2>
+  <div class="dash-toolbar-actions">
+    {% if exam %}
+      <a class="btn btn-outline" href="{% url 'dashboard:exam_results' exam.pk %}">النتائج</a>
+      <a class="btn btn-primary" href="{% url 'dashboard:exam_question_create' exam.pk %}">+ إضافة سؤال</a>
+    {% else %}
+      <button type="submit" form="exam-settings" name="add_question" value="1" class="btn btn-primary">+ إضافة سؤال</button>
+    {% endif %}
+  </div>
+</div>
+<p class="td-empty" style="margin-bottom:12px;">هذا الامتحان لكل مجموعات «{{ level.name_ar }}».</p>
+{% if answered %}<div class="td-alert">طلاب سلّموا هذا الامتحان بالفعل: تعديل الأسئلة يغيّر امتحانهم أيضًا، ولا يمكن حذف سؤال أجابوا عنه أو تغيير طريقة إجابته.</div>{% endif %}
+
+{% if questions %}
+  <div class="qg-summary">
+    <span>الدرجة الكلية: <strong>{{ total_points|floatformat:"-2" }}</strong></span>
+  </div>
+  {% if questions|length > 1 %}
+    <p class="qo-hint">لتغيير ترتيب الأسئلة: اسحب السؤال من المقبض ⠿ أو استخدم الأسهم ↑↓ — يُحفظ الترتيب تلقائيًا.
+      <span class="qo-status" id="reorder-status" role="status" aria-live="polite"></span>
+    </p>
+  {% endif %}
+{% endif %}
+<div class="dash-table-wrap">
+  {% if questions %}
+  <table class="dash-table qo-table" id="questions-table" data-reorder-url="{% url 'dashboard:exam_questions_reorder' exam.pk %}">
+    <thead>
+      <tr><th></th><th>الترتيب</th><th>النوع</th><th>الإجابة</th><th>نص السؤال</th><th>الدرجة</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for q in questions %}
+      <tr data-id="{{ q.pk }}">
+        <td class="qo-move">
+          <span class="qo-handle" title="اسحب لتغيير الترتيب" aria-hidden="true">⠿</span>
+          <button type="button" class="qo-arrow" data-dir="-1" aria-label="تحريك لأعلى">↑</button>
+          <button type="button" class="qo-arrow" data-dir="1" aria-label="تحريك لأسفل">↓</button>
+        </td>
+        <td class="qo-num">{{ forloop.counter }}</td>
+        <td class="dash-kind">
+          {% if q.content == "listening" %}🎧 استماع{% if not q.audio_file %} <span title="لا يوجد مقطع صوتي">⚠</span>{% endif %}
+          {% elif q.content == "reading" %}📖 قراءة
+          {% else %}✎ عادي{% endif %}
+        </td>
+        <td>{{ q.get_kind_display }}</td>
+        <td class="wrap">{{ q.text }}</td>
+        <td class="qo-marks">{{ q.points|floatformat:"-2" }}</td>
+        <td>
+          <div class="dash-table-actions">
+            <a href="{% url 'dashboard:exam_question_edit' q.pk %}">تعديل</a>
+            {% if not q.num_answers %}<a class="danger" href="{% url 'dashboard:exam_question_delete' q.pk %}">حذف</a>{% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="dash-empty">لا توجد أسئلة مضافة بعد. اضغط «+ إضافة سؤال» للبدء.</div>
+  {% endif %}
+</div>
+
+<div class="dash-card" style="margin-top:20px;">
+  <form method="post" id="exam-settings">
     {% csrf_token %}
     {{ form.non_field_errors }}
-    <p class="td-empty" style="margin-bottom:12px;">هذا الامتحان لكل مجموعات «{{ level.name_ar }}». اكتب كل الأسئلة في المربع ثم احفظ مرة واحدة.</p>
-    <div class="dash-field"><label>{{ form.questions_text.label }}</label>{{ form.questions_text }}{{ form.questions_text.errors }}</div>
-    <details style="margin:8px 0 18px;"><summary style="cursor:pointer;">كيف أكتب الأسئلة؟</summary>
-<pre style="direction:ltr;text-align:left;background:var(--bg,#f6f6f6);padding:12px;border-radius:8px;white-space:pre-wrap;">What is the past tense of "go"?  [2]
-- goed
-+ went
-- gone
-
-Write a sentence about your day.  [3]
-
-[صوت] Say your name and where you live.</pre>
-      <ul style="margin:8px 0 0;padding-inline-start:20px;color:var(--muted);font-size:13px;">
-        <li>افصل بين الأسئلة بسطر فارغ.</li>
-        <li>سؤال اختيار من متعدد: اكتب اختياراته تحته، كل اختيار في سطر، وضع <b>+</b> قبل الإجابة الصحيحة و<b>-</b> قبل الباقي.</li>
-        <li>بدون اختيارات يصبح السؤال إجابة كتابية، أو صوتية لو بدأته بـ <b>[صوت]</b>.</li>
-        <li><b>[2]</b> في آخر السؤال هي درجته (1 إذا لم تكتبها).</li>
-        <li>يمكنك نسخ الأسئلة من Word أو Google Docs ولصقها هنا مباشرة.</li>
-      </ul></details>
-    {% if answered %}<div class="td-alert">طلاب سلّموا هذا الامتحان بالفعل: تعديل الأسئلة يغيّر امتحانهم أيضًا، ولا يمكن حذف سؤال أجابوا عنه.</div>{% endif %}
     <div class="dash-form-grid">
-      <div class="dash-field" style="align-self:end;"><label>{{ form.is_published }} {{ form.is_published.label }}</label><small style="color:var(--muted)">{{ form.is_published.help_text }}</small></div>
+      <div class="dash-field" style="align-self:end;"><label>{{ form.is_published }} {{ form.is_published.label }}</label><small style="color:var(--muted)">{{ form.is_published.help_text }}</small>{{ form.is_published.errors }}</div>
     </div>
     <details style="margin:8px 0;"{% if form.title.value or form.instructions.value %} open{% endif %}><summary style="cursor:pointer;">عنوان وتعليمات (اختياري)</summary>
       <div class="dash-form-grid"><div class="dash-field"><label>{{ form.title.label }}</label>{{ form.title }}{{ form.title.errors }}</div></div>
@@ -34,9 +78,13 @@ Write a sentence about your day.  [3]
     </details>
     <div class="dash-form-actions">
       <button type="submit" class="btn btn-primary">حفظ</button>
-      {% if exam %}<a class="btn btn-outline" href="{% url 'dashboard:exam_results' exam.pk %}">النتائج</a>{% endif %}
       <a class="btn btn-outline" href="{% url 'dashboard:exams_list' %}">رجوع</a>
     </div>
   </form>
 </div>
+
+{% if questions|length > 1 %}
+  <form id="reorder-csrf" hidden>{% csrf_token %}</form>
+  <script src="{% static 'js/questions_reorder.js' %}" defer></script>
+{% endif %}
 {% endblock %}

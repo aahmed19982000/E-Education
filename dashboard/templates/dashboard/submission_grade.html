@@ -9,6 +9,8 @@
   {% for a in answers %}
   <div class="td-panel" style="margin-bottom:14px;">
     <h3>سؤال {{ forloop.counter }} <small style="color:var(--muted)">({{ a.question.points|floatformat:"-2" }} درجة)</small></h3>
+    {% if a.question.passage %}<details style="margin-bottom:8px;"><summary style="cursor:pointer;">📖 نص القراءة</summary><p style="line-height:1.9;" dir="auto">{{ a.question.passage|linebreaksbr }}</p></details>{% endif %}
+    {% if a.question.audio_file %}<div style="margin-bottom:8px;">🎧 {{ a.question.audio_label }}<audio controls preload="none" src="{{ a.question.audio_file.url }}" style="width:100%;"></audio></div>{% endif %}
     <p style="line-height:1.9;">{{ a.question.text|linebreaksbr }}</p>
     {% if a.question.kind == "mcq" %}
       <p>إجابة الطالب: <b>{% if a.choice_index is not None %}{% for o in a.question.options %}{% if forloop.counter0 == a.choice_index %}{{ o }}{% endif %}{% endfor %}{% else %}لم يُجب{% endif %}</b>

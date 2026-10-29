@@ -18,6 +18,13 @@
     {% for q in questions %}
     <div class="c-panel ex-q">
       <div class="ex-q-head"><span class="c-num">{{ forloop.counter }}</span><span class="ex-pts">{{ q.points|floatformat:"-2" }} {{ d.points }}</span></div>
+      {% if q.passage %}<p class="ex-passage" dir="auto">{{ q.passage|linebreaksbr }}</p>{% endif %}
+      {% if q.audio_file %}
+        <div class="ex-audio">
+          {% if q.audio_label %}<span>{{ q.audio_label }}</span>{% endif %}
+          <audio controls controlsList="nodownload" preload="metadata" src="{{ q.audio_file.url }}"></audio>
+        </div>
+      {% endif %}
       <p class="ex-q-text">{{ q.text|linebreaksbr }}</p>
       {% if q.kind == "mcq" %}
         <div class="ex-options">{% for opt in q.options %}

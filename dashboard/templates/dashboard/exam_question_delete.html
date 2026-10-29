@@ -1,0 +1,17 @@
+{% extends "dashboard/base.html" %}
+{% block title %}حذف السؤال رقم {{ question.order }}{% endblock %}
+{% block page_title %}حذف السؤال رقم {{ question.order }} — {{ exam.display_title }} / {{ level.name_ar }}{% endblock %}
+
+{% block content %}
+<div class="dash-card">
+  <p style="line-height:1.9;margin-bottom:12px;">{{ question.text|linebreaksbr }}</p>
+  <p style="color: var(--muted); font-size: 14px; margin-bottom: 20px;">هل أنت متأكد أنك تريد حذف هذا السؤال؟ لا يمكن التراجع عن هذا الإجراء.</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="dash-form-actions">
+      <button type="submit" class="btn" style="background:#b00020; color:#fff;">تأكيد الحذف</button>
+      <a class="btn btn-outline" href="{{ back_url }}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

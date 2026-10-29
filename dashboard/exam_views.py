@@ -10,17 +10,19 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Count, Q
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from courses.models import Cohort, Course, CourseLevel, Enrollment
-from exams import bulk
-from exams.models import Answer, Exam, Submission
+from exams.models import Answer, Exam, ExamQuestion, Submission
 from exams.services import STATE_LATE, STATE_TODO, state_for
+from quiz.models import AUDIO_MAX_MB, MAX_OPTIONS, MIN_OPTIONS
 
 from .decorators import dashboard_required
-from .forms import CourseLevelFormSet, ExamForm
+from .forms import CourseLevelFormSet, ExamForm, ExamQuestionForm
 from .permissions import ROLE_TEACHER, SECTION_COURSES, can_access
 
 
@@ -116,26 +118,110 @@ def course_levels(request, course_pk):
 
 
 def _save_exam(request, level, kind, number=None):
+    """The exam's page: its settings, and the list of its questions (added one by one)."""
     exam = Exam.objects.filter(level=level, kind=kind, number=number).first()
     instance = exam or Exam(level=level, kind=kind, number=number)
     form = ExamForm(request.POST or None, instance=instance)
     if request.method == "POST" and form.is_valid():
-        try:
-            with transaction.atomic():
-                saved = form.save()
-                bulk.apply(saved, form.parsed)
-        except bulk.BulkError as exc:
-            for line in exc.errors:
-                messages.error(request, line)
-        else:
-            messages.success(request, f"تم حفظ الامتحان ({len(form.parsed)} سؤال).")
-            return redirect("dashboard:exam_results", pk=saved.pk) if saved.is_published else redirect(request.path)
+        saved = form.save()
+        if "add_question" in request.POST:
+            return redirect("dashboard:exam_question_create", exam_pk=saved.pk)
+        messages.success(request, "تم حفظ الامتحان.")
+        return redirect(request.path)
     title = instance.display_title if exam else ("اختبار نهاية المستوى" if kind == Exam.KIND_LEVEL
                                                   else f"امتحان الجلسة {number}")
+    questions = list(exam.questions.annotate(num_answers=Count("answers"))) if exam else []
     ctx = _context(request, "exams")
-    ctx.update({"form": form, "exam": exam, "level": level, "title": title,
+    ctx.update({"form": form, "exam": exam, "level": level, "title": title, "questions": questions,
+                "total_points": sum((q.points for q in questions), Decimal(0)),
                 "answered": bool(exam and exam.submissions.exists())})
     return render(request, "dashboard/exam_form.html", ctx)
+
+
+def _exam_url(exam):
+    if exam.kind == Exam.KIND_LEVEL:
+        return reverse("dashboard:exam_for_final", args=[exam.level_id])
+    return reverse("dashboard:exam_for_session", args=[exam.level_id, exam.number])
+
+
+def _exam_page(exam):
+    return redirect(_exam_url(exam))
+
+
+@dashboard_required
+def exam_question_form(request, exam_pk=None, pk=None):
+    """Add or edit one exam question, the same way placement-test questions are written."""
+    if not _may_edit(request):
+        raise PermissionDenied
+    if pk:
+        instance = get_object_or_404(ExamQuestion.objects.select_related("exam__level__course"), pk=pk)
+        exam = instance.exam
+    else:
+        instance = None
+        exam = get_object_or_404(Exam.objects.select_related("level__course"), pk=exam_pk)
+    form = ExamQuestionForm(request.POST or None, request.FILES or None, instance=instance, exam=exam)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            form.save()
+        messages.success(request, "تم حفظ السؤال.")
+        if "save_add_another" in request.POST:
+            return redirect("dashboard:exam_question_create", exam_pk=exam.pk)
+        return _exam_page(exam)
+    ctx = _context(request, "exams")
+    ctx.update({
+        "form": form, "instance": instance, "exam": exam, "level": exam.level,
+        "title": "تعديل سؤال" if instance else "إضافة سؤال",
+        "option_rows": form.option_rows(), "max_options": MAX_OPTIONS, "min_options": MIN_OPTIONS,
+        "audio_max_mb": AUDIO_MAX_MB, "answered": form.answered, "back_url": _exam_url(exam),
+    })
+    return render(request, "dashboard/exam_question_form.html", ctx)
+
+
+@dashboard_required
+def exam_question_delete(request, pk):
+    if not _may_edit(request):
+        raise PermissionDenied
+    question = get_object_or_404(ExamQuestion.objects.select_related("exam__level__course"), pk=pk)
+    exam = question.exam
+    if question.answers.exists():
+        messages.error(request, "لا يمكن حذف سؤال أجاب عنه الطلاب بالفعل. عدّل نصه أو اتركه.")
+        return _exam_page(exam)
+    if request.method == "POST":
+        with transaction.atomic():
+            question.delete()
+            rest = list(exam.questions.order_by("order", "pk"))
+            for number, q in enumerate(rest, start=1):
+                q.order = number
+            ExamQuestion.objects.bulk_update(rest, ["order"])
+            if not rest and exam.is_published:  # an empty exam can't stay in front of students
+                exam.is_published = False
+                exam.save(update_fields=["is_published"])
+                messages.info(request, "تم إلغاء نشر الامتحان لأنه لم يعد فيه أسئلة.")
+        messages.success(request, "تم حذف السؤال.")
+        return _exam_page(exam)
+    ctx = _context(request, "exams")
+    ctx.update({"question": question, "exam": exam, "level": exam.level, "back_url": _exam_url(exam)})
+    return render(request, "dashboard/exam_question_delete.html", ctx)
+
+
+@dashboard_required
+@require_POST
+def exam_questions_reorder(request, exam_pk):
+    """Save a new order for an exam's questions. Expects every question id, in the desired order."""
+    if not _may_edit(request):
+        raise PermissionDenied
+    exam = get_object_or_404(Exam, pk=exam_pk)
+    try:
+        ids = [int(pk) for pk in request.POST.getlist("ids")]
+    except ValueError:
+        return JsonResponse({"ok": False, "error": "invalid ids"}, status=400)
+    questions = {q.pk: q for q in exam.questions.all()}
+    if len(ids) != len(set(ids)) or set(ids) != set(questions):
+        return JsonResponse({"ok": False, "error": "stale"}, status=409)  # added/deleted since the page loaded
+    for position, pk in enumerate(ids, start=1):
+        questions[pk].order = position
+    ExamQuestion.objects.bulk_update(questions.values(), ["order"])
+    return JsonResponse({"ok": True})
 
 
 @dashboard_required

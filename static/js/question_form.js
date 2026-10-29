@@ -7,11 +7,13 @@ document.addEventListener('DOMContentLoaded', function () {
   var AUDIO_MAX_BYTES = parseInt(form.dataset.audioMaxMb, 10) * 1024 * 1024;
 
   // --- Question type: show only the sections that belong to it ----------------
-  var kindRadios = form.querySelectorAll('input[name="kind"]');
+  // The exam question form names this field "content" (its "kind" is the answer type).
+  var KIND = form.dataset.kindField || 'kind';
+  var kindRadios = form.querySelectorAll('input[name="' + KIND + '"]');
   var stepNum = form.querySelector('.qf-step-num');
 
   function currentKind() {
-    var checked = form.querySelector('input[name="kind"]:checked');
+    var checked = form.querySelector('input[name="' + KIND + '"]:checked');
     return checked ? checked.value : 'standard';
   }
 
@@ -28,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // --- Optional English translation --------------------------------------------
   var toggleEn = document.getElementById('toggle-en');
+  if (toggleEn) {
   var hasEnglish = Array.prototype.some.call(form.querySelectorAll('.qf-en input, .qf-en textarea, input.qf-en'), function (el) {
     return el.value.trim() !== '';
   }) || form.querySelector('.qf-en .errorlist');
@@ -35,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function applyEnglish() { form.classList.toggle('show-en', toggleEn.checked); }
   toggleEn.addEventListener('change', applyEnglish);
   applyEnglish();
+  }
 
   // --- Options: add / remove rows, keep the "correct" radio indexes in sync ---
   var optionsBox = document.getElementById('options');
@@ -47,7 +51,8 @@ document.addEventListener('DOMContentLoaded', function () {
     list.forEach(function (row, i) {
       row.querySelector('input[type="radio"]').value = i;
       row.querySelector('input[name="option_ar"]').placeholder = 'الاختيار ' + (i + 1);
-      row.querySelector('input[name="option_en"]').placeholder = 'Option ' + (i + 1) + ' (English)';
+      var en = row.querySelector('input[name="option_en"]');
+      if (en) en.placeholder = 'Option ' + (i + 1) + ' (English)';
       row.querySelector('.qf-option-remove').disabled = list.length <= MIN_OPTIONS;
     });
     addBtn.hidden = list.length >= MAX_OPTIONS;
@@ -128,6 +133,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // --- New category without leaving the form ------------------------------------
   var catSelect = form.querySelector('select[name="category"]');
+  if (catSelect) {
   var catBtn = document.getElementById('cat-new-btn');
   var catBox = document.getElementById('cat-new');
   var catAr = document.getElementById('cat-new-ar');
@@ -176,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (e.key === 'Escape') toggleCatBox(false);
     });
   });
+  }
 
   // --- Audio: upload, drag & drop, microphone recording -----------------------
   var fileInput = form.querySelector('input[type="file"][name="audio_file"]');

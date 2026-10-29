@@ -98,9 +98,20 @@ class ExamQuestion(models.Model):
     KIND_TEXT = "text"
     KIND_CHOICES = [(KIND_MCQ, "اختيار من متعدد"), (KIND_VOICE, "إجابة صوتية"), (KIND_TEXT, "إجابة كتابية")]
 
+    # What the question shows before it is asked, like the placement test: nothing extra, a reading
+    # passage, or an audio clip. Derived from the fields below (see `content`).
+    CONTENT_STANDARD = "standard"
+    CONTENT_READING = "reading"
+    CONTENT_LISTENING = "listening"
+
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="questions")
     order = models.PositiveIntegerField(default=0)
     kind = models.CharField(max_length=6, choices=KIND_CHOICES, default=KIND_MCQ)
+    passage = models.TextField(blank=True, help_text="Reading passage, for a reading question")
+    audio_file = models.FileField(upload_to="exams/audio/", blank=True,
+                                  validators=[FileExtensionValidator(AUDIO_EXTENSIONS)],
+                                  help_text="Audio clip, for a listening question")
+    audio_label = models.CharField(max_length=200, blank=True, help_text="Label shown above the audio clip")
     text = models.TextField()
     options = models.JSONField(default=list, blank=True, help_text="Answer choices (multiple choice only)")
     correct_index = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -115,6 +126,14 @@ class ExamQuestion(models.Model):
     @property
     def is_auto(self):
         return self.kind == self.KIND_MCQ
+
+    @property
+    def content(self):
+        if self.audio_file or self.audio_label:
+            return self.CONTENT_LISTENING
+        if self.passage:
+            return self.CONTENT_READING
+        return self.CONTENT_STANDARD
 
     # Choices and the correct answer are validated by the dashboard form that builds them.
 

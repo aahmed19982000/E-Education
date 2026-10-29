@@ -20,6 +20,10 @@ urlpatterns = [
     path("exams/course/<int:course_pk>/levels/", exam_views.course_levels, name="course_levels"),
     path("exams/level/<int:level_pk>/session/<int:number>/", exam_views.exam_for_session, name="exam_for_session"),
     path("exams/level/<int:level_pk>/final/", exam_views.exam_for_final, name="exam_for_final"),
+    path("exams/<int:exam_pk>/questions/add/", exam_views.exam_question_form, name="exam_question_create"),
+    path("exams/<int:exam_pk>/questions/reorder/", exam_views.exam_questions_reorder, name="exam_questions_reorder"),
+    path("exams/questions/<int:pk>/edit/", exam_views.exam_question_form, name="exam_question_edit"),
+    path("exams/questions/<int:pk>/delete/", exam_views.exam_question_delete, name="exam_question_delete"),
     path("exams/<int:pk>/results/", exam_views.exam_results, name="exam_results"),
     path("exams/submissions/<int:pk>/", exam_views.submission_grade, name="submission_grade"),
 

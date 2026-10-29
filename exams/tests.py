@@ -14,7 +14,6 @@ from django.utils import timezone
 from courses.models import Cohort, Course, CourseLevel, Enrollment, Lesson
 from team.models import TeamMember
 
-from . import bulk
 from .models import Answer, Exam, ExamQuestion, Submission
 from .services import STATE_GRADED, STATE_LATE, STATE_NOT_OPEN, STATE_SUBMITTED, STATE_TODO, state_for
 
@@ -183,74 +182,118 @@ class StudentExamTests(ExamBase):
         self.assertEqual(self.client.get(url).status_code, 302)
 
 
-QUESTIONS = """Capital of Egypt?  [1]
-+ Cairo
-- Giza
-
-[صوت] Describe your day  [4]"""
-
-
 class TeacherExamTests(ExamBase):
-    def post_data(self, text=QUESTIONS, **extra):
-        data = {"title": "Quiz", "instructions": "", "is_published": "on", "questions_text": text}
+    def post_data(self, **extra):
+        data = {"title": "Quiz", "instructions": ""}
+        data.update(extra)
+        return data
+
+    def question_data(self, **extra):
+        data = {"content": "standard", "kind": "mcq", "points": "1", "text": "Capital of Egypt?",
+                "option_ar": ["Cairo", "Giza"], "correct_index": "0", "position": ""}
         data.update(extra)
         return data
 
     def session_url(self, number=2, level=None):
         return reverse("dashboard:exam_for_session", args=[(level or self.level).pk, number])
 
-    def test_admin_builds_a_session_exam_in_one_save(self):
+    def test_admin_builds_a_session_exam_question_by_question(self):
         self.client.force_login(self.admin)
         url = self.session_url(2)
         self.assertEqual(self.client.get(url).status_code, 200)
-        resp = self.client.post(url, self.post_data())
-        self.assertEqual(resp.status_code, 302)
+        # "+ add question" saves the new exam first, then opens the question form.
+        resp = self.client.post(url, self.post_data(add_question="1"))
         exam = Exam.objects.get(level=self.level, number=2)
-        self.assertTrue(exam.is_published)
+        self.assertRedirects(resp, reverse("dashboard:exam_question_create", args=[exam.pk]))
+        add = reverse("dashboard:exam_question_create", args=[exam.pk])
+        self.assertEqual(self.client.get(add).status_code, 200)
+        resp = self.client.post(add, self.question_data(save_add_another="1"))
+        self.assertRedirects(resp, add)
+        resp = self.client.post(add, self.question_data(kind="voice", text="Describe your day", points="4",
+                                                        option_ar=[]))
+        self.assertRedirects(resp, url)
         qs = list(exam.questions.all())
-        self.assertEqual([q.kind for q in qs], ["mcq", "voice"])
+        self.assertEqual([(q.order, q.kind) for q in qs], [(1, "mcq"), (2, "voice")])
         self.assertEqual((qs[0].options, qs[0].correct_index), (["Cairo", "Giza"], 0))
+        self.assertEqual((qs[1].options, qs[1].correct_index), ([], None))
         self.assertEqual(exam.total_points(), Decimal("5"))
+        self.client.post(url, self.post_data(is_published="on"))
+        exam.refresh_from_db()
+        self.assertTrue(exam.is_published)
 
-    def test_editing_shows_the_saved_questions_as_text_and_saving_keeps_them(self):
+    def test_reading_and_listening_questions(self):
         self.client.force_login(self.admin)
-        url = self.session_url(1)
-        text = self.client.get(url).context["form"].fields["questions_text"].initial
-        self.assertIn("+ 4", text)
-        self.assertIn("[صوت] Say hello  [3]", text)
-        self.client.post(url, self.post_data(text))
-        self.assertEqual(Exam.objects.filter(level=self.level, number=1).count(), 1)
-        self.assertEqual(self.exam.questions.count(), 2)
+        add = reverse("dashboard:exam_question_create", args=[self.exam.pk])
+        self.client.post(add, self.question_data(content="reading", passage="Ali lives in Cairo.", text="Where?"))
+        reading = self.exam.questions.get(text="Where?")
+        self.assertEqual((reading.content, reading.passage), ("reading", "Ali lives in Cairo."))
+        self.client.post(add, self.question_data(content="listening", audio_file=wav_upload("clip.wav"),
+                                                 audio_label="At the shop", text="What did she buy?", kind="text",
+                                                 passage="dropped: not a reading question"))
+        listening = self.exam.questions.get(text="What did she buy?")
+        self.assertEqual((listening.content, listening.audio_label, listening.passage), ("listening", "At the shop", ""))
+        self.assertTrue(listening.audio_file)
+        # Students see the passage and the clip.
+        self.client.force_login(self.student)
+        page = self.client.get(reverse("exams:take", args=[self.exam.pk])).content.decode()
+        self.assertIn("Ali lives in Cairo.", page)
+        self.assertIn(listening.audio_file.url, page)
+        listening.audio_file.delete(save=False)
 
     def test_bad_questions_are_reported_and_nothing_is_saved(self):
         self.client.force_login(self.admin)
-        url = self.session_url(2)
-        for text in ("Only one choice?\n+ yes", "No right answer?\n- a\n- b", "Two right?\n+ a\n+ b"):
-            resp = self.client.post(url, self.post_data(text))
-            self.assertEqual(resp.status_code, 200, text)
-        self.assertFalse(Exam.objects.filter(level=self.level, number=2).exists())
+        add = reverse("dashboard:exam_question_create", args=[self.exam.pk])
+        for data in (self.question_data(option_ar=["yes"]),
+                     self.question_data(option_ar=["", "b"], correct_index="0"),
+                     self.question_data(content="reading", passage=""),
+                     self.question_data(content="listening"),
+                     self.question_data(text="")):
+            self.assertEqual(self.client.post(add, data).status_code, 200, data)
+        self.assertEqual(self.exam.questions.count(), 2)
 
     def test_cannot_publish_an_exam_without_questions(self):
         self.client.force_login(self.admin)
-        self.assertEqual(self.client.post(self.session_url(2), self.post_data("")).status_code, 200)
+        self.assertEqual(self.client.post(self.session_url(2), self.post_data(is_published="on")).status_code, 200)
         self.assertFalse(Exam.objects.filter(number=2).exists())
+
+    def test_position_and_reorder(self):
+        self.client.force_login(self.admin)
+        add = reverse("dashboard:exam_question_create", args=[self.exam.pk])
+        self.client.post(add, self.question_data(text="First now", position="start"))
+        self.assertEqual([q.text for q in self.exam.questions.all()], ["First now", "2+2?", "Say hello"])
+        ids = [self.voice.pk, self.mcq.pk, self.exam.questions.get(text="First now").pk]
+        reorder = reverse("dashboard:exam_questions_reorder", args=[self.exam.pk])
+        self.assertEqual(self.client.post(reorder, {"ids": ids}).status_code, 200)
+        self.assertEqual([q.pk for q in self.exam.questions.all()], ids)
+        self.assertEqual(self.client.post(reorder, {"ids": ids[:2]}).status_code, 409)
 
     def test_editing_keeps_students_answers_and_refuses_to_delete_answered_questions(self):
         self.hand_in()
         self.client.force_login(self.admin)
-        url = self.session_url(1)
-        text = "2+2?\n- 3\n+ 4\n\n[صوت] Say hello  [3]"
-        self.client.post(url, self.post_data(text))
-        self.assertEqual(Answer.objects.count(), 2)  # same positions: answers survive
-        self.client.post(url, self.post_data("2+2?\n- 3\n+ 4"))  # would drop the answered voice question
-        self.assertEqual(self.exam.questions.count(), 2)
+        edit = reverse("dashboard:exam_question_edit", args=[self.voice.pk])
+        self.assertEqual(self.client.get(edit).status_code, 200)
+        self.client.post(edit, self.question_data(kind="voice", text="Say hello please", points="3", option_ar=[]))
+        self.voice.refresh_from_db()
+        self.assertEqual(self.voice.text, "Say hello please")
         self.assertEqual(Answer.objects.count(), 2)
+        # Answered: the way it is answered can't change, and it can't be deleted.
+        self.assertEqual(self.client.post(edit, self.question_data(text="Say hello please", points="3")).status_code, 200)
+        self.client.post(reverse("dashboard:exam_question_delete", args=[self.voice.pk]))
+        self.assertTrue(ExamQuestion.objects.filter(pk=self.voice.pk).exists())
+
+    def test_deleting_an_unanswered_question_renumbers_the_rest(self):
+        self.client.force_login(self.admin)
+        delete = reverse("dashboard:exam_question_delete", args=[self.mcq.pk])
+        self.assertEqual(self.client.get(delete).status_code, 200)
+        self.client.post(delete)
+        self.assertEqual([(q.order, q.pk) for q in self.exam.questions.all()], [(1, self.voice.pk)])
 
     def test_changing_the_right_answer_re_marks_handed_in_choices(self):
         self.hand_in()  # picked option index 1 ("4")
         self.assertEqual(Answer.objects.get(question=self.mcq).points_awarded, Decimal("2"))
         self.client.force_login(self.admin)
-        self.client.post(self.session_url(1), self.post_data("2+2?  [2]\n+ 3\n- 4\n\n[صوت] Say hello  [3]"))
+        edit = reverse("dashboard:exam_question_edit", args=[self.mcq.pk])
+        self.client.post(edit, self.question_data(text="2+2?", points="2", option_ar=["3", "4"], correct_index="0"))
         self.assertEqual(Answer.objects.get(question=self.mcq).points_awarded, Decimal("0"))
 
     def test_every_group_at_a_level_shares_its_exam_but_other_levels_do_not(self):
@@ -306,10 +349,16 @@ class TeacherExamTests(ExamBase):
         for teacher in (self.teacher, self.other_teacher):
             self.client.force_login(teacher)
             for name, args in (("dashboard:exam_for_session", [self.level.pk, 1]), ("dashboard:exam_for_final", [self.level.pk]),
-                               ("dashboard:course_levels", [self.course.pk])):
+                               ("dashboard:course_levels", [self.course.pk]),
+                               ("dashboard:exam_question_create", [self.exam.pk]),
+                               ("dashboard:exam_question_edit", [self.mcq.pk]),
+                               ("dashboard:exam_question_delete", [self.mcq.pk])):
                 self.assertEqual(self.client.get(reverse(name, args=args)).status_code, 403, name)
                 self.assertEqual(self.client.post(reverse(name, args=args), self.post_data()).status_code, 403, name)
         self.assertEqual(Exam.objects.count(), 1)
+        self.assertEqual(self.exam.questions.count(), 2)
+        reorder = reverse("dashboard:exam_questions_reorder", args=[self.exam.pk])
+        self.assertEqual(self.client.post(reorder, {"ids": [self.voice.pk, self.mcq.pk]}).status_code, 403)
 
     def test_teacher_sees_only_their_own_groups_results(self):
         self.client.force_login(self.teacher)
@@ -383,24 +432,3 @@ class TeacherExamTests(ExamBase):
         resp = self.client.get(reverse("dashboard:index"))
         self.assertEqual(resp.context["to_grade_count"], 1)
         self.assertNotContains(resp, "s@example.com")
-
-
-class BulkParseTests(TestCase):
-    def test_reads_all_three_question_kinds_with_marks(self):
-        qs = bulk.parse("1. Pick one  [2]\n- a\n+ b\n\nWrite a line\n\n[voice] Say hi [3]")
-        self.assertEqual([(q["kind"], q["points"]) for q in qs], [("mcq", 2), ("text", 1), ("voice", 3)])
-        self.assertEqual((qs[0]["text"], qs[0]["options"], qs[0]["correct_index"]), ("Pick one", ["a", "b"], 1))
-
-    def test_lettered_options_and_star_marker(self):
-        qs = bulk.parse("Pick\nA) one\nB) *two\nC) three")
-        self.assertEqual((qs[0]["options"], qs[0]["correct_index"]), (["one", "two", "three"], 1))
-
-    def test_errors_name_the_question(self):
-        with self.assertRaises(bulk.BulkError) as ctx:
-            bulk.parse("Fine?\n+ a\n- b\n\nBroken?\n- a\n- b")
-        self.assertIn("السؤال 2", ctx.exception.errors[0])
-
-    def test_dump_and_parse_round_trip(self):
-        text = "Pick  [2]\n- a\n+ b\n\n[صوت] Say hi  [3]\n\nWrite"
-        qs = bulk.parse(text)
-        self.assertEqual(bulk.parse(text), qs)
