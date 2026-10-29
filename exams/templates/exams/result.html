@@ -22,7 +22,7 @@
     {% elif r.question.kind == "text" %}
       <p class="c-text">{{ d.yourAnswer }}: {% if r.answer.text %}{{ r.answer.text|linebreaksbr }}{% else %}<i>{{ d.notAnswered }}</i>{% endif %}</p>
     {% else %}
-      {% if r.answer.audio_file %}<audio controls src="{% url 'exams:audio' pk=r.answer.pk %}"></audio>{% else %}<p class="c-text"><i>{{ d.notAnswered }}</i></p>{% endif %}
+      {% if r.answer.audio_file %}<audio controls src="{% url 'exams:audio' pk=r.answer.pk %}"></audio>{% else %}<p class="c-text"><i>{{ d.voiceSent }}</i></p>{% endif %}
     {% endif %}
     {% if r.answer.feedback %}<div class="c-notice" style="margin-top:10px;"><b>{{ d.feedback }}:</b> {{ r.answer.feedback }}</div>{% endif %}
   </div>

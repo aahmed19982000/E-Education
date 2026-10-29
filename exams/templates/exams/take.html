@@ -12,8 +12,7 @@
   {% if late %}<div class="c-notice" style="margin-bottom:16px;">{{ d.lateWarn }}</div>{% endif %}
   {% if error %}<div class="c-notice" style="margin-bottom:16px;border-color:#f0c9c9;color:#b00020;">{{ error }}</div>{% endif %}
   {% if exam.instructions %}<div class="c-panel" style="margin-bottom:20px;"><p class="c-text">{{ exam.instructions|linebreaksbr }}</p></div>{% endif %}
-  <form method="post" enctype="multipart/form-data" class="ex-form" data-confirm="{{ d.confirm }}"
-        data-record="{{ d.record }}" data-stop="{{ d.stop }}" data-recorded="{{ d.recorded }}" data-rerecord="{{ d.reRecord }}" data-nomic="{{ d.noMic }}">
+  <form method="post" class="ex-form" data-confirm="{{ d.confirm }}">
     {% csrf_token %}
     {% for q in questions %}
     <div class="c-panel ex-q">
@@ -33,11 +32,14 @@
       {% elif q.kind == "text" %}
         <textarea name="q{{ q.pk }}" rows="5" class="ex-text" placeholder="{{ d.typeHere }}"></textarea>
       {% else %}
-        <div class="ex-voice" data-name="q{{ q.pk }}">
-          <button type="button" class="c-btn primary ex-rec-btn">{{ d.record }}</button>
-          <audio controls class="ex-preview" hidden></audio>
-          <p class="c-note ex-nomic" hidden>{{ d.noMic }}</p>
-          <label class="ex-upload">{{ d.orUpload }}: <input type="file" name="q{{ q.pk }}" accept="audio/*"></label>
+        <div class="ex-voice">
+          {% if teacher_whatsapp %}
+            <p class="c-note">{{ d.voiceWa }} <b dir="ltr">{{ teacher_phone }}</b></p>
+            <a class="c-btn primary ex-wa-btn" target="_blank" rel="noopener"
+               href="https://wa.me/{{ teacher_whatsapp }}?text={{ whatsapp_intro|add:' — '|add:d.question|add:' '|urlencode }}{{ forloop.counter }}">{{ d.voiceWaBtn }}</a>
+          {% else %}
+            <p class="c-note">{{ d.voiceNoWa }}</p>
+          {% endif %}
         </div>
       {% endif %}
     </div>

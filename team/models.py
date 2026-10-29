@@ -49,6 +49,10 @@ class TeamMember(models.Model):
     youtube_url = models.URLField(blank=True)
     photo = models.ImageField(upload_to="team/", blank=True)
 
+    # Never shown on the public team page; students of the teacher's groups see it in exams
+    # (voice answers are sent to the teacher on WhatsApp).
+    whatsapp = models.CharField(max_length=30, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

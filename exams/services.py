@@ -5,8 +5,6 @@ from django.db import transaction
 from django.utils import timezone
 
 from courses.models import Enrollment
-from quiz.audio import AudioDecodeError, compress_audio
-from quiz.models import AUDIO_MAX_MB
 
 from .models import Answer, Exam, ExamQuestion, Submission
 
@@ -84,17 +82,7 @@ def submit(exam, user, post, files, cohort):
             answer.text = post.get(key, "").strip()
             if not answer.text:
                 answer.points_awarded = Decimal(0)  # nothing to mark
-        else:
-            upload = files.get(key)
-            if upload:
-                if upload.size > AUDIO_MAX_MB * 1024 * 1024:
-                    raise SubmitError(f"ملف الصوت أكبر من {AUDIO_MAX_MB}MB.")
-                try:
-                    answer.audio_file = compress_audio(upload)
-                except AudioDecodeError:
-                    raise SubmitError("تعذّر قراءة ملف الصوت. جرّب تسجيلًا أو ملفًا آخر.")
-            else:
-                answer.points_awarded = Decimal(0)
+        # A voice answer is sent to the teacher on WhatsApp, so it always waits for their marks.
         answer.save()
     submission.refresh_graded()
     return submission

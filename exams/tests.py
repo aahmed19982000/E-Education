@@ -69,7 +69,6 @@ class ExamBase(TestCase):
 
     def hand_in(self, **post):
         data = {f"q{self.mcq.pk}": "1", **post}
-        data[f"q{self.voice.pk}"] = wav_upload()
         self.client.force_login(self.student)
         return self.client.post(reverse("exams:take", args=[self.exam.pk]), data)
 
@@ -117,17 +116,30 @@ class StudentExamTests(ExamBase):
         sub = Submission.objects.get()
         self.assertFalse(sub.is_late)
         self.assertEqual(sub.earned(), Decimal("2"))
-        self.assertEqual(sub.pending_count(), 1)
-        self.assertTrue(Answer.objects.get(question=self.voice).audio_file)
+        self.assertEqual(sub.pending_count(), 1)  # the voice answer was sent on WhatsApp
+        self.assertFalse(Answer.objects.get(question=self.voice).audio_file)
         page = self.client.get(reverse("exams:take", args=[self.exam.pk]))
         self.assertContains(page, "ستظهر درجة الأسئلة")  # waiting for the teacher's marks
 
-    def test_wrong_answer_and_skipped_voice_need_no_marking(self):
+    def test_wrong_answer_is_marked_and_voice_still_waits_for_the_teacher(self):
         self.client.force_login(self.student)
         self.client.post(reverse("exams:take", args=[self.exam.pk]), {f"q{self.mcq.pk}": "0"})
         sub = Submission.objects.get()
         self.assertEqual(sub.earned(), Decimal("0"))
-        self.assertTrue(sub.is_graded)
+        self.assertFalse(sub.is_graded)
+
+    def test_voice_question_shows_the_teachers_whatsapp_instead_of_recording(self):
+        self.client.force_login(self.student)
+        url = reverse("exams:take", args=[self.exam.pk])
+        page = self.client.get(url).content.decode()
+        self.assertNotIn('type="file"', page)
+        self.assertNotIn("wa.me", page)  # no number yet: just the message
+        self.assertIn("أرسلها للمدرس على واتساب", page)
+        self.member.whatsapp = "01012345678"
+        self.member.save()
+        page = self.client.get(url).content.decode()
+        self.assertIn("https://wa.me/201012345678?text=", page)
+        self.assertIn("01012345678", page)
 
     def test_cannot_hand_in_twice(self):
         self.hand_in()
@@ -139,14 +151,6 @@ class StudentExamTests(ExamBase):
         self.l2.save()
         self.hand_in()
         self.assertTrue(Submission.objects.get().is_late)
-
-    def test_bad_audio_is_rejected_with_a_message_and_nothing_saved(self):
-        self.client.force_login(self.student)
-        resp = self.client.post(reverse("exams:take", args=[self.exam.pk]), {
-            f"q{self.mcq.pk}": "1", f"q{self.voice.pk}": SimpleUploadedFile("x.wav", b"not audio", content_type="audio/wav")})
-        self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "تعذّر قراءة ملف الصوت")
-        self.assertFalse(Submission.objects.exists())
 
     def test_access_rules(self):
         url = reverse("exams:take", args=[self.exam.pk])
@@ -172,8 +176,11 @@ class StudentExamTests(ExamBase):
         self.assertEqual(self.client.get(reverse("courses:mine")).context["exams_due"], 1)
 
     def test_audio_is_private_to_the_student_their_teacher_and_admins(self):
+        # Voice answers are sent on WhatsApp now; clips handed in before that stay private.
         self.hand_in()
-        url = reverse("exams:audio", args=[Answer.objects.get(question=self.voice).pk])
+        answer = Answer.objects.get(question=self.voice)
+        answer.audio_file.save("old.wav", wav_upload(), save=True)
+        url = reverse("exams:audio", args=[answer.pk])
         for user, code in ((self.student, 200), (self.teacher, 200), (self.admin, 200),
                            (self.other_student, 404), (self.other_teacher, 404)):
             self.client.force_login(user)
@@ -403,7 +410,7 @@ class TeacherExamTests(ExamBase):
         answer = Answer.objects.get(question=self.voice)
         self.client.force_login(self.teacher)
         url = reverse("dashboard:submission_grade", args=[sub.pk])
-        self.assertContains(self.client.get(url), reverse("exams:audio", args=[answer.pk]))
+        self.assertContains(self.client.get(url), "على واتساب")
         self.client.post(url, {f"pts-{answer.pk}": "9", "feedback": ""})  # more than the 3 marks it is worth
         answer.refresh_from_db()
         self.assertIsNone(answer.points_awarded)
@@ -432,3 +439,12 @@ class TeacherExamTests(ExamBase):
         resp = self.client.get(reverse("dashboard:index"))
         self.assertEqual(resp.context["to_grade_count"], 1)
         self.assertNotContains(resp, "s@example.com")
+
+
+class TeacherWhatsappFieldTests(TestCase):
+    def test_team_form_accepts_a_whatsapp_number_or_blank_and_rejects_junk(self):
+        from dashboard.forms import TeamMemberForm
+        base = {"name_ar": "مدرس", "role_ar": "مدرس", "order": 0}
+        for value, ok in (("01012345678", True), ("", True), ("call me", False)):
+            form = TeamMemberForm(data={**base, "whatsapp": value})
+            self.assertEqual(form.is_valid(), ok, (value, form.errors))

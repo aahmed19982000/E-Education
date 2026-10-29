@@ -3,6 +3,8 @@ from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from accounts.phone import whatsapp_digits
+
 from .models import Answer, Exam
 from .services import SubmitError, active_enrollment, can_review, state_for, submit
 
@@ -28,10 +30,16 @@ def take(request, pk):
                 return redirect("exams:take", pk=exam.pk)
             except SubmitError as exc:
                 error = str(exc)
+        teacher = cohort.teacher if cohort else None
+        name = request.user.get_full_name() or request.user.email or request.user.username
         return render(request, "exams/take.html", {
             "exam": exam, "deadline": deadline, "error": error,
             "late": bool(deadline and timezone.now() > deadline),
             "questions": list(exam.questions.all()),
+            # Voice answers are sent to the group's teacher on WhatsApp instead of being recorded here.
+            "teacher_whatsapp": whatsapp_digits(teacher.whatsapp) if teacher else None,
+            "teacher_phone": teacher.whatsapp if teacher else "",
+            "whatsapp_intro": f"{name} — {exam.course.title_ar} / {exam.level.name_ar} — {exam.display_title}",
         })
     answers = {a.question_id: a for a in submission.answers.all()}
     rows = [{"question": q, "answer": answers.get(q.pk),

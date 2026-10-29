@@ -18,7 +18,7 @@
         ({{ a.points_awarded|floatformat:"-2" }})</p>
     {% else %}
       {% if a.question.kind == "voice" %}
-        {% if a.audio_file %}<audio controls src="{% url 'exams:audio' pk=a.pk %}"></audio>{% else %}<p class="td-empty">لم يسجّل الطالب إجابة.</p>{% endif %}
+        {% if a.audio_file %}<audio controls src="{% url 'exams:audio' pk=a.pk %}"></audio>{% else %}<p class="td-empty">💬 الطالب يرسل إجابة هذا السؤال على واتساب. استمع لها هناك ثم ضع الدرجة هنا.</p>{% endif %}
       {% else %}
         <p style="background:var(--cream);border-radius:10px;padding:12px;line-height:1.9;">{% if a.text %}{{ a.text|linebreaksbr }}{% else %}<i>لم يكتب الطالب إجابة.</i>{% endif %}</p>
       {% endif %}

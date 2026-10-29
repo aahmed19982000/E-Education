@@ -6,6 +6,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.db import models
 
 from accounts.models import Profile
+from accounts.phone import validate_whatsapp
 from articles.models import Article
 from courses.models import Attendance, Cohort, CohortSlot, CourseLevel, EnrollmentRequest, Course, Enrollment, Lesson, LessonAttachment
 from core.models import SiteSettings
@@ -75,9 +76,10 @@ class TeamMemberForm(StyledFormMixin, forms.ModelForm):
             "role_ar", "role_en",
             "specialties_ar", "specialties_en",
             "bio_ar", "bio_en",
-            "youtube_url", "photo",
+            "youtube_url", "photo", "whatsapp",
         ]
         widgets = {
+            "whatsapp": forms.TextInput(attrs={"placeholder": "01012345678", "dir": "ltr", "inputmode": "tel"}),
             "specialties_ar": forms.HiddenInput(),
             "specialties_en": forms.HiddenInput(),
             "name_ar": forms.TextInput(attrs={"placeholder": "مثال: محمد عزت"}),
@@ -95,11 +97,16 @@ class TeamMemberForm(StyledFormMixin, forms.ModelForm):
             "specialties_ar": "التخصصات (عربي)", "specialties_en": "التخصصات (إنجليزي)",
             "bio_ar": "نبذة تعريفية (عربي)", "bio_en": "نبذة تعريفية (إنجليزي)",
             "youtube_url": "رابط فيديو يوتيوب", "photo": "الصورة الشخصية",
+            "whatsapp": "رقم واتساب",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._style_fields()
+
+    def clean_whatsapp(self):
+        value = self.cleaned_data["whatsapp"].strip()
+        return validate_whatsapp(value) if value else ""
 
 
 class TeamReviewForm(StyledFormMixin, forms.ModelForm):
