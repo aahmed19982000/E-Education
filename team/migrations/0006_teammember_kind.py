@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('team', '0004_teacheravailability'),
+        ('team', '0005_teammember_whatsapp'),
     ]
 
     operations = [

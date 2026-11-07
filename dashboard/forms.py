@@ -112,6 +112,11 @@ class TeamMemberForm(StyledFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._style_fields()
+        self.fields["kind"].required = False
+
+    def clean_kind(self):
+        return self.cleaned_data.get("kind") or TeamMember.KIND_TEACHER
+
 
     def clean_whatsapp(self):
         value = self.cleaned_data["whatsapp"].strip()
