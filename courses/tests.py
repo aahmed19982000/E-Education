@@ -8,6 +8,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from core.models import SiteSettings
 from quiz.models import PlacementResult
 from team.models import TeamMember
 
@@ -376,6 +377,7 @@ class AudienceAndModeTests(TestCase):
         self.assertNotContains(resp, "المواعيد الأسبوعية")
 
     def test_detail_shows_only_offered_modes(self):
+        SiteSettings.objects.update_or_create(pk=1, defaults={"show_prices": True})
         resp = self.client.get(reverse("courses:detail", args=[self.group_only.slug]))
         self.assertContains(resp, "900")
         self.assertContains(resp, 'class="c-plan"', count=1)  # group only; private is not offered
@@ -690,6 +692,7 @@ class SemiPrivateTests(TestCase):
         self.assertEqual(make_course(title_ar="x").allowed_modes(), ["group", "private"])
 
     def test_public_pages_show_all_three_types(self):
+        SiteSettings.objects.update_or_create(pk=1, defaults={"show_prices": True})
         self.course.is_published = True
         self.course.save()
         listing = self.client.get(reverse("courses:list"))
@@ -998,3 +1001,46 @@ class TeacherConflictTests(TestCase):
         self.client.post(url, {"force": "1", "force_conflict": "1"})
         self.a.refresh_from_db()
         self.assertIsNotNone(self.a.confirmed_at)
+
+
+class HiddenPricesTests(TestCase):
+    """Prices are hidden by default; visitors are sent to WhatsApp to ask."""
+
+    def setUp(self):
+        SiteSettings.objects.update_or_create(pk=1, defaults={"whatsapp_number": "01012345678"})
+        self.course = Course.objects.create(title_ar="كورس المحادثة", is_published=True, price_group=777, price_private=1555,
+                                            offers_private=True)
+
+    def assertNoPrice(self, resp):
+        for amount in ("777", "1555", "1,555"):
+            self.assertNotContains(resp, amount)
+
+    def test_public_pages_hide_prices_and_link_to_whatsapp(self):
+        for url in (reverse("courses:list"), reverse("courses:detail", args=[self.course.slug]),
+                    reverse("courses:apply", args=[self.course.slug]), reverse("core:home")):
+            resp = self.client.get(url)
+            self.assertNoPrice(resp)
+        listing = self.client.get(reverse("courses:list"))
+        self.assertContains(listing, "https://wa.me/201012345678?text=")
+        self.assertContains(listing, "اسأل عن السعر")
+
+    def test_workshop_price_is_hidden_too(self):
+        page = self.client.get(reverse("core:teachers"))
+        self.assertNotContains(page, "1,800")
+        self.assertContains(page, "اسأل عن السعر")
+
+    def test_without_a_number_the_button_falls_back_to_the_contact_page(self):
+        SiteSettings.objects.filter(pk=1).update(whatsapp_number="")
+        listing = self.client.get(reverse("courses:list"))
+        self.assertContains(listing, reverse("contact:contact"))
+
+    def test_turning_the_setting_on_shows_prices_again(self):
+        SiteSettings.objects.filter(pk=1).update(show_prices=True)
+        resp = self.client.get(reverse("courses:detail", args=[self.course.slug]))
+        self.assertContains(resp, "777")
+        self.assertNotContains(resp, "اسأل عن السعر")
+
+    def test_dashboard_still_shows_prices_and_has_the_toggle(self):
+        admin = User.objects.create_superuser("adm", "adm@x.com", "pw")
+        self.client.force_login(admin)
+        self.assertContains(self.client.get(reverse("dashboard:site_settings")), "show_prices")

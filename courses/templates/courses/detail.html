@@ -53,7 +53,7 @@
             <div><div class="name">{% if mode == "private" %}{{ t.courses.private }}{% elif mode == "semi_private" %}{{ t.courses.semiPrivate }}{% else %}{{ t.courses.group }}{% endif %}</div>
               <div class="hint">{% if mode == "private" %}{{ t.courses.planPrivateHint }}{% elif mode == "semi_private" %}{{ t.courses.planSemiPrivateHint }}{% else %}{{ t.courses.planGroupHint }}{% endif %}</div>
               <ul class="c-feat">{% for f in PLAN_FEATURES|get_item:mode %}<li>{{ f }}</li>{% endfor %}</ul></div>
-            <div class="amount">{% if price %}{{ price }}<small>{{ t.courses.currency }}</small>{% else %}—{% endif %}</div>
+            <div class="amount">{% if not SHOW_PRICES %}{% elif price %}{{ price }}<small>{{ t.courses.currency }}</small>{% else %}—{% endif %}</div>
           </div>
           {% endfor %}
         </div>
@@ -61,6 +61,7 @@
           <div class="c-notice" style="margin-bottom:12px;">{{ t.courses.enrolled }}</div>
           <a class="c-btn primary" href="{% url 'courses:mine' %}">{{ t.courses.goToMine }}</a>
         {% else %}
+          {% if not SHOW_PRICES %}<a class="c-btn primary" href="{% price_inquiry_url course.title %}" target="_blank" rel="noopener noreferrer" style="margin-bottom:10px;">💬 {{ t.courses.askPrice }}</a>{% endif %}
           <a class="c-btn" href="{% url 'courses:apply' slug=course.slug %}">{{ t.courses.subscribe }}</a>
           <p class="c-note">{{ t.courses.timesNote }}</p>
         {% endif %}

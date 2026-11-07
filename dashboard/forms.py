@@ -473,7 +473,7 @@ class StaffUserEditForm(StyledFormMixin, forms.Form):
 class SiteSettingsForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = SiteSettings
-        fields = ["whatsapp_number", "whatsapp_message",
+        fields = ["whatsapp_number", "whatsapp_message", "show_prices",
                   "features_group_ar", "features_group_en", "features_semi_private_ar",
                   "features_semi_private_en", "features_private_ar", "features_private_en"]
         widgets = {name: forms.Textarea(attrs={"rows": 5}) for name in (
@@ -481,11 +481,13 @@ class SiteSettingsForm(StyledFormMixin, forms.ModelForm):
             "features_semi_private_en", "features_private_ar", "features_private_en")}
         labels = {"whatsapp_number": "رقم الواتس اب للتواصل مع الأكاديمية",
                   "whatsapp_message": "رسالة جاهزة تظهر للزائر (اختياري)",
+                  "show_prices": "إظهار أسعار الكورسات للزوار",
                   "features_group_ar": "Group — بالعربية", "features_group_en": "Group — بالإنجليزية",
                   "features_semi_private_ar": "Semi private — بالعربية", "features_semi_private_en": "Semi private — بالإنجليزية",
                   "features_private_ar": "Private — بالعربية", "features_private_en": "Private — بالإنجليزية"}
         help_texts = {"whatsapp_number": "مثال: 01012345678 أو +201012345678. اتركه فارغًا لإخفاء أيقونة الواتس اب من الموقع.",
                       "whatsapp_message": "مثال: مرحبًا، أريد الاستفسار عن الكورسات.",
+                      "show_prices": "مُلغى = الأسعار مخفية وبدلها زر «اسأل عن السعر» يفتح واتساب برقم الأكاديمية. الأسعار تفضل ظاهرة في لوحة التحكم.",
                       **{f"features_{m}_{l}": "ميزة في كل سطر. اتركه فارغًا لعرض الميزات الافتراضية."
                          for m in ("group", "semi_private", "private") for l in ("ar", "en")}}
 

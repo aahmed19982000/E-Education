@@ -59,3 +59,5 @@
   .ws-plans, .ws-book, .ws-row { grid-template-columns: 1fr; }
   .ws-book { padding: 24px; gap: 20px; }
 }
+
+.ws-ask { display: inline-block; margin: 10px 0; padding: 10px 16px; border-radius: 10px; background: #e8f7ee; color: #1c6b3a; font-weight: 700; text-decoration: none; }

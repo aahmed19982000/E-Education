@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static site_extras %}
 
 {% block title %}{{ t.teachers.title }} · {{ t.brand }}{% endblock %}
 {% block extra_head %}<link rel="stylesheet" href="{% static 'css/workshop.css' %}">{% endblock %}
@@ -20,7 +20,7 @@
 <div class="ws-wrap ws-body">
   <div class="ws-facts">
     {% for d in t.teachers.details %}
-      <div class="ws-fact"><div class="label">{{ d.label }}</div><div class="value">{{ d.value }}</div></div>
+      {% if not d.price or SHOW_PRICES %}<div class="ws-fact"><div class="label">{{ d.label }}</div><div class="value">{{ d.value }}</div></div>{% endif %}
     {% endfor %}
   </div>
 
@@ -37,7 +37,8 @@
       <div class="ws-plan">
         <div class="tag">{{ t.teachers.planGroup }}</div>
         <p>{{ t.teachers.planGroupDesc }}</p>
-        <div class="price"><strong>1,800</strong> {{ t.courses.currency }}</div>
+        {% if SHOW_PRICES %}<div class="price"><strong>1,800</strong> {{ t.courses.currency }}</div>
+        {% else %}<a class="ws-ask" href="{% price_inquiry_url t.teachers.title %}" target="_blank" rel="noopener noreferrer">💬 {{ t.courses.askPrice }}</a>{% endif %}
         <a class="ws-btn primary" href="?mode=group#book">{{ t.teachers.bookNow }}</a>
       </div>
       <div class="ws-plan featured">

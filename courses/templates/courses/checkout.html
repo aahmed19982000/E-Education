@@ -1,4 +1,5 @@
 {% extends "courses/_base.html" %}
+{% load site_extras %}
 {% block title %}{{ t.courses.checkoutTitle }} · {{ t.brand }}{% endblock %}
 {% block content %}
 <section class="c-hero">
@@ -17,6 +18,7 @@
         {% if payment_pending %}<div class="c-notice">{% if LANG == "ar" %}لديك عملية دفع قيد المعالجة. سيصلك تأكيد بالبريد فور اكتمالها.{% else %}You have a payment in progress. You will get an email as soon as it completes.{% endif %}</div>{% endif %}
         <form method="post" action="{% url 'courses:pay' pk=req.pk %}">{% csrf_token %}<button type="submit" class="c-btn primary">{{ t.courses.pay }}</button></form>
       {% else %}<div class="c-notice">{{ t.courses.paymentSoon }}</div>{% endif %}
+      {% if not SHOW_PRICES and not req.is_paid %}<a class="c-btn primary" href="{% price_inquiry_url course.title %}" target="_blank" rel="noopener noreferrer" style="margin-top:12px;">💬 {{ t.courses.askPrice }}</a>{% endif %}
       <p class="c-text" style="margin:20px 0;">{{ t.courses.next }}</p>
       <a class="c-btn" href="{% url 'quiz:intro' %}">{{ t.courses.takeTest }}</a>
     </div>
@@ -26,7 +28,7 @@
         {% if course %}<div><dt>{{ t.courses.course }}</dt><dd>{{ course.title }}</dd></div>{% endif %}
         <div><dt>{{ t.courses.type }}</dt><dd>{% if req.mode == "private" %}{{ t.courses.private }}{% elif req.mode == "semi_private" %}{{ t.courses.semiPrivate }}{% else %}{{ t.courses.group }}{% endif %}</dd></div>
       </dl>
-      {% if req.price %}<div class="c-total"><span>{{ t.courses.price }}</span><strong>{{ req.price }} {{ t.courses.currency }}</strong></div>{% endif %}
+      {% if req.price and SHOW_PRICES %}<div class="c-total"><span>{{ t.courses.price }}</span><strong>{{ req.price }} {{ t.courses.currency }}</strong></div>{% endif %}
     </div></aside>
   </div>
 </div>

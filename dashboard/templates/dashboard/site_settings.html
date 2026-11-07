@@ -18,6 +18,13 @@
   </div>
 
   <div class="dash-card" style="max-width:760px;margin-bottom:20px;">
+    <h3 style="margin-top:0;">أسعار الكورسات</h3>
+    <div class="dash-field"><label>{{ form.show_prices }} {{ form.show_prices.label }}</label>
+      <small style="color:var(--muted);display:block;margin-top:5px;">{{ form.show_prices.help_text }}</small></div>
+    {% if not whatsapp_url %}<p style="margin:8px 0 0;font-size:13px;color:#a33333;">لا يوجد رقم واتس اب، فزر «اسأل عن السعر» سيفتح صفحة التواصل بدل واتساب.</p>{% endif %}
+  </div>
+
+  <div class="dash-card" style="max-width:760px;margin-bottom:20px;">
     <h3 style="margin-top:0;">مميزات كل نوع كورس</h3>
     <p style="color:var(--muted);font-size:13.5px;line-height:1.8;margin-top:0;">تظهر للعميل قبل التسجيل: في صفحة الكورسات وصفحة الكورس ونموذج الاشتراك. اكتب ميزة في كل سطر. إن تركت نوعًا فارغًا تظهر له الميزات الافتراضية.</p>
     {% for f in form %}{% if f.name|slice:":9" == 'features_' %}

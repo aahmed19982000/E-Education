@@ -273,3 +273,6 @@
 .sd-state { flex: none; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 999px; background: var(--cream); border: 1px solid var(--cream-border); color: var(--primary); }
 .sd-state.late { background: #fde8e8; border-color: #f4c4c4; color: #b00020; }
 .sd-state.graded { background: #e7f6ec; border-color: #bfe5cb; color: #1c6b3a; }
+
+.c-plan-ask { display: inline-block; margin: 6px 0 10px; padding: 9px 14px; border-radius: 10px; background: #e8f7ee; color: #1c6b3a; font-weight: 700; font-size: 14px; text-decoration: none; }
+.c-plan-box.featured .c-plan-ask { background: rgba(255,255,255,.16); color: #fff; }

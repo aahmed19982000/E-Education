@@ -14,6 +14,9 @@ class SiteSettings(models.Model):
     whatsapp_message = models.CharField(
         max_length=200, blank=True, help_text="Optional text pre-filled in the visitor's chat.")
 
+    # Prices are hidden by default: visitors ask for them on WhatsApp. Turn on to show them again.
+    show_prices = models.BooleanField(default=False)
+
     # What each course type includes, shown to visitors before they sign up. One feature per line;
     # empty falls back to the defaults in core/translations.py.
     features_group_ar = models.TextField(blank=True)
@@ -47,6 +50,13 @@ class SiteSettings(models.Model):
             lines = [line.strip() for line in text.splitlines() if line.strip()]
             result[mode] = lines or list(defaults[mode])
         return result
+
+    def inquiry_url(self, text=""):
+        """wa.me link to the academy with `text` pre-filled ('' when no usable number is set)."""
+        digits = whatsapp_digits(self.whatsapp_number)
+        if not digits:
+            return ""
+        return f"https://wa.me/{digits}?text={quote(text)}" if text else f"https://wa.me/{digits}"
 
     @property
     def whatsapp_url(self):

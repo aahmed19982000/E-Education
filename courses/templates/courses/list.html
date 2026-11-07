@@ -1,4 +1,5 @@
 {% extends "courses/_base.html" %}
+{% load site_extras %}
 {% block title %}{{ t.courses.title }} · {{ t.brand }}{% endblock %}
 {% block content %}
 <script>document.documentElement.classList.add('has-js');</script>
@@ -28,7 +29,7 @@
         {% for p in c.plans %}
         <button type="button" role="tab" class="c-plan-tab{% if p.mode == c.default %} is-active{% endif %}{% if not p.offered %} is-off{% endif %}" data-plan="{{ p.mode }}" aria-selected="{% if p.mode == c.default %}true{% else %}false{% endif %}">
           <span>{{ p.label }}</span>
-          <small>{% if not p.offered %}—{% elif p.price %}{{ p.price }} {{ t.courses.currency }}{% endif %}</small>
+          <small>{% if not p.offered %}—{% elif p.price and SHOW_PRICES %}{{ p.price }} {{ t.courses.currency }}{% endif %}</small>
         </button>
         {% endfor %}
       </div>
@@ -38,7 +39,8 @@
         <section class="c-plan-box{% if p.mode == 'private' %} featured{% endif %}{% if not p.offered %} is-off{% endif %}{% if p.mode == c.default %} is-active{% endif %}" data-plan="{{ p.mode }}" role="tabpanel">
           <div class="c-plan-tag">{{ p.label }}</div>
           {% if p.offered %}
-            {% if p.price %}<div class="c-plan-price"><strong>{{ p.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
+            {% if SHOW_PRICES %}{% if p.price %}<div class="c-plan-price"><strong>{{ p.price }}</strong> {{ t.courses.currency }}</div>{% endif %}
+            {% else %}<a class="c-plan-ask" href="{% price_inquiry_url c.title %}" target="_blank" rel="noopener noreferrer">💬 {{ t.courses.askPrice }}</a>{% endif %}
             <div class="c-plan-hint">{{ p.hint }}</div>
             <ul class="c-feat">{% for f in p.features %}<li>{{ f }}</li>{% endfor %}</ul>
             <a class="c-btn{% if p.mode != 'private' %} primary{% endif %}" href="{% url 'courses:apply' slug=c.slug %}?mode={{ p.mode }}">{{ t.courses.bookNow }}</a>

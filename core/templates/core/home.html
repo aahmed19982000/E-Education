@@ -48,7 +48,7 @@
           <h3>{{ c.title }}</h3>
           <p>{{ c.description|truncatechars:110 }}</p>
           <div class="hm-course-foot">
-            {% if c.from_price %}<div class="hm-price">{{ t.home.from }} <strong>{{ c.from_price }}</strong> {{ t.courses.currency }}</div>{% else %}<span></span>{% endif %}
+            {% if c.from_price and SHOW_PRICES %}<div class="hm-price">{{ t.home.from }} <strong>{{ c.from_price }}</strong> {{ t.courses.currency }}</div>{% else %}<span></span>{% endif %}
             <span class="hm-more">{{ t.courses.viewCourse }}</span>
           </div>
         </a>

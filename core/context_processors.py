@@ -28,6 +28,7 @@ def site_language(request):
         "META_DESCRIPTION": META_DESCRIPTION[lang],
         # Only real admins / teachers get the dashboard link; students never see it.
         "HAS_DASHBOARD": get_dashboard_role(getattr(request, "user", None)) is not None,
+        "SHOW_PRICES": site.show_prices,
         "SITE_WHATSAPP_URL": site.whatsapp_url,
         "PLAN_FEATURES": site.plan_features(lang),
     }
